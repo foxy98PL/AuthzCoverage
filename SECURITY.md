@@ -1,12 +1,13 @@
 # Security Policy
 
-AuthzCoverage is a private, pre-alpha project developed locally. It has no
-public releases yet.
+AuthzCoverage is pre-alpha. It has no releases yet; only the `main` branch is
+supported.
 
 ## Reporting a vulnerability
 
-A private reporting channel will be published before the repository goes
-public. Until then, contact the project owner directly.
+Report vulnerabilities privately through GitHub: open the repository's
+**Security** tab and choose **Report a vulnerability**. Please do not open a
+public issue for a security problem.
 
 Please do not include real credentials or recorded traffic (HAR files) from
-non-public systems in any report.
+non-public systems in any report. A minimal synthetic reproduction is enough.
