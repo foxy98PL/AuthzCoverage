@@ -17,7 +17,7 @@ Plan and open decisions: `docs/PLAN.md`.
 - KAN-74 tenantshop demo → In Review (agent review passed after fix). `make e2e` green; seeded bug → 1 suspicious_allow other_tenant.
 - Next: KAN-28 README/quickstart.
 - Product gap found by KAN-74: `learn_from_create.id_from` only supports `request_json`; server-generated IDs (`response_json`) cannot be learned. Follow-up ticket proposed.
-- 2026-11-27: project moved to GitHub (`origin` https://github.com/foxy98PL/AuthzCoverage, branch `main`, based on remote Initial commit; nothing pushed yet — owner commits/pushes).
+- 2026-11-27: project moved to GitHub (`origin` https://github.com/foxy98PL/AuthzCoverage, branch `main`). First push 2026-11-27: fcda7ad (all Phase 1–2 work + KAN-74), via a repo-scoped SSH deploy key.
 - Remaining Phase 2 now unblocked: KAN-11 GitHub parts (CI, Dependabot), KAN-26 GitHub Action, KAN-27 release (KAN-71/72), KAN-23 AC3.
 
 ## Earlier state (round 1)
