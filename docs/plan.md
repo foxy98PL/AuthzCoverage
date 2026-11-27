@@ -6,13 +6,16 @@ authorization tester (or a script) can execute. authzcov itself never sends a re
 ```
 authzcov export --plan --in authzcov-out/coverage.json [--out plan.json] [--include waived]
 authzcov export --plan --in authzcov-out/coverage.json --out plan.json \
-    --har tests.har --spec openapi.yaml --identities identities.yaml     # adds raw example IDs
+    --har tests.har --spec openapi.yaml --identities identities.yaml \
+    [--base-path auto|none|/api]                                          # adds raw example IDs
 ```
 
 - Gaps are required cells that are not covered. Waived cells are left out unless `--include waived`
   (they then carry `"waived": true`). Covered, unknown and not-required cells are never exported.
-- Default output is stdout; `--out` writes atomically.
-- Deterministic: probes are sorted by endpoint ID, relationship, attacker. `generated_at`
+- Default output is stdout; `--out` writes atomically. Plans with raw IDs (`--har`) are never written to
+  stdout: `--out` is required (usage error, exit 2) and the file is mode 0600.
+- Deterministic: probes are sorted by endpoint ID, then relationship in model order (owner, same_role_other_user, lower_role,
+  higher_role, other_tenant, anonymous), then attacker. `generated_at`
   honours `SOURCE_DATE_EPOCH` like coverage.json. `source.coverage_sha256` hashes the input file.
 - Schema: `schema/plan.v1.json` (informational; authzcov builds the document in Go).
 
@@ -53,7 +56,10 @@ coverage.json stores only `id_hash`, so a plan built from it alone has no usable
 (`contains_raw_ids: false`). With `--har --spec --identities` the pipeline is re-run (the same code as
 `authzcov coverage`) and each object's `id_hash` is matched to the raw ID in the recording, written as
 `object.id`. That file contains raw IDs: it is written with mode 0600, has
-`"contains_raw_ids": true`, and a warning is printed. **Never commit or share it.** The flag is true
+`"contains_raw_ids": true`, and a warning is printed. Without `--out` the command refuses (exit 2): a shell redirect would make the file
+  umask-readable. `--base-path` (default `auto`, same values and validation as `coverage`) must match the
+  coverage run, and a warning is printed when the `--har`, `--spec` or `--identities` files differ from the
+  hashes recorded in coverage.json. **Never commit or share it.** The flag is true
 whenever `--har` is given. Objects of self-claim (`subject`) resources get no raw ID. The plan never
 contains credentials in either mode.
 

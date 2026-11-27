@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -229,6 +230,7 @@ func TestGoldenPlansMatchSchema(t *testing.T) {
 			t.Fatal(err)
 		}
 		shape(t, root, root, doc, filepath.Base(f))
+		extras(t, root, doc, filepath.Base(f))
 	}
 	// Raw ids and waived flag are declared too.
 	p := Build(fixture("owner"), Options{Raw: &Raw{IDs: map[string]string{"orders/aaaaaaaa": "x"}, TenantParams: map[string]bool{"orgId": true}}, IncludeWaived: true})
@@ -236,4 +238,57 @@ func TestGoldenPlansMatchSchema(t *testing.T) {
 	var doc map[string]any
 	_ = json.Unmarshal(b, &doc)
 	shape(t, root, root, doc, "raw")
+	extras(t, root, doc, "raw")
+}
+
+// extras checks what shape does not: the plan_version const, the id / id_hash
+// patterns and additionalProperties:false at the document root.
+func extras(t *testing.T, root map[string]any, doc map[string]any, name string) {
+	t.Helper()
+	props := root["properties"].(map[string]any)
+	if root["additionalProperties"] != false {
+		t.Errorf("schema root additionalProperties = %v, want false", root["additionalProperties"])
+	}
+	for k := range doc {
+		if _, ok := props[k]; !ok {
+			t.Errorf("%s: top-level key %q not allowed by schema root", name, k)
+		}
+	}
+	if want := props["plan_version"].(map[string]any)["const"]; want != float64(1) || doc["plan_version"] != want {
+		t.Errorf("%s: plan_version = %v, schema const = %v, want 1", name, doc["plan_version"], want)
+	}
+	defs := root["$defs"].(map[string]any)
+	probeProps := defs["probe"].(map[string]any)["properties"].(map[string]any)
+	idRe := regexp.MustCompile(probeProps["id"].(map[string]any)["pattern"].(string))
+	var hashRe *regexp.Regexp
+	if obj, ok := probeProps["object"].(map[string]any); ok {
+		ref := strings.TrimPrefix(fmt.Sprint(obj["$ref"]), "#/$defs/")
+		if o, ok := defs[ref].(map[string]any); ok {
+			if h, ok := o["properties"].(map[string]any)["id_hash"].(map[string]any); ok {
+				hashRe = regexp.MustCompile(h["pattern"].(string))
+			}
+		}
+	}
+	if hashRe == nil {
+		t.Fatalf("%s: id_hash pattern not found in schema", name)
+	}
+	probes, _ := doc["probes"].([]any)
+	hashes := 0
+	for _, pr := range probes {
+		pm := pr.(map[string]any)
+		if id, _ := pm["id"].(string); !idRe.MatchString(id) {
+			t.Errorf("%s: probe id %q does not match %s", name, id, idRe)
+		}
+		if o, ok := pm["object"].(map[string]any); ok {
+			if h, ok := o["id_hash"].(string); ok {
+				hashes++
+				if !hashRe.MatchString(h) {
+					t.Errorf("%s: id_hash %q does not match %s", name, h, hashRe)
+				}
+			}
+		}
+	}
+	if len(probes) == 0 {
+		t.Errorf("%s: no probes to check patterns against", name)
+	}
 }

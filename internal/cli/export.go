@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"authzcov/internal/plan"
 	"authzcov/internal/redact"
@@ -25,6 +26,7 @@ type exportOpts struct {
 	spec       string
 	hars       []string
 	identities string
+	basePath   string
 }
 
 func newExportCmd() *cobra.Command {
@@ -47,11 +49,12 @@ func newExportCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVar(&o.plan, "plan", false, "export a probe plan (required)")
 	f.StringVar(&o.in, "in", "", "coverage.json written by `authzcov coverage` (required)")
-	f.StringVar(&o.out, "out", "", "file to write (default: stdout)")
+	f.StringVar(&o.out, "out", "", "file to write (default: stdout; required with --har)")
 	f.StringVar(&o.include, "include", "", `also export waived gaps: "waived"`)
 	f.StringVar(&o.spec, "spec", "", "OpenAPI spec, to add raw example IDs (with --har and --identities)")
 	f.StringArrayVar(&o.hars, "har", nil, "HAR file, to add raw example IDs (repeatable; the plan then contains raw IDs)")
 	f.StringVar(&o.identities, "identities", "", "identities.yaml, to add raw example IDs (with --har and --spec)")
+	f.StringVar(&o.basePath, "base-path", basePathAuto, `URL prefix in front of spec paths, as for coverage: "auto", "none", or a path like /api (only with --har)`)
 	return cmd
 }
 
@@ -69,8 +72,10 @@ func (o *exportOpts) validate() error {
 		return errors.New("--har needs --spec and --identities too (the pipeline is re-run to find raw example IDs)")
 	case !o.raw() && (o.spec != "" || o.identities != ""):
 		return errors.New("--spec and --identities are only used together with --har")
+	case o.raw() && o.out == "":
+		return errors.New("a plan with raw object IDs (--har) is only written to a 0600 file: pass --out <file>")
 	}
-	return nil
+	return validateBasePath(o.basePath)
 }
 
 func runExportPlan(o *exportOpts, stdout, stderr io.Writer) error {
@@ -104,7 +109,7 @@ func runExportPlan(o *exportOpts, stdout, stderr io.Writer) error {
 	if err := enc.Encode(p); err != nil {
 		return fmt.Errorf("encode plan: %w", err)
 	}
-	if o.out == "" {
+	if o.out == "" { // raw-ID plans never get here: validate requires --out
 		_, err := stdout.Write(buf.Bytes())
 		return err
 	}
@@ -123,7 +128,7 @@ func runExportPlan(o *exportOpts, stdout, stderr io.Writer) error {
 // `authzcov coverage`) to resolve raw object IDs, tenant path parameters and
 // declared identities. coverage.json stays the source of the gaps.
 func rawFromPipeline(o *exportOpts, rep *coveragejson.Report, stderr io.Writer) (*plan.Raw, error) {
-	a, err := analyze(&coverageOpts{spec: o.spec, hars: o.hars, identities: o.identities, basePath: basePathAuto}, stderr)
+	a, err := analyze(&coverageOpts{spec: o.spec, hars: o.hars, identities: o.identities, basePath: o.basePath}, stderr)
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +138,9 @@ func rawFromPipeline(o *exportOpts, rep *coveragejson.Report, stderr io.Writer) 
 		if sum, err := fileSHA256(in.path); err == nil && sum != in.want {
 			_, _ = fmt.Fprintf(stderr, "warning: %s differs from the file coverage.json was built from; example IDs may not match\n", in.name)
 		}
+	}
+	if !sameStrings(harSHA256s(o.hars), harRecorded(rep)) {
+		_, _ = fmt.Fprintln(stderr, "warning: --har files differ from the HAR files coverage.json was built from; example IDs may not match")
 	}
 	r := &plan.Raw{IDs: map[string]string{}, TenantParams: map[string]bool{}}
 	for _, ob := range a.objects {
@@ -146,6 +154,29 @@ func rawFromPipeline(o *exportOpts, rep *coveragejson.Report, stderr io.Writer) 
 	}
 	return r, nil
 }
+
+// harSHA256s returns the sorted hashes of the given files; an unreadable file
+// contributes "" so it never matches.
+func harSHA256s(paths []string) []string {
+	out := make([]string, 0, len(paths))
+	for _, p := range paths {
+		sum, _ := fileSHA256(p)
+		out = append(out, sum)
+	}
+	slices.Sort(out)
+	return out
+}
+
+func harRecorded(rep *coveragejson.Report) []string {
+	out := make([]string, 0, len(rep.Inputs.HAR))
+	for _, h := range rep.Inputs.HAR {
+		out = append(out, h.SHA256)
+	}
+	slices.Sort(out)
+	return out
+}
+
+func sameStrings(a, b []string) bool { return slices.Equal(a, b) }
 
 // writeFileAtomic writes data to path via a temp file and rename with the
 // given permission bits (the temp file is created 0600, so raw-ID output is

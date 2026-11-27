@@ -162,6 +162,13 @@ func TestPlanTenantshopProbes(t *testing.T) {
 
 func TestPlanNoCredentials(t *testing.T) {
 	es := tenantshopEntries(t)
+	// Credential carriers other than Authorization: cookie, API-key header, query token.
+	const cookieVal, apiKeyVal, queryVal = "sessid-4c1e9d7a2b", "apikey-91f3b6e0aa", "qtok-5d2f8c3e71" //nolint:gosec // synthetic test values
+	es = append(es,
+		hartest.Entry{Method: "GET", URL: base + "/me", Status: 200, Headers: map[string]string{"Cookie": "session=" + cookieVal}},
+		hartest.Entry{Method: "GET", URL: base + "/me", Status: 200, Headers: map[string]string{"X-API-Key": apiKeyVal}},
+		hartest.Entry{Method: "GET", URL: base + "/me?access_token=" + queryVal, Status: 200},
+	)
 	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, es)
 	covPath := filepath.Join(cov.dir, "out", "coverage.json")
 	var rep coveragejson.Report
@@ -170,11 +177,18 @@ func TestPlanNoCredentials(t *testing.T) {
 	}
 	for _, extra := range [][]string{
 		nil, {"--include", "waived"},
-		{"--har", "t.har", "--spec", "spec.yml", "--identities", "ids.yaml"},
+		{"--har", "t.har", "--spec", "spec.yml", "--identities", "ids.yaml", "--out", "raw-nocred.json"},
 	} {
 		code, out, errs := runCLI(t, append([]string{"export", "--plan", "--in", covPath}, extra...)...)
 		if code != ExitOK {
 			t.Fatalf("exit %d: %s", code, errs)
+		}
+		if out == "" {
+			b, err := os.ReadFile(filepath.Join(cov.dir, "raw-nocred.json")) //nolint:gosec // test path
+			if err != nil {
+				t.Fatal(err)
+			}
+			out = string(b)
 		}
 		var secrets []string
 		for _, e := range es {
@@ -185,7 +199,7 @@ func TestPlanNoCredentials(t *testing.T) {
 		for _, id := range rep.Identities {
 			secrets = append(secrets, id.Fingerprints...)
 		}
-		secrets = append(secrets, "Bearer ", "eyJ", "Authorization", "fingerprint", "password")
+		secrets = append(secrets, cookieVal, apiKeyVal, queryVal, "access_token", "X-API-Key", "Cookie", "Bearer ", "eyJ", "Authorization", "fingerprint", "password")
 		for _, s := range secrets {
 			if s != "" && strings.Contains(out, s) {
 				t.Errorf("plan (%v) contains credential material %q", extra, s)
@@ -300,6 +314,8 @@ func TestExportUsageErrors(t *testing.T) {
 		"no plan":       {[]string{"export", "--in", "x"}, "missing --plan"},
 		"no in":         {[]string{"export", "--plan"}, "missing --in"},
 		"bad include":   {[]string{"export", "--plan", "--in", "x", "--include", "all"}, "invalid --include"},
+		"raw no out":    {[]string{"export", "--plan", "--in", "x", "--har", "a.har", "--spec", "s.yml", "--identities", "i.yaml"}, "only written to a 0600 file: pass --out"},
+		"bad base path": {[]string{"export", "--plan", "--in", "x", "--har", "a.har", "--spec", "s.yml", "--identities", "i.yaml", "--out", "o", "--base-path", "api"}, "invalid --base-path"},
 		"har alone":     {[]string{"export", "--plan", "--in", "x", "--har", "a.har"}, "--har needs --spec and --identities"},
 		"spec no har":   {[]string{"export", "--plan", "--in", "x", "--spec", "s.yml"}, "only used together with --har"},
 		"missing input": {[]string{"export", "--plan", "--in", filepath.Join(t.TempDir(), "nope.json")}, ""},
@@ -315,5 +331,55 @@ func TestExportUsageErrors(t *testing.T) {
 				t.Errorf("exit %d, stderr %q", code, errb.String())
 			}
 		})
+	}
+}
+
+func TestExportRawStdoutRefused(t *testing.T) {
+	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, tenantshopEntries(t))
+	covPath := filepath.Join(cov.dir, "out", "coverage.json")
+	code, out, errs := runCLI(t, "export", "--plan", "--in", covPath,
+		"--har", "t.har", "--spec", "spec.yml", "--identities", "ids.yaml")
+	if code != ExitUsage || out != "" || !strings.Contains(errs, "0600") {
+		t.Errorf("exit %d stdout %q stderr %q", code, out, errs)
+	}
+}
+
+func TestExportRawHARMismatchWarning(t *testing.T) {
+	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, tenantshopEntries(t))
+	covPath := filepath.Join(cov.dir, "out", "coverage.json")
+	args := []string{"export", "--plan", "--in", covPath, "--har", "t.har", "--spec", "spec.yml", "--identities", "ids.yaml"}
+
+	_, _, errs := runCLI(t, append(args, "--out", "ok.json")...)
+	if strings.Contains(errs, "--har files differ") {
+		t.Errorf("unexpected HAR warning for the original file: %s", errs)
+	}
+	// Same entries plus one extra request: a different file, same pipeline inputs.
+	es := append(tenantshopEntries(t), hartest.Entry{Method: "GET", URL: base + "/me", Status: 200})
+	hartest.WriteHAR(t, cov.dir, "t.har", es...)
+	code, _, errs := runCLI(t, append(args, "--out", "changed.json")...)
+	if code != ExitOK || !strings.Contains(errs, "--har files differ") {
+		t.Errorf("exit %d, want HAR mismatch warning: %s", code, errs)
+	}
+}
+
+func TestExportBasePathMirrorsCoverage(t *testing.T) {
+	es := tenantshopEntries(t)
+	for i := range es { // everything lives under a /api prefix
+		es[i].URL = strings.Replace(es[i].URL, base, base+"/api", 1)
+	}
+	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, es, "--base-path", "/api")
+	covPath := filepath.Join(cov.dir, "out", "coverage.json")
+	raw := []string{"--har", "t.har", "--spec", "spec.yml", "--identities", "ids.yaml"}
+
+	// Default (auto) must still work; an explicit wrong prefix must fail like coverage does.
+	if code, _, errs := runCLI(t, append([]string{"export", "--plan", "--in", covPath, "--out", "a.json"}, raw...)...); code != ExitOK {
+		t.Fatalf("auto: exit %d: %s", code, errs)
+	}
+	if code, _, errs := runCLI(t, append([]string{"export", "--plan", "--in", covPath, "--out", "b.json", "--base-path", "/api"}, raw...)...); code != ExitOK {
+		t.Fatalf("/api: exit %d: %s", code, errs)
+	}
+	code, _, errs := runCLI(t, append([]string{"export", "--plan", "--in", covPath, "--out", "c.json", "--base-path", "/nope"}, raw...)...)
+	if code == ExitOK {
+		t.Errorf("--base-path /nope should fail like coverage: %s", errs)
 	}
 }

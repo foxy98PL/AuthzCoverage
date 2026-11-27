@@ -53,14 +53,22 @@ func newCoverageCmd() *cobra.Command {
 	return cmd
 }
 
+// validateBasePath checks a --base-path value (shared by coverage and export).
+func validateBasePath(bp string) error {
+	if bp != basePathAuto && bp != basePathNone && !strings.HasPrefix(bp, "/") {
+		return fmt.Errorf("invalid --base-path %q: use auto, none, or a path starting with /", redact.StripControl(bp))
+	}
+	return nil
+}
+
 func (o *coverageOpts) validate() error {
 	switch {
 	case o.spec == "":
 		return fmt.Errorf("missing --spec: pass an OpenAPI 3.x file")
 	case len(o.hars) == 0:
 		return fmt.Errorf("missing --har: pass at least one HAR file")
-	case o.basePath != basePathAuto && o.basePath != basePathNone && !strings.HasPrefix(o.basePath, "/"):
-		return fmt.Errorf("invalid --base-path %q: use auto, none, or a path starting with /", redact.StripControl(o.basePath))
+	case validateBasePath(o.basePath) != nil:
+		return validateBasePath(o.basePath)
 	case o.identities == "":
 		return fmt.Errorf("missing --identities: pass an identities.yaml file")
 	}
