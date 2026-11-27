@@ -103,7 +103,13 @@ func analyze(o *coverageOpts, stderr io.Writer) (*analysis, error) {
 
 	objects := classify(cfg, obs)
 	allows := suspicious.Find(obs)
-	m := matrix.BuildWith(endpoints, obs, cfg.HasTenants(), matrix.Options{Strict: o.strict})
+	mopts := matrix.Options{Strict: o.strict, MinRanks: relate.MinRanks(obs)}
+	for name, rank := range cfg.Roles {
+		if name != "anonymous" && (!mopts.HasLowestRank || rank < mopts.LowestRank) {
+			mopts.HasLowestRank, mopts.LowestRank = true, rank
+		}
+	}
+	m := matrix.BuildWith(endpoints, obs, cfg.HasTenants(), mopts)
 	return &analysis{cfg: cfg, ws: ws, endpoints: endpoints, obs: obs, objects: objects, allows: allows,
 		m: m, ms: ms, choices: choices, perFile: perFile}, nil
 }
@@ -346,34 +352,60 @@ func claimPathString(claims map[string]any, path string) (string, bool) {
 	return s, ok && s != ""
 }
 
-// applyOverrides returns endpoints with requirements.overrides applied to
-// copies: the chosen param becomes the object param and the resource is the
-// literal segment before it.
+// applyOverrides returns endpoints with the config applied to copies:
+// requirements.overrides pick the object param (the resource is the literal
+// segment before it) and declare min_role; every endpoint whose object param
+// is a tenancy.tenant_params parameter becomes tenant-scoped.
 func applyOverrides(cfg *config.File, endpoints []*model.Endpoint) ([]*model.Endpoint, error) {
-	if len(cfg.Overrides) == 0 {
-		return endpoints, nil
-	}
 	out := slices.Clone(endpoints)
 	for _, ov := range cfg.Overrides {
 		i := slices.IndexFunc(out, func(e *model.Endpoint) bool { return e.ID == ov.Endpoint })
 		if i < 0 {
 			return nil, fmt.Errorf("%s:%d: requirements.overrides: endpoint %q is not in the spec", cfg.Path, ov.Line, redact.StripControl(ov.Endpoint))
 		}
-		if !slices.Contains(out[i].Params, ov.ObjectParam) {
-			return nil, fmt.Errorf("%s:%d: requirements.overrides: object_param %q is not a path parameter of %q (parameters: %s)",
-				cfg.Path, ov.Line, redact.StripControl(ov.ObjectParam), redact.StripControl(ov.Endpoint), strings.Join(out[i].Params, ", "))
-		}
 		cp := *out[i]
-		cp.ObjectParam = ov.ObjectParam
-		cp.Kind = model.ObjectLevel
-		cp.Resource = ""
-		segs := strings.Split(strings.Trim(cp.Template, "/"), "/")
-		for j, sg := range segs {
-			if sg == "{"+ov.ObjectParam+"}" && j > 0 && !strings.HasPrefix(segs[j-1], "{") {
-				cp.Resource = segs[j-1]
+		if ov.ObjectParam != "" {
+			if !slices.Contains(cp.Params, ov.ObjectParam) {
+				return nil, fmt.Errorf("%s:%d: requirements.overrides: object_param %q is not a path parameter of %q (parameters: %s)",
+					cfg.Path, ov.Line, redact.StripControl(ov.ObjectParam), redact.StripControl(ov.Endpoint), strings.Join(cp.Params, ", "))
+			}
+			cp.ObjectParam = ov.ObjectParam
+			cp.Kind = model.ObjectLevel
+			cp.Resource = ""
+			segs := strings.Split(strings.Trim(cp.Template, "/"), "/")
+			for j, sg := range segs {
+				if sg == "{"+ov.ObjectParam+"}" && j > 0 && !strings.HasPrefix(segs[j-1], "{") {
+					cp.Resource = segs[j-1]
+				}
 			}
 		}
+		if ov.MinRole != "" {
+			rank, ok := cfg.Roles[ov.MinRole]
+			if !ok {
+				return nil, fmt.Errorf("%s:%d: requirements.overrides: min_role %q is not a role", cfg.Path, ov.Line, redact.StripControl(ov.MinRole))
+			}
+			cp.MinRole, cp.MinRank, cp.MinRankDeclared = ov.MinRole, rank, true
+		}
 		out[i] = &cp
+	}
+	for i, e := range out {
+		if e.Kind != model.ObjectLevel || e.TenantScoped {
+			continue
+		}
+		if _, ok := cfg.TenantParams[e.ObjectParam]; ok {
+			cp := *e
+			cp.TenantScoped = true
+			out[i] = &cp
+		}
+	}
+	for _, ov := range cfg.Overrides {
+		if ov.MinRole == "" {
+			continue
+		}
+		if e := out[slices.IndexFunc(out, func(e *model.Endpoint) bool { return e.ID == ov.Endpoint })]; e.Kind == model.ObjectLevel && !e.TenantScoped {
+			return nil, fmt.Errorf("%s:%d: requirements.overrides: min_role applies only to function-level or tenant-scoped endpoints; %q addresses a single object (parameter %q is not in tenancy.tenant_params)",
+				cfg.Path, ov.Line, redact.StripControl(ov.Endpoint), e.ObjectParam)
+		}
 	}
 	return out, nil
 }
@@ -546,17 +578,24 @@ func classify(cfg *config.File, obs []*model.Observation) []ownership.Object {
 	for _, o := range obs {
 		reg.Learn(o)
 	}
-	minRanks := relate.MinRanks(obs)
-	for _, o := range obs {
-		if o.Endpoint.Kind == model.ObjectLevel {
-			o.Owner, o.OwnerConf = reg.Owner(o)
-		}
-		minRank, known := minRanks[o.Endpoint.ID]
+	// Tenant first: the learned minimum of a tenant-scoped endpoint only
+	// counts same-tenant callers.
+	tenants := make([]string, len(obs))
+	for i, o := range obs {
 		tenant, tenantKnown := objectTenant(cfg, o)
 		o.ObjectTenantKnown = tenantKnown && o.Endpoint.Kind == model.ObjectLevel
 		if o.ObjectTenantKnown {
 			o.ObjectTenant = tenant
 		}
+		tenants[i] = tenant
+	}
+	minRanks := relate.MinRanks(obs)
+	for i, o := range obs {
+		if o.Endpoint.Kind == model.ObjectLevel {
+			o.Owner, o.OwnerConf = reg.Owner(o)
+		}
+		minRank, known := minRanks[o.Endpoint.ID]
+		tenant := tenants[i]
 		o.Rel = relate.Classify(relate.Input{
 			Endpoint: o.Endpoint, Caller: o.Identity, CallerConf: o.IDConf,
 			Owner: o.Owner, OwnerConf: o.OwnerConf, MinRank: minRank, MinRankKnown: known,

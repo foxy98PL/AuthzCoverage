@@ -1,8 +1,8 @@
-**authzcov:** 4 of 42 required authorization checks covered (9.5%), 38 gaps.
+**authzcov:** 4 of 41 required authorization checks covered (9.8%), 37 gaps.
 
 | Required | Covered | Waived | Gaps | Unmatched requests | Ambiguous matches |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 42 | 4 | 0 | 38 | 0 | 0 |
+| 41 | 4 | 0 | 37 | 0 | 0 |
 
 ### Top gaps
 
@@ -13,7 +13,6 @@
 | PUT /users/v1/{username}/email | another user with the same role |
 | PUT /users/v1/{username}/password | another user with the same role |
 | GET / | a lower role |
-| GET /books/v1 | a lower role |
 | GET /createdb | a lower role |
 | GET /me | a lower role |
 | GET /users/v1 | a lower role |
@@ -28,13 +27,13 @@
 | GET /me | an anonymous caller |
 | GET /users/v1 | an anonymous caller |
 | GET /users/v1/\_debug | an anonymous caller |
+| GET /users/v1/{username} | an anonymous caller |
 
 <details>
-<summary>18 more gaps</summary>
+<summary>17 more gaps</summary>
 
 | Endpoint | Missing test |
 | --- | --- |
-| GET /users/v1/{username} | an anonymous caller |
 | POST /books/v1 | an anonymous caller |
 | POST /users/v1/login | an anonymous caller |
 | POST /users/v1/register | an anonymous caller |

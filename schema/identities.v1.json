@@ -64,10 +64,12 @@
         "overrides": {
           "type": "array", "maxItems": 200,
           "items": {
-            "type": "object", "additionalProperties": false, "required": ["endpoint", "object_param"],
+            "type": "object", "additionalProperties": false, "required": ["endpoint"],
+            "anyOf": [{"required": ["object_param"]}, {"required": ["min_role"]}],
             "properties": {
               "endpoint": {"type": "string", "pattern": "^(GET|POST|PUT|PATCH|DELETE) /\\S*$", "description": "Exact endpoint ID, e.g. \"GET /orgs/{orgId}/repos/{repo}\"."},
-              "object_param": {"type": "string", "minLength": 1, "description": "Path parameter of that endpoint that addresses the object."}
+              "object_param": {"type": "string", "minLength": 1, "description": "Path parameter of that endpoint that addresses the object."},
+              "min_role": {"type": "string", "minLength": 1, "description": "A key of roles: the lowest role allowed to call the endpoint. Replaces the minimum role learned from 2xx responses; a 2xx for a lower role is a suspicious_allow."}
             }
           }
         }

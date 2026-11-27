@@ -22,7 +22,7 @@ JSON Schema for editors (yaml-language-server); the validator is authoritative.
 | `resources` | no | path parameter name to resource name |
 | `ownership` | no | `self_params`, `learn_from_create`, `learn_from_lists` |
 | `tenancy` | no | `tenant_params`: path parameters whose value is the object's tenant |
-| `requirements` | no | `overrides`: pick the object parameter of an endpoint by hand |
+| `requirements` | no | `overrides`: pick the object parameter of an endpoint by hand and/or declare its minimum role |
 
 ### credentials
 
@@ -148,6 +148,31 @@ names the exact endpoint ID and the path parameter that addresses the object
 instead; its resource becomes the literal segment before that parameter. An
 unknown endpoint or parameter is an error (exit 2).
 
+`min_role` declares the lowest role allowed to call an endpoint:
+
+```yaml
+requirements:
+  overrides:
+    - {endpoint: "GET /orgs/{orgId}/customers", min_role: admin}
+```
+
+Each entry needs `object_param`, `min_role` or both. `min_role` must be a key of
+`roles` (otherwise `file:line` error, exit 2). It applies to function-level
+endpoints and to tenant-scoped endpoints (the object parameter is one of
+`tenancy.tenant_params`, e.g. `/orgs/{orgId}/customers`). Without it the
+minimum role is learned from the roles that got a 2xx, which can never find a
+too-permissive endpoint. With it, a caller below the declared role is
+`lower_role`, and a 2xx for such a caller is a `suspicious_allow`.
+
+Tenant-scoped endpoints have no per-user owner. Required cells are `owner` (a
+member of the addressed tenant with at least the minimum role), `lower_role`,
+`other_tenant` (when the config has tenants) and `anonymous`. An anonymous 2xx
+on an endpoint, tenant-scoped or function-level, whose OpenAPI `security`
+requires authentication (operation `security` overrides the top-level one;
+`security: []` or an empty requirement `{}` means public) is also a
+`suspicious_allow`. As for object-level findings, a GET or HEAD 2xx counts only
+with a non-empty captured JSON body; writes count on any 2xx.
+
 ## Examples
 
 VAmPI with JWT subjects: `testdata/identities/vampi.yaml`.
@@ -215,7 +240,7 @@ added once those recordings exist.
 
 ## Not supported yet
 
-Other `requirements` keys (only `overrides` with `endpoint` and `object_param`), `ignore`, `identity_from`
+Other `requirements` keys (only `overrides` with `endpoint`, `object_param` and `min_role`), `ignore`, `identity_from`
 `request_form` and `basic_user`, `token_from` `response_header` and
 `set_cookie`, and API keys in the query string. The validator rejects these
 with a clear message where the key is recognised.

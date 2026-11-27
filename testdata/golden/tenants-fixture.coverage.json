@@ -125,7 +125,7 @@
     },
     {
       "endpoint": "GET /orgs/{orgId}/projects",
-      "relationship": "same_role_other_user",
+      "relationship": "lower_role",
       "required": true,
       "covered": false
     },
@@ -210,7 +210,7 @@
       "identities": [
         "anonymous"
       ],
-      "min_confidence": "learned",
+      "min_confidence": "declared",
       "evidence": [
         "t.har#4"
       ]
@@ -219,13 +219,17 @@
       "endpoint": "POST /orgs/{orgId}/projects",
       "relationship": "owner",
       "required": true,
-      "covered": false
-    },
-    {
-      "endpoint": "POST /orgs/{orgId}/projects",
-      "relationship": "same_role_other_user",
-      "required": true,
-      "covered": false
+      "covered": true,
+      "statuses": {
+        "201": 1
+      },
+      "identities": [
+        "alice"
+      ],
+      "min_confidence": "declared",
+      "evidence": [
+        "t.har#0"
+      ]
     },
     {
       "endpoint": "POST /orgs/{orgId}/projects",
@@ -238,21 +242,6 @@
       "relationship": "anonymous",
       "required": true,
       "covered": false
-    },
-    {
-      "endpoint": "POST /orgs/{orgId}/projects",
-      "relationship": "unknown",
-      "required": false,
-      "covered": false,
-      "statuses": {
-        "201": 1
-      },
-      "identities": [
-        "alice"
-      ],
-      "evidence": [
-        "t.har#0"
-      ]
     }
   ],
   "objects": [
@@ -299,20 +288,20 @@
       "message": "GET /orgs/{orgId}/projects was never called as anonymous"
     },
     {
+      "fingerprint": "40f439ea4928a28d",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "relationship": "lower_role",
+      "message": "GET /orgs/{orgId}/projects was never called as lower_role"
+    },
+    {
       "fingerprint": "8b1f7f65e9f0c155",
       "kind": "gap",
       "severity": "error",
       "endpoint": "GET /orgs/{orgId}/projects",
       "relationship": "owner",
       "message": "GET /orgs/{orgId}/projects was never called as owner"
-    },
-    {
-      "fingerprint": "5a5b4c7d73e9b98c",
-      "kind": "gap",
-      "severity": "error",
-      "endpoint": "GET /orgs/{orgId}/projects",
-      "relationship": "same_role_other_user",
-      "message": "GET /orgs/{orgId}/projects was never called as same_role_other_user"
     },
     {
       "fingerprint": "48f10f9738026d87",
@@ -329,22 +318,6 @@
       "endpoint": "POST /orgs/{orgId}/projects",
       "relationship": "other_tenant",
       "message": "POST /orgs/{orgId}/projects was never called as other_tenant"
-    },
-    {
-      "fingerprint": "d9bc52e8f22e8488",
-      "kind": "gap",
-      "severity": "error",
-      "endpoint": "POST /orgs/{orgId}/projects",
-      "relationship": "owner",
-      "message": "POST /orgs/{orgId}/projects was never called as owner"
-    },
-    {
-      "fingerprint": "5aaab88e32f0840c",
-      "kind": "gap",
-      "severity": "error",
-      "endpoint": "POST /orgs/{orgId}/projects",
-      "relationship": "same_role_other_user",
-      "message": "POST /orgs/{orgId}/projects was never called as same_role_other_user"
     }
   ],
   "warnings": [
@@ -354,11 +327,11 @@
     }
   ],
   "summary": {
-    "required": 12,
-    "covered": 5,
+    "required": 11,
+    "covered": 6,
     "waived": 0,
-    "percent": 41.7,
-    "gaps": 7,
+    "percent": 54.5,
+    "gaps": 5,
     "suspicious_allows": 0,
     "unmatched_requests": 0,
     "ambiguous_matches": 0

@@ -255,3 +255,106 @@ func TestReviewFixes(t *testing.T) {
 		t.Errorf("message leaks request data: %q", m)
 	}
 }
+
+func fnObs(ep *model.Endpoint, rel model.Relationship, who *model.Identity, idc model.Confidence, status int) *model.Observation {
+	return &model.Observation{
+		X:        &model.Exchange{Source: "a.har#1", Method: "GET", Status: status, RespJSON: []byte(`{"a":1}`)},
+		Endpoint: ep, Identity: who, IDConf: idc, Rel: rel,
+	}
+}
+
+func TestFindFunctionLevelAndTenantScoped(t *testing.T) {
+	fn := func(auth bool) *model.Endpoint {
+		return &model.Endpoint{ID: "GET /admin", Kind: model.FunctionLevel, AuthRequired: auth}
+	}
+	ts := func(auth bool) *model.Endpoint {
+		return &model.Endpoint{ID: "GET /orgs/{orgId}/customers", Kind: model.ObjectLevel, ObjectParam: "orgId", TenantScoped: true, AuthRequired: auth}
+	}
+	minAdmin := func(e *model.Endpoint) *model.Endpoint {
+		e.MinRankDeclared, e.MinRank, e.MinRole = true, 100, "admin"
+		return e
+	}
+	cust := &model.Identity{Name: "ann", Role: "customer", Rank: 10, Tenant: "A"}
+	tests := []struct {
+		name string
+		o    *model.Observation
+		want bool
+	}{
+		{"fn anonymous 200 auth required", fnObs(fn(true), model.RelAnonymous, anon, model.ConfDeclared, 200), true},
+		{"fn anonymous 200 public", fnObs(fn(false), model.RelAnonymous, anon, model.ConfDeclared, 200), false},
+		{"fn anonymous 401 auth required", fnObs(fn(true), model.RelAnonymous, anon, model.ConfDeclared, 401), false},
+		{"fn anonymous 204 write", func() *model.Observation {
+			o := fnObs(fn(true), model.RelAnonymous, anon, model.ConfDeclared, 204)
+			o.X.Method, o.X.RespJSON = "DELETE", nil
+			return o
+		}(), true},
+		{"fn anonymous empty body GET", func() *model.Observation {
+			o := fnObs(fn(true), model.RelAnonymous, anon, model.ConfDeclared, 200)
+			o.X.RespJSON = []byte(`[]`)
+			return o
+		}(), false},
+		{"ts anonymous 200 auth required", fnObs(ts(true), model.RelAnonymous, anon, model.ConfDeclared, 200), true},
+		{"ts anonymous 200 public", fnObs(ts(false), model.RelAnonymous, anon, model.ConfDeclared, 200), false},
+		{"fn lower_role 200 without declaration", fnObs(fn(true), model.RelLowerRole, cust, model.ConfLearned, 200), false},
+		{"fn lower_role 200 declared", fnObs(minAdmin(fn(true)), model.RelLowerRole, cust, model.ConfLearned, 200), true},
+		{"fn lower_role 403 declared", fnObs(minAdmin(fn(true)), model.RelLowerRole, cust, model.ConfLearned, 403), false},
+		{"fn lower_role declared inferred caller", fnObs(minAdmin(fn(true)), model.RelLowerRole, cust, model.ConfInferred, 200), false},
+		{"fn lower_role declared public spec", fnObs(minAdmin(fn(false)), model.RelLowerRole, cust, model.ConfLearned, 200), true},
+		{"ts lower_role 200 declared", fnObs(minAdmin(ts(true)), model.RelLowerRole, cust, model.ConfLearned, 200), true},
+		{"ts lower_role 200 learned only", fnObs(ts(true), model.RelLowerRole, cust, model.ConfLearned, 200), false},
+		{"fn owner 200", fnObs(minAdmin(fn(true)), model.RelOwner, cust, model.ConfLearned, 200), false},
+		{"fn same_role_other_user", fnObs(fn(true), model.RelSameRoleOtherUser, cust, model.ConfLearned, 200), false},
+	}
+	for _, tc := range tests {
+		got := Find([]*model.Observation{tc.o})
+		if (len(got) == 1) != tc.want {
+			t.Errorf("%s: got %v, want finding=%v", tc.name, got, tc.want)
+		}
+	}
+	got := Find([]*model.Observation{fnObs(fn(true), model.RelAnonymous, anon, model.ConfDeclared, 200)})
+	if len(got) != 1 || got[0].Endpoint != "GET /admin" || got[0].Relationship != "anonymous" || got[0].Count != 1 ||
+		!strings.Contains(got[0].Message, "anonymous") || !strings.Contains(got[0].Message, "200") {
+		t.Errorf("shape: %+v", got)
+	}
+	got = Find([]*model.Observation{fnObs(minAdmin(fn(true)), model.RelLowerRole, cust, model.ConfLearned, 200)})
+	if len(got) != 1 || got[0].Relationship != "lower_role" || !strings.Contains(got[0].Message, "ann") || !strings.Contains(got[0].Message, "admin") {
+		t.Errorf("lower_role message: %+v", got)
+	}
+	// Object-level anonymous behaviour is unchanged: no owner, no finding.
+	o := obj(model.RelAnonymous, 200, "GET", `{"a":1}`)
+	o.Identity, o.IDConf, o.Owner = anon, model.ConfUnknown, nil
+	o.Endpoint.AuthRequired = true
+	if got := Find([]*model.Observation{o}); len(got) != 0 {
+		t.Errorf("object-level anonymous without owner: %v", got)
+	}
+}
+
+func TestFindDeclaredEdges(t *testing.T) {
+	minAdmin := &model.Endpoint{ID: "GET /admin", Kind: model.FunctionLevel, AuthRequired: true, MinRankDeclared: true, MinRank: 100, MinRole: "admin"}
+	// Unknown caller 2xx: never a finding.
+	for _, rel := range []model.Relationship{model.RelLowerRole, model.RelAnonymous, model.RelUnknown} {
+		o := fnObs(minAdmin, rel, &model.Identity{Name: "unknown-1"}, model.ConfUnknown, 200)
+		if got := Find([]*model.Observation{o}); len(got) != 0 {
+			t.Errorf("unknown caller rel=%s: %v", rel, got)
+		}
+	}
+	// No security anywhere in the spec: anonymous 2xx on a function-level endpoint is fine.
+	pub := &model.Endpoint{ID: "GET /health", Kind: model.FunctionLevel}
+	if got := Find([]*model.Observation{fnObs(pub, model.RelAnonymous, anon, model.ConfDeclared, 200)}); len(got) != 0 {
+		t.Errorf("public endpoint: %v", got)
+	}
+}
+
+func TestFindTenantScopedOtherTenantMessage(t *testing.T) {
+	ts := &model.Endpoint{ID: "GET /orgs/{orgId}/customers", Kind: model.ObjectLevel, ObjectParam: "orgId", TenantScoped: true}
+	o := fnObs(ts, model.RelOtherTenant, &model.Identity{Name: "ben", Tenant: "B", Rank: 10}, model.ConfLearned, 200)
+	o.ObjectTenantKnown, o.ObjectTenant = true, "A"
+	o.Owner, o.OwnerConf = alice, model.ConfLearned // a stray owner must not leak into the message
+	got := Find([]*model.Observation{o})
+	if len(got) != 1 {
+		t.Fatalf("got %v", got)
+	}
+	if want := "ben (tenant B) received 200 for tenant A"; !strings.Contains(got[0].Message, want) || strings.Contains(got[0].Message, "owned by") {
+		t.Errorf("message %q, want %q and no \"owned by\"", got[0].Message, want)
+	}
+}

@@ -51,6 +51,21 @@ type Endpoint struct {
 	Kind        EndpointKind
 	SpecFile    string
 	SpecLine    int // line of the path key; 0 if unknown
+
+	// AuthRequired is true when the operation's effective OpenAPI security
+	// requires authentication (operation security overrides the global one;
+	// none, [] or an empty requirement object means public).
+	AuthRequired bool
+	// TenantScoped is true when ObjectParam is a tenancy.tenant_params
+	// parameter (e.g. /orgs/{orgId}/orders): the tenant is the object, so no
+	// per-user owner exists. Set from the config after the spec is loaded.
+	TenantScoped bool
+	// MinRankDeclared is true when requirements.overrides[].min_role declares
+	// the minimum allowed role; MinRank is its rank and replaces the learned
+	// minimum.
+	MinRankDeclared bool
+	MinRank         int
+	MinRole         string
 }
 
 // Credential is a redacted credential: never holds the raw value.

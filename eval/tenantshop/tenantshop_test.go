@@ -76,7 +76,7 @@ func TestFullScriptCoversRequiredCells(t *testing.T) {
 		}
 	}
 	for c := range have {
-		if !used[c] && c != "GET /orgs/{orgId}/customers|lower_role" {
+		if !used[c] {
 			t.Errorf("attacker step %s matches no required cell", c)
 		}
 	}

@@ -83,8 +83,8 @@ func check(o *model.Observation) (string, bool) {
 	if o == nil || o.X == nil || o.Endpoint == nil || o.Identity == nil {
 		return "", false
 	}
-	if o.Endpoint.Kind != model.ObjectLevel {
-		return "", false
+	if o.Endpoint.Kind != model.ObjectLevel || (o.Endpoint.TenantScoped && o.Rel != model.RelOtherTenant) {
+		return checkDeclared(o)
 	}
 	switch o.Rel {
 	case model.RelSameRoleOtherUser, model.RelOtherTenant, model.RelLowerRole, model.RelAnonymous:
@@ -115,6 +115,10 @@ func check(o *model.Observation) (string, bool) {
 	if o.Identity.Anonymous || caller == "" {
 		caller = "anonymous"
 	}
+	if byTenant && o.Endpoint.TenantScoped {
+		// The tenant is the object: there is no per-user owner to name.
+		return fmt.Sprintf("%s (tenant %s) received %d for tenant %s", caller, o.Identity.Tenant, st, o.ObjectTenant), true
+	}
 	if byTenant && !hasOwner {
 		return fmt.Sprintf("%s (tenant %s) received %d for an object in tenant %s",
 			caller, o.Identity.Tenant, st, o.ObjectTenant), true
@@ -125,6 +129,31 @@ func check(o *model.Observation) (string, bool) {
 			caller, o.Identity.Tenant, st, o.Owner.Name, o.ObjectTenant), true
 	}
 	return fmt.Sprintf("%s received %d for an object owned by %s", caller, st, o.Owner.Name), true
+}
+
+// checkDeclared covers function-level and tenant-scoped endpoints, where only
+// declared facts make a 2xx suspicious (learned minimum roles are circular):
+// anonymous on an operation whose spec security requires auth, or a caller
+// below a min_role declared in identities.yaml. No owner is involved.
+func checkDeclared(o *model.Observation) (string, bool) {
+	ep, st := o.Endpoint, o.X.Status
+	if st < 200 || st > 299 || !modifiedOrReturned(o.X) {
+		return "", false
+	}
+	switch o.Rel {
+	case model.RelAnonymous:
+		if !ep.AuthRequired || !o.Identity.Anonymous {
+			return "", false
+		}
+		return fmt.Sprintf("anonymous received %d on an endpoint whose spec requires authentication", st), true
+	case model.RelLowerRole:
+		if !ep.MinRankDeclared || o.Identity.Anonymous || o.IDConf < model.ConfLearned {
+			return "", false
+		}
+		return fmt.Sprintf("%s (role %s) received %d on an endpoint that requires role %s",
+			o.Identity.Name, o.Identity.Role, st, ep.MinRole), true
+	}
+	return "", false
 }
 
 // modifiedOrReturned: reads need a captured non-empty JSON body; writes count

@@ -113,3 +113,23 @@ Unblocked: KAN-11 GitHub parts (CI, Dependabot, branch protection), KAN-26 GitHu
 2. **J4 / D7** local `$ref` within spec dir: allow (Jira) or reject all (prompt, implemented).
 3. **G5** VAmPI JWT `sub` = username? Verified during task 6; if it is an id, identities v0 needs `match.jwt.sub: <id>`.
 4. **G1** employment IP clause check — owner only, before anything is published.
+
+## Decisions taken 2026-11-27 (owner delegated decisions to the implementation orchestrator)
+
+Each one is reversible; the owner can overturn any of them.
+
+| # | Question | Decision | Why |
+| --- | --- | --- | --- |
+| O1 | KAN-18 credential handling (Basic fp from username only; password-like fields redacted without hash) | **Accepted** | Hashing low-entropy passwords invites offline guessing; username is enough to tell callers apart |
+| O2 | Caller without tenant vs known object tenant (DOC-03 said `""` = global) | **Keep: other_tenant**; only `*` means global | Fail-safe: a forgotten tenant claim must not hide cross-tenant access. DOC-03 wording superseded |
+| O3 | KAN-19 F1: anonymous exempt from the owner-confidence condition | **Yes** | Anonymous is never the owner; relationship is certain without knowing the owner. "Unknown never counts as covered" still holds for the caller |
+| O4 | Tenant-scoped endpoints (object param is a tenant param, e.g. `/orgs/{orgId}/orders`) required owner + same_role cells that nothing can cover | **Classify within the tenant with the function-level rule**: required = owner (member with enough role), lower_role, other_tenant, anonymous; no object owner needed | The tenant is the object; per-user ownership does not exist there |
+| O5 | suspicious_allow on function-level / tenant-scoped endpoints | **Yes, from declared facts only**: anonymous 2xx on an operation whose effective spec security requires auth; lower_role 2xx when `requirements.overrides[].min_role` declares a higher role | Learned min roles are circular (a 2xx lowers the min role), so only declarations can make it a finding |
+| O6 | D7 local `$ref` within the spec directory | **Keep rejecting all external refs in v0.1**; document `redocly bundle` / `swagger-cli bundle` | Path handling is an attack surface; bundling is a one-line workaround. Revisit on user demand |
+| O7 | E2 security contact | **GitHub private vulnerability reporting** (already in SECURITY.md); no email alias | No personal address in a public repo. Owner must enable it in repo settings |
+| O8 | Real-app goldens (VAmPI, crAPI, RealWorld) without committing HARs | **Goldens are outputs of scripted recorders, checked by `make eval`**; recordings never committed (`*.har` stays blocked) | Keeps the no-HAR rule; recorders are deterministic and pinned by image digest |
+| O9 | KAN-66 D1–D12 architect decisions | **Accepted as implemented**, except D11: DCO kept, email alias replaced by O7 | They match what was built and reviewed |
+| O11 | lower_role on function-level / tenant-scoped endpoints when no role ranks below the minimum (e.g. GET /me callable by every role) | **Not required** when the effective minimum (declared min_role, else learned) is the lowest defined rank; still required when the minimum is unknown | No identity can ever test it; a permanent GAP is noise. Unknown minimum keeps D1 (uncalled endpoint = gap) |
+| O10 | Next release | **v0.1.0-rc.2** after O3–O5 + real-app goldens; final **v0.1.0** when rc.2 verifies | rc.1 (db3ddcc) is published; release plan needs goldens + known limitations |
+
+Not delegable (owner only): G1/E3 employment IP check, Gate A practitioner outreach (KAN-13), repo settings (branch protection, private vulnerability reporting, Pages), pushing tags.

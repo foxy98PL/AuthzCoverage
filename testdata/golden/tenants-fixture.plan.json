@@ -7,7 +7,7 @@
   },
   "generated_at": "2026-01-01T00:00:00Z",
   "source": {
-    "coverage_sha256": "204a681d25a2c10d01a40f15ed1ea0ff33d2289eaa25fd35cea1eea07ab1bdf9",
+    "coverage_sha256": "7db603b61ca074f36b74cf6dfb5d240529ccc8cebbcd8342fbd88790c0f56ca3",
     "generated_at": "2026-01-01T00:00:00Z"
   },
   "contains_raw_ids": false,
@@ -27,11 +27,11 @@
       "note": "no object with a known owner was seen for this resource"
     },
     {
-      "id": "b7f5ee44b288bc5d",
+      "id": "b4acbde54062efbd",
       "endpoint": "GET /orgs/{orgId}/projects",
       "method": "GET",
       "path_template": "/orgs/{orgId}/projects",
-      "relationship": "same_role_other_user",
+      "relationship": "lower_role",
       "attacker": null,
       "object": {
         "resource": "orgs",
@@ -55,34 +55,6 @@
         "param": "orgId"
       },
       "expect": "deny"
-    },
-    {
-      "id": "1f8407c39c72ff64",
-      "endpoint": "POST /orgs/{orgId}/projects",
-      "method": "POST",
-      "path_template": "/orgs/{orgId}/projects",
-      "relationship": "owner",
-      "attacker": null,
-      "object": {
-        "resource": "orgs",
-        "param": "orgId"
-      },
-      "expect": "allow",
-      "note": "no object with a known owner was seen for this resource"
-    },
-    {
-      "id": "15f552b86c4d338a",
-      "endpoint": "POST /orgs/{orgId}/projects",
-      "method": "POST",
-      "path_template": "/orgs/{orgId}/projects",
-      "relationship": "same_role_other_user",
-      "attacker": null,
-      "object": {
-        "resource": "orgs",
-        "param": "orgId"
-      },
-      "expect": "deny",
-      "note": "no object with a known owner was seen for this resource"
     },
     {
       "id": "dc134b8514f5934f",

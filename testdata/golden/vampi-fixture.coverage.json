@@ -336,7 +336,7 @@
       "identities": [
         "anonymous"
       ],
-      "min_confidence": "learned",
+      "min_confidence": "declared",
       "evidence": [
         "t.har#4"
       ]
@@ -376,12 +376,6 @@
         "t.har#6",
         "t.har#7"
       ]
-    },
-    {
-      "endpoint": "GET /me",
-      "relationship": "lower_role",
-      "required": true,
-      "covered": false
     },
     {
       "endpoint": "GET /me",
@@ -470,12 +464,6 @@
         "t.har#0",
         "t.har#1"
       ]
-    },
-    {
-      "endpoint": "POST /books/v1",
-      "relationship": "lower_role",
-      "required": true,
-      "covered": false
     },
     {
       "endpoint": "POST /books/v1",
@@ -704,14 +692,6 @@
       "message": "GET /me was never called as anonymous"
     },
     {
-      "fingerprint": "8914cfebcc2db875",
-      "kind": "gap",
-      "severity": "error",
-      "endpoint": "GET /me",
-      "relationship": "lower_role",
-      "message": "GET /me was never called as lower_role"
-    },
-    {
       "fingerprint": "f6ee72462e955dcc",
       "kind": "gap",
       "severity": "error",
@@ -782,14 +762,6 @@
       "endpoint": "POST /books/v1",
       "relationship": "anonymous",
       "message": "POST /books/v1 was never called as anonymous"
-    },
-    {
-      "fingerprint": "2d812e6a1b73fe39",
-      "kind": "gap",
-      "severity": "error",
-      "endpoint": "POST /books/v1",
-      "relationship": "lower_role",
-      "message": "POST /books/v1 was never called as lower_role"
     },
     {
       "fingerprint": "ebbfe69721c29457",
@@ -890,11 +862,11 @@
   ],
   "warnings": [],
   "summary": {
-    "required": 42,
+    "required": 40,
     "covered": 5,
     "waived": 0,
-    "percent": 11.9,
-    "gaps": 37,
+    "percent": 12.5,
+    "gaps": 35,
     "suspicious_allows": 0,
     "unmatched_requests": 0,
     "ambiguous_matches": 0

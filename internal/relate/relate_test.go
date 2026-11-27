@@ -1,6 +1,7 @@
 package relate
 
 import (
+	"slices"
 	"testing"
 
 	"authzcov/internal/model"
@@ -97,5 +98,67 @@ func TestMinRanks(t *testing.T) {
 	got := MinRanks(obs)
 	if len(got) != 1 || got[fnEP.ID] != 5 {
 		t.Fatalf("got %v", got)
+	}
+}
+
+var tsEP = &model.Endpoint{ID: "GET /orgs/{orgId}/orders", Kind: model.ObjectLevel, ObjectParam: "orgId", TenantScoped: true}
+
+func TestClassifyTenantScoped(t *testing.T) {
+	const lrn = model.ConfLearned
+	declared := &model.Endpoint{ID: tsEP.ID, Kind: model.ObjectLevel, ObjectParam: "orgId", TenantScoped: true, MinRankDeclared: true, MinRank: 100, MinRole: "admin"}
+	fnDeclared := &model.Endpoint{ID: "GET /admin", Kind: model.FunctionLevel, MinRankDeclared: true, MinRank: 100, MinRole: "admin"}
+	tests := []struct {
+		name string
+		in   Input
+		want model.Relationship
+	}{
+		{"same tenant at min", Input{Endpoint: tsEP, Caller: id("ann", 10, "A"), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true, MinRank: 10, MinRankKnown: true}, model.RelOwner},
+		{"same tenant above min", Input{Endpoint: tsEP, Caller: id("adm", 100, "A"), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true, MinRank: 10, MinRankKnown: true}, model.RelOwner},
+		{"same tenant below min", Input{Endpoint: tsEP, Caller: id("ann", 10, "A"), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true, MinRank: 100, MinRankKnown: true}, model.RelLowerRole},
+		{"other tenant", Input{Endpoint: tsEP, Caller: id("ben", 100, "B"), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true, MinRank: 10, MinRankKnown: true}, model.RelOtherTenant},
+		{"caller empty tenant is other tenant", Input{Endpoint: tsEP, Caller: id("nobody", 100, ""), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true, MinRank: 10, MinRankKnown: true}, model.RelOtherTenant},
+		{"other tenant without min", Input{Endpoint: tsEP, Caller: id("ben", 10, "B"), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true}, model.RelOtherTenant},
+		{"star tenant is a member", Input{Endpoint: tsEP, Caller: id("root", 100, "*"), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true, MinRank: 10, MinRankKnown: true}, model.RelOwner},
+		{"min unknown", Input{Endpoint: tsEP, Caller: id("ann", 10, "A"), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true}, model.RelUnknown},
+		{"object tenant unknown", Input{Endpoint: tsEP, Caller: id("ann", 10, "A"), CallerConf: lrn, MinRank: 10, MinRankKnown: true}, model.RelUnknown},
+		{"caller conf unknown", Input{Endpoint: tsEP, Caller: id("ann", 10, "A"), ObjectTenant: "A", ObjectTenantKnown: true, MinRank: 10, MinRankKnown: true}, model.RelUnknown},
+		{"anonymous", Input{Endpoint: tsEP, Caller: &model.Identity{Anonymous: true}, ObjectTenant: "A", ObjectTenantKnown: true}, model.RelAnonymous},
+		{"declared beats learned (below)", Input{Endpoint: declared, Caller: id("ann", 10, "A"), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true, MinRank: 10, MinRankKnown: true}, model.RelLowerRole},
+		{"declared without learned", Input{Endpoint: declared, Caller: id("adm", 100, "A"), CallerConf: lrn, ObjectTenant: "A", ObjectTenantKnown: true}, model.RelOwner},
+		{"declared function below", Input{Endpoint: fnDeclared, Caller: id("ann", 10, ""), CallerConf: lrn, MinRank: 10, MinRankKnown: true}, model.RelLowerRole},
+		{"declared function at", Input{Endpoint: fnDeclared, Caller: id("adm", 100, ""), CallerConf: lrn}, model.RelOwner},
+		{"declared function above learned-high", Input{Endpoint: fnDeclared, Caller: id("adm", 200, ""), CallerConf: lrn, MinRank: 300, MinRankKnown: true}, model.RelHigherRole},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := Classify(tc.in); got != tc.want {
+				t.Fatalf("got %s want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMinRanksTenantScoped(t *testing.T) {
+	mk := func(who *model.Identity, tenant string, known bool, status int) *model.Observation {
+		o := ob(tsEP, who, model.ConfLearned, status)
+		o.ObjectTenant, o.ObjectTenantKnown = tenant, known
+		return o
+	}
+	obs := []*model.Observation{
+		mk(id("adm", 100, "A"), "A", true, 200),
+		mk(id("ann", 10, "A"), "A", true, 200), // min so far 10
+		mk(id("ben", 5, "B"), "A", true, 200),  // other tenant 2xx: must not lower the min
+		mk(id("low", 1, "A"), "A", true, 403),  // 4xx ignored
+		mk(id("nop", 2, "A"), "", false, 200),  // object tenant unknown: ignored
+		mk(id("root", 7, "*"), "A", true, 200), // wildcard tenant counts as a member
+		mk(&model.Identity{Anonymous: true}, "A", true, 200),
+	}
+	if got := MinRanks(obs); len(got) != 1 || got[tsEP.ID] != 7 {
+		t.Fatalf("got %v", got)
+	}
+	// Order independence.
+	slices.Reverse(obs)
+	if got := MinRanks(obs); got[tsEP.ID] != 7 {
+		t.Fatalf("reversed: got %v", got)
 	}
 }

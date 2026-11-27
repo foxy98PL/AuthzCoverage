@@ -44,6 +44,23 @@ func Requirements(kind model.EndpointKind, hasTenants bool) []model.Relationship
 	return reqs
 }
 
+// RequirementsFor is Requirements for a concrete endpoint. A tenant-scoped
+// endpoint (its object is the tenant) has no per-user owner, so it requires
+// owner (a member with enough role), lower_role, other_tenant and anonymous.
+func RequirementsFor(e *model.Endpoint, hasTenants bool) []model.Relationship {
+	if e == nil || !e.TenantScoped || e.Kind != model.ObjectLevel {
+		if e == nil {
+			return Requirements(model.FunctionLevel, hasTenants)
+		}
+		return Requirements(e.Kind, hasTenants)
+	}
+	reqs := []model.Relationship{model.RelOwner, model.RelLowerRole, model.RelOtherTenant, model.RelAnonymous}
+	if !hasTenants {
+		reqs = slices.DeleteFunc(reqs, func(r model.Relationship) bool { return r == model.RelOtherTenant })
+	}
+	return reqs
+}
+
 type cellAcc struct {
 	cell     *model.CoverageCell
 	ids      map[string]bool
@@ -56,6 +73,15 @@ type Options struct {
 	// Strict counts an observation only when its caller identity and, for
 	// object-level endpoints, its owner are known with confidence >= learned.
 	Strict bool
+	// HasLowestRank says LowestRank is set: the lowest rank among the defined
+	// roles. MinRanks holds the learned minimum rank per endpoint ID. Together
+	// they decide whether lower_role is required: it is not when the
+	// effective minimum (declared, else learned) is not above LowestRank,
+	// because no defined role could be below it. An unknown minimum keeps it
+	// required.
+	HasLowestRank bool
+	LowestRank    int
+	MinRanks      map[string]int
 }
 
 // Build computes the matrix without strict mode.
@@ -79,13 +105,22 @@ func BuildWith(endpoints []*model.Endpoint, obs []*model.Observation, hasTenants
 
 	m := &Matrix{Endpoints: eps, Cells: make(map[string][]*model.CoverageCell, len(eps))}
 	accs := make(map[string]map[model.Relationship]*cellAcc, len(eps))
-	kinds := make(map[string]model.EndpointKind, len(eps))
+	needsOwner := make(map[string]bool, len(eps)) // object-level and not tenant-scoped
 	for _, e := range eps {
 		if _, dup := accs[e.ID]; dup {
 			continue
 		}
-		kinds[e.ID] = e.Kind
-		req := Requirements(e.Kind, hasTenants)
+		needsOwner[e.ID] = e.Kind == model.ObjectLevel && !e.TenantScoped
+		req := RequirementsFor(e, hasTenants)
+		if opts.HasLowestRank && (e.Kind != model.ObjectLevel || e.TenantScoped) {
+			min, known := e.MinRank, e.MinRankDeclared
+			if !known {
+				min, known = opts.MinRanks[e.ID]
+			}
+			if known && min <= opts.LowestRank {
+				req = slices.DeleteFunc(slices.Clone(req), func(r model.Relationship) bool { return r == model.RelLowerRole })
+			}
+		}
 		byRel := map[model.Relationship]*cellAcc{}
 		var cells []*model.CoverageCell
 		for _, rel := range model.Relationships() {
@@ -127,10 +162,11 @@ func BuildWith(endpoints []*model.Endpoint, obs []*model.Observation, hasTenants
 		if o.Identity != nil && o.Identity.Name != "" {
 			a.ids[o.Identity.Name] = true
 		}
-		object := kinds[o.Endpoint.ID] == model.ObjectLevel
-		// other_tenant decided by a tenant path parameter needs no owner.
+		// Anonymous is never the owner (O3), other_tenant decided by a tenant
+		// path parameter needs no owner, and a tenant-scoped endpoint has no
+		// per-user owner at all (O4).
 		byTenantParam := rel == model.RelOtherTenant && o.ObjectTenantKnown
-		needOwner := object && !byTenantParam
+		needOwner := needsOwner[o.Endpoint.ID] && !byTenantParam && rel != model.RelAnonymous
 		if rel == model.RelUnknown || o.IDConf < model.ConfLearned || (needOwner && o.OwnerConf < ownerMin) {
 			continue
 		}

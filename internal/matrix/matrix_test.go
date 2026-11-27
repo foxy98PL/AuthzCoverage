@@ -73,8 +73,8 @@ func TestBuildCoverageRules(t *testing.T) {
 		{"unknown id", objEP, mk(objEP, model.RelOwner, "a", unk, dec, 200, "a#1"), model.RelOwner, false, unk},
 		{"inferred id", objEP, mk(objEP, model.RelOwner, "a", inf, dec, 200, "a#1"), model.RelOwner, false, unk},
 		{"owner unknown object", objEP, mk(objEP, model.RelOwner, "a", dec, unk, 200, "a#1"), model.RelOwner, false, unk},
-		{"owner unknown anonymous object", objEP, mk(objEP, model.RelAnonymous, "anon", dec, unk, 401, "a#1"), model.RelAnonymous, false, unk},
-		{"anonymous object known owner", objEP, mk(objEP, model.RelAnonymous, "anon", dec, inf, 401, "a#1"), model.RelAnonymous, true, inf},
+		{"owner unknown anonymous object", objEP, mk(objEP, model.RelAnonymous, "anon", dec, unk, 401, "a#1"), model.RelAnonymous, true, dec},
+		{"anonymous object known owner", objEP, mk(objEP, model.RelAnonymous, "anon", dec, inf, 401, "a#1"), model.RelAnonymous, true, dec},
 		{"function ignores owner conf", fnEP, mk(fnEP, model.RelLowerRole, "a", lrn, unk, 403, "a#1"), model.RelLowerRole, true, lrn},
 		{"rel unknown never", objEP, mk(objEP, model.RelUnknown, "a", dec, dec, 200, "a#1"), model.RelUnknown, false, unk},
 		{"rel empty is unknown", objEP, mk(objEP, "", "a", dec, dec, 200, "a#1"), model.RelUnknown, false, unk},
@@ -237,7 +237,7 @@ func TestStrict(t *testing.T) {
 		{"object inferred id", objEP, mk(objEP, model.RelOwner, "a", inf, dec, 200, "a#1"), model.RelOwner, false, false},
 		{"function ignores owner", fnEP, mk(fnEP, model.RelLowerRole, "a", lrn, unk, 403, "a#1"), model.RelLowerRole, true, true},
 		{"function inferred id", fnEP, mk(fnEP, model.RelLowerRole, "a", inf, unk, 403, "a#1"), model.RelLowerRole, false, false},
-		{"anonymous inferred owner", objEP, mk(objEP, model.RelAnonymous, "anon", dec, inf, 401, "a#1"), model.RelAnonymous, true, false},
+		{"anonymous inferred owner", objEP, mk(objEP, model.RelAnonymous, "anon", dec, inf, 401, "a#1"), model.RelAnonymous, true, true},
 		{"tenant param owner unknown", objEP, tenant(mk(objEP, model.RelOtherTenant, "c", lrn, unk, 403, "a#1")), model.RelOtherTenant, true, true},
 		{"tenant param inferred id", objEP, tenant(mk(objEP, model.RelOtherTenant, "c", inf, unk, 403, "a#1")), model.RelOtherTenant, false, false},
 		{"other tenant by owner needs owner", objEP, mk(objEP, model.RelOtherTenant, "c", lrn, unk, 403, "a#1"), model.RelOtherTenant, false, false},
@@ -271,5 +271,134 @@ func TestBuildIsNonStrict(t *testing.T) {
 	obs := []*model.Observation{mk(objEP, model.RelOwner, "a", model.ConfDeclared, model.ConfInferred, 200, "a#1")}
 	if !reflect.DeepEqual(Build([]*model.Endpoint{objEP}, obs, true), BuildWith([]*model.Endpoint{objEP}, obs, true, Options{})) {
 		t.Fatal("Build != BuildWith(Options{})")
+	}
+}
+
+func TestAnonymousCoveredWithUnknownOwner(t *testing.T) {
+	anon := func(idc, oc model.Confidence, status int) *model.Observation {
+		o := mk(objEP, model.RelAnonymous, "anonymous", idc, oc, status, "a.har#1")
+		o.Identity.Anonymous = true
+		return o
+	}
+	for _, strict := range []bool{false, true} {
+		tests := []struct {
+			name string
+			o    *model.Observation
+			want bool
+			conf model.Confidence
+		}{
+			{"unknown owner 401", anon(model.ConfDeclared, model.ConfUnknown, 401), true, model.ConfDeclared},
+			{"unknown owner 200", anon(model.ConfLearned, model.ConfUnknown, 200), true, model.ConfLearned},
+			{"caller unknown never covers", anon(model.ConfUnknown, model.ConfDeclared, 401), false, 0},
+			{"caller inferred never covers", anon(model.ConfInferred, model.ConfDeclared, 401), false, 0},
+		}
+		for _, tc := range tests {
+			m := BuildWith([]*model.Endpoint{objEP}, []*model.Observation{tc.o}, true, Options{Strict: strict})
+			c := cell(m, objEP, model.RelAnonymous)
+			if c.Covered != tc.want || (tc.want && c.MinConf != tc.conf) {
+				t.Errorf("strict=%v %s: covered=%v conf=%v, want %v %v", strict, tc.name, c.Covered, c.MinConf, tc.want, tc.conf)
+			}
+		}
+	}
+}
+
+func TestTenantScopedRequirementsAndCoverage(t *testing.T) {
+	ts := &model.Endpoint{ID: "GET /orgs/{orgId}/orders", Kind: model.ObjectLevel, ObjectParam: "orgId", TenantScoped: true}
+	if got, want := RequirementsFor(ts, true), rels(model.RelOwner, model.RelLowerRole, model.RelOtherTenant, model.RelAnonymous); !slices.Equal(got, want) {
+		t.Errorf("with tenants: got %v want %v", got, want)
+	}
+	if got, want := RequirementsFor(ts, false), rels(model.RelOwner, model.RelLowerRole, model.RelAnonymous); !slices.Equal(got, want) {
+		t.Errorf("no tenants: got %v want %v", got, want)
+	}
+	if got, want := RequirementsFor(objEP, true), Requirements(model.ObjectLevel, true); !slices.Equal(got, want) {
+		t.Errorf("plain object: got %v want %v", got, want)
+	}
+	obs := []*model.Observation{
+		mk(ts, model.RelOwner, "ann", model.ConfLearned, model.ConfUnknown, 200, "a.har#1"),
+		mk(ts, model.RelLowerRole, "amy", model.ConfLearned, model.ConfUnknown, 403, "a.har#2"),
+		mk(ts, model.RelOtherTenant, "ben", model.ConfLearned, model.ConfUnknown, 403, "a.har#3"),
+	}
+	obs[2].ObjectTenantKnown = true
+	m := Build([]*model.Endpoint{ts}, obs, true)
+	for _, rel := range rels(model.RelOwner, model.RelLowerRole, model.RelOtherTenant) {
+		if c := cell(m, ts, rel); !c.Required || !c.Covered || c.MinConf != model.ConfLearned {
+			t.Errorf("%s: required=%v covered=%v conf=%v", rel, c.Required, c.Covered, c.MinConf)
+		}
+	}
+	if c := cell(m, ts, model.RelAnonymous); !c.Required || c.Covered {
+		t.Errorf("anonymous: %+v", c)
+	}
+	if c := cell(m, ts, model.RelSameRoleOtherUser); c.Required {
+		t.Error("same_role_other_user must not be required on a tenant-scoped endpoint")
+	}
+	if m.Summary.Required != 4 || m.Summary.Covered != 3 {
+		t.Errorf("summary %+v", m.Summary)
+	}
+	// Strict mode: still no owner needed.
+	ms := BuildWith([]*model.Endpoint{ts}, obs, true, Options{Strict: true})
+	if c := cell(ms, ts, model.RelOwner); !c.Covered {
+		t.Error("strict: owner cell should be covered without a known owner")
+	}
+	// Caller inferred still never covers.
+	obs[0].IDConf = model.ConfInferred
+	if c := cell(Build([]*model.Endpoint{ts}, obs, true), ts, model.RelOwner); c.Covered {
+		t.Error("inferred caller must not cover")
+	}
+}
+
+func TestLowerRoleRequiredOnlyWhenRoleBelowMin(t *testing.T) {
+	fn := &model.Endpoint{ID: "GET /me", Kind: model.FunctionLevel}
+	ts := &model.Endpoint{ID: "GET /orgs/{orgId}/orders", Kind: model.ObjectLevel, ObjectParam: "orgId", TenantScoped: true}
+	declared := &model.Endpoint{ID: "GET /orgs/{orgId}/customers", Kind: model.ObjectLevel, ObjectParam: "orgId", TenantScoped: true,
+		MinRankDeclared: true, MinRank: 100, MinRole: "admin"}
+	declaredLow := &model.Endpoint{ID: "GET /low", Kind: model.FunctionLevel, MinRankDeclared: true, MinRank: 10}
+	obj := &model.Endpoint{ID: "GET /b/{id}", Kind: model.ObjectLevel, ObjectParam: "id"}
+	eps := []*model.Endpoint{fn, ts, declared, declaredLow, obj}
+	tests := []struct {
+		name string
+		opts Options
+		ep   *model.Endpoint
+		want bool
+	}{
+		{"min equals lowest", Options{HasLowestRank: true, LowestRank: 10, MinRanks: map[string]int{fn.ID: 10}}, fn, false},
+		{"min below lowest", Options{HasLowestRank: true, LowestRank: 10, MinRanks: map[string]int{fn.ID: 5}}, fn, false},
+		{"min above lowest", Options{HasLowestRank: true, LowestRank: 10, MinRanks: map[string]int{fn.ID: 100}}, fn, true},
+		{"min unknown", Options{HasLowestRank: true, LowestRank: 10}, fn, true},
+		{"no role info keeps required", Options{MinRanks: map[string]int{fn.ID: 10}}, fn, true},
+		{"tenant-scoped min equals lowest", Options{HasLowestRank: true, LowestRank: 10, MinRanks: map[string]int{ts.ID: 10}}, ts, false},
+		{"tenant-scoped min above lowest", Options{HasLowestRank: true, LowestRank: 10, MinRanks: map[string]int{ts.ID: 100}}, ts, true},
+		{"tenant-scoped unknown", Options{HasLowestRank: true, LowestRank: 10}, ts, true},
+		{"declared above lowest beats learned", Options{HasLowestRank: true, LowestRank: 10, MinRanks: map[string]int{declared.ID: 10}}, declared, true},
+		{"declared equals lowest beats learned", Options{HasLowestRank: true, LowestRank: 10, MinRanks: map[string]int{declaredLow.ID: 100}}, declaredLow, false},
+	}
+	for _, tc := range tests {
+		m := BuildWith(eps, nil, true, tc.opts)
+		if got := cell(m, tc.ep, model.RelLowerRole).Required; got != tc.want {
+			t.Errorf("%s: required=%v want %v", tc.name, got, tc.want)
+		}
+	}
+	// Order independence of endpoints and summary.
+	o := Options{HasLowestRank: true, LowestRank: 10, MinRanks: map[string]int{fn.ID: 10}}
+	a := BuildWith(eps, nil, true, o)
+	b := BuildWith([]*model.Endpoint{obj, declaredLow, declared, ts, fn}, nil, true, o)
+	if a.Summary != b.Summary {
+		t.Errorf("summary depends on order: %+v vs %+v", a.Summary, b.Summary)
+	}
+}
+
+func TestStrictTenantScopedDeclaredMinRole(t *testing.T) {
+	ts := &model.Endpoint{ID: "GET /orgs/{orgId}/customers", Kind: model.ObjectLevel, ObjectParam: "orgId", TenantScoped: true,
+		MinRankDeclared: true, MinRank: 100, MinRole: "admin"}
+	opts := Options{Strict: true, HasLowestRank: true, LowestRank: 10}
+	for _, tc := range []struct {
+		conf model.Confidence
+		want bool
+	}{{model.ConfLearned, true}, {model.ConfDeclared, true}, {model.ConfInferred, false}, {model.ConfUnknown, false}} {
+		obs := []*model.Observation{mk(ts, model.RelLowerRole, "ann", tc.conf, model.ConfUnknown, 403, "a#1")}
+		m := BuildWith([]*model.Endpoint{ts}, obs, true, opts)
+		c := cell(m, ts, model.RelLowerRole)
+		if !c.Required || c.Covered != tc.want {
+			t.Errorf("caller conf %v: required=%v covered=%v want covered=%v", tc.conf, c.Required, c.Covered, tc.want)
+		}
 	}
 }

@@ -299,12 +299,6 @@
     },
     {
       "endpoint": "GET /books/v1",
-      "relationship": "lower_role",
-      "required": true,
-      "covered": false
-    },
-    {
-      "endpoint": "GET /books/v1",
       "relationship": "anonymous",
       "required": true,
       "covered": false
@@ -343,13 +337,14 @@
       "endpoint": "GET /books/v1/{book_title}",
       "relationship": "anonymous",
       "required": true,
-      "covered": false,
+      "covered": true,
       "statuses": {
         "401": 1
       },
       "identities": [
         "anonymous"
       ],
+      "min_confidence": "declared",
       "evidence": [
         "t.har#4"
       ]
@@ -627,25 +622,6 @@
       "message": "GET /books/v1 was never called as anonymous"
     },
     {
-      "fingerprint": "444ef76c88021bdc",
-      "kind": "gap",
-      "severity": "error",
-      "endpoint": "GET /books/v1",
-      "relationship": "lower_role",
-      "message": "GET /books/v1 was never called as lower_role"
-    },
-    {
-      "fingerprint": "26ad38c29fe9132f",
-      "kind": "gap",
-      "severity": "error",
-      "endpoint": "GET /books/v1/{book_title}",
-      "relationship": "anonymous",
-      "message": "GET /books/v1/{book_title} was called as anonymous only with identity or owner evidence too weak to count",
-      "evidence": [
-        "t.har#4"
-      ]
-    },
-    {
       "fingerprint": "3ad94025a8c7a9c5",
       "kind": "gap",
       "severity": "error",
@@ -910,11 +886,11 @@
   ],
   "warnings": [],
   "summary": {
-    "required": 42,
-    "covered": 1,
+    "required": 41,
+    "covered": 2,
     "waived": 0,
-    "percent": 2.4,
-    "gaps": 41,
+    "percent": 4.9,
+    "gaps": 39,
     "suspicious_allows": 0,
     "unmatched_requests": 0,
     "ambiguous_matches": 0

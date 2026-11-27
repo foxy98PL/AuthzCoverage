@@ -1,8 +1,8 @@
 ENDPOINT                               OWNER  SAME_ROLE  LOWER  ANON
 DELETE  /users/v1/{username}           GAP    GAP        -      GAP
 GET     /                              GAP    -          GAP    GAP
-GET     /books/v1                      ok     -          GAP    GAP
-GET     /books/v1/{book_title}         GAP    GAP        -      GAP
+GET     /books/v1                      ok     -          -      GAP
+GET     /books/v1/{book_title}         GAP    GAP        -      ok 401
 GET     /createdb                      GAP    -          GAP    GAP
 GET     /me                            GAP    -          GAP    GAP
 GET     /users/v1                      GAP    -          GAP    GAP
@@ -14,4 +14,4 @@ POST    /users/v1/register             GAP    -          GAP    GAP
 PUT     /users/v1/{username}/email     GAP    GAP        -      GAP
 PUT     /users/v1/{username}/password  GAP    GAP        -      GAP
 
-required 42  covered 1 (2.4%)  gaps 41
+required 41  covered 2 (4.9%)  gaps 39

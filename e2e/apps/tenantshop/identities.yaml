@@ -18,3 +18,7 @@ identities:
   - {name: ben, role: customer, match: {jwt: {sub: ben}}}
   - {name: bob, role: customer, match: {jwt: {sub: bob}}}
   - {name: adminb, role: admin, match: {jwt: {sub: adminB}}}
+requirements:
+  overrides:
+    # Customer lists are admin-only: declared because a learned minimum role can never reveal a too-open endpoint.
+    - {endpoint: "GET /orgs/{orgId}/customers", min_role: admin}

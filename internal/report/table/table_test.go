@@ -117,7 +117,7 @@ func TestInferredMarker(t *testing.T) {
 	anon.OwnerConf = model.ConfInferred
 	m := matrix.Build([]*model.Endpoint{ep}, []*model.Observation{inf, anon, ob(ep, model.RelSameRoleOtherUser, 200)}, false)
 	want := "ENDPOINT                        OWNER  SAME_ROLE  ANON\n" +
-		"GET     /books/v1/{book_title}  ok~    ok         ok~ 401\n" +
+		"GET     /books/v1/{book_title}  ok~    ok         ok 401\n" +
 		"\n" +
 		"required 3  covered 3 (100.0%)  gaps 0\n" +
 		"~ covered only by inferred ownership evidence\n"

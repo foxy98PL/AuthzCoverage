@@ -171,3 +171,37 @@ func TestPathLinesBadInput(t *testing.T) {
 		}
 	}
 }
+
+func TestAuthRequired(t *testing.T) {
+	tests := []struct {
+		name   string
+		global string
+		op     string
+		want   bool
+	}{
+		{"global only", "security: [{bearer: []}]\n", "", true},
+		{"none anywhere", "", "", false},
+		{"op overrides global with security", "security: [{bearer: []}]\n", "      security: [{key: []}]\n", true},
+		{"op empty list is public", "security: [{bearer: []}]\n", "      security: []\n", false},
+		{"op empty requirement object is public", "security: [{bearer: []}]\n", "      security: [{}]\n", false},
+		{"optional auth among alternatives is public", "", "      security: [{bearer: []}, {}]\n", false},
+		{"op only", "", "      security: [{bearer: []}]\n", true},
+		{"global empty list", "security: []\n", "", false},
+		{"global empty object", "security: [{}]\n", "", false},
+		{"global empty list, op requires", "security: []\n", "      security: [{bearer: []}]\n", true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			doc := "openapi: 3.0.3\ninfo: {title: t, version: '1'}\n" + tc.global +
+				"components:\n  securitySchemes:\n    bearer: {type: http, scheme: bearer}\n    key: {type: apiKey, in: header, name: X-K}\n" +
+				"paths:\n  /x:\n    get:\n" + tc.op + "      responses: {'200': {description: ok}}\n"
+			eps, err := parse([]byte(doc), "t.yaml")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(eps) != 1 || eps[0].AuthRequired != tc.want {
+				t.Fatalf("AuthRequired = %v, want %v", eps[0].AuthRequired, tc.want)
+			}
+		})
+	}
+}

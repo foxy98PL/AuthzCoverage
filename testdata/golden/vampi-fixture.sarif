@@ -529,34 +529,6 @@
           "ruleIndex": 0,
           "level": "error",
           "message": {
-            "text": "GET /me was never called as lower_role"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "spec.yml",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "startLine": 215
-                }
-              }
-            }
-          ],
-          "partialFingerprints": {
-            "authzcovFinding/v1": "8914cfebcc2db875"
-          },
-          "properties": {
-            "endpoint": "GET /me",
-            "relationship": "lower_role"
-          }
-        },
-        {
-          "ruleId": "authzcov/gap",
-          "ruleIndex": 0,
-          "level": "error",
-          "message": {
             "text": "GET /users/v1 was never called as anonymous"
           },
           "locations": [
@@ -802,34 +774,6 @@
           "properties": {
             "endpoint": "POST /books/v1",
             "relationship": "anonymous"
-          }
-        },
-        {
-          "ruleId": "authzcov/gap",
-          "ruleIndex": 0,
-          "level": "error",
-          "message": {
-            "text": "POST /books/v1 was never called as lower_role"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "spec.yml",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "startLine": 486
-                }
-              }
-            }
-          ],
-          "partialFingerprints": {
-            "authzcovFinding/v1": "2d812e6a1b73fe39"
-          },
-          "properties": {
-            "endpoint": "POST /books/v1",
-            "relationship": "lower_role"
           }
         },
         {

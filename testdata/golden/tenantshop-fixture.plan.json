@@ -7,7 +7,7 @@
   },
   "generated_at": "2026-01-01T00:00:00Z",
   "source": {
-    "coverage_sha256": "6a59da1da0d43dd0489af1170d58a0002d997ae82292b0a3b61fa2207468b8cc",
+    "coverage_sha256": "e67d16afc1c24a52ede56319d7278232c9cecae6fb9dda1d6e27ea63ad4b0092",
     "generated_at": "2026-01-01T00:00:00Z"
   },
   "contains_raw_ids": false,
@@ -92,16 +92,6 @@
       "expect": "deny"
     },
     {
-      "id": "9edb112bf394ba4c",
-      "endpoint": "GET /me",
-      "method": "GET",
-      "path_template": "/me",
-      "relationship": "lower_role",
-      "attacker": null,
-      "expect": "deny",
-      "note": "no identity with this relationship was seen"
-    },
-    {
       "id": "8bb5b4373b6d73e3",
       "endpoint": "GET /me",
       "method": "GET",
@@ -146,34 +136,6 @@
       "expect": "deny"
     },
     {
-      "id": "89b587062612d147",
-      "endpoint": "GET /orgs/{orgId}/customers",
-      "method": "GET",
-      "path_template": "/orgs/{orgId}/customers",
-      "relationship": "owner",
-      "attacker": null,
-      "object": {
-        "resource": "orgs",
-        "param": "orgId"
-      },
-      "expect": "allow",
-      "note": "no object with a known owner was seen for this resource"
-    },
-    {
-      "id": "e142274a0de45182",
-      "endpoint": "GET /orgs/{orgId}/customers",
-      "method": "GET",
-      "path_template": "/orgs/{orgId}/customers",
-      "relationship": "same_role_other_user",
-      "attacker": null,
-      "object": {
-        "resource": "orgs",
-        "param": "orgId"
-      },
-      "expect": "deny",
-      "note": "no object with a known owner was seen for this resource"
-    },
-    {
       "id": "8a19865ff3acb2d6",
       "endpoint": "GET /orgs/{orgId}/customers",
       "method": "GET",
@@ -202,34 +164,6 @@
         "param": "orgId"
       },
       "expect": "deny"
-    },
-    {
-      "id": "0b52f6d971b8c62e",
-      "endpoint": "GET /orgs/{orgId}/orders",
-      "method": "GET",
-      "path_template": "/orgs/{orgId}/orders",
-      "relationship": "owner",
-      "attacker": null,
-      "object": {
-        "resource": "orgs",
-        "param": "orgId"
-      },
-      "expect": "allow",
-      "note": "no object with a known owner was seen for this resource"
-    },
-    {
-      "id": "e05ece4d9b60405b",
-      "endpoint": "GET /orgs/{orgId}/orders",
-      "method": "GET",
-      "path_template": "/orgs/{orgId}/orders",
-      "relationship": "same_role_other_user",
-      "attacker": null,
-      "object": {
-        "resource": "orgs",
-        "param": "orgId"
-      },
-      "expect": "deny",
-      "note": "no object with a known owner was seen for this resource"
     },
     {
       "id": "af1639f9e33705cd",
@@ -312,34 +246,6 @@
         "role": "anonymous"
       },
       "expect": "deny"
-    },
-    {
-      "id": "175dbda8e061a3a4",
-      "endpoint": "POST /orgs/{orgId}/orders",
-      "method": "POST",
-      "path_template": "/orgs/{orgId}/orders",
-      "relationship": "owner",
-      "attacker": null,
-      "object": {
-        "resource": "orgs",
-        "param": "orgId"
-      },
-      "expect": "allow",
-      "note": "no object with a known owner was seen for this resource"
-    },
-    {
-      "id": "eb1f21ca8600f1db",
-      "endpoint": "POST /orgs/{orgId}/orders",
-      "method": "POST",
-      "path_template": "/orgs/{orgId}/orders",
-      "relationship": "same_role_other_user",
-      "attacker": null,
-      "object": {
-        "resource": "orgs",
-        "param": "orgId"
-      },
-      "expect": "deny",
-      "note": "no object with a known owner was seen for this resource"
     },
     {
       "id": "c6e16864ece2e342",

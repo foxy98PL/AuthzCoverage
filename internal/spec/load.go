@@ -91,14 +91,16 @@ func endpoints(doc *openapi3.T, data []byte, path string) ([]*model.Endpoint, er
 		if err != nil {
 			return nil, err
 		}
-		for method := range item.Operations() {
+		for method, op := range item.Operations() {
 			method = strings.ToUpper(method)
 			key := method + " " + shape(tmpl)
 			if prev, ok := seen[key]; ok {
 				return nil, fmt.Errorf("%w: %s %s and %s %s match the same requests", ErrDuplicate, method, prev, method, tmpl)
 			}
 			seen[key] = tmpl
-			eps = append(eps, newEndpoint(method, tmpl, params, path, lines[tmpl]))
+			ep := newEndpoint(method, tmpl, params, path, lines[tmpl])
+			ep.AuthRequired = authRequired(doc.Security, op.Security)
+			eps = append(eps, ep)
 		}
 	}
 	sort.Slice(eps, func(i, j int) bool { return eps[i].ID < eps[j].ID })
@@ -167,4 +169,24 @@ func segments(tmpl string) []string {
 
 func isParam(s string) bool {
 	return len(s) > 2 && s[0] == '{' && s[len(s)-1] == '}' && !strings.ContainsAny(s[1:len(s)-1], "{}")
+}
+
+// authRequired reports whether an operation's effective security requires
+// authentication. An operation-level security list (even an empty one)
+// replaces the document-level one; no list anywhere means public, and so does
+// an empty list or any empty requirement object ({} = anonymous allowed).
+func authRequired(global openapi3.SecurityRequirements, op *openapi3.SecurityRequirements) bool {
+	reqs := global
+	if op != nil {
+		reqs = *op
+	}
+	if len(reqs) == 0 {
+		return false
+	}
+	for _, r := range reqs {
+		if len(r) == 0 {
+			return false
+		}
+	}
+	return true
 }

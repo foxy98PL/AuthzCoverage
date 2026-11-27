@@ -333,34 +333,6 @@
           "ruleIndex": 0,
           "level": "error",
           "message": {
-            "text": "GET /books/v1 was never called as lower_role"
-          },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "spec.yml",
-                  "uriBaseId": "%SRCROOT%"
-                },
-                "region": {
-                  "startLine": 486
-                }
-              }
-            }
-          ],
-          "partialFingerprints": {
-            "authzcovFinding/v1": "444ef76c88021bdc"
-          },
-          "properties": {
-            "endpoint": "GET /books/v1",
-            "relationship": "lower_role"
-          }
-        },
-        {
-          "ruleId": "authzcov/gap",
-          "ruleIndex": 0,
-          "level": "error",
-          "message": {
             "text": "GET /createdb was never called as anonymous"
           },
           "locations": [

@@ -68,8 +68,11 @@ type Identity struct {
 
 // Override picks the object parameter of one endpoint by hand.
 type Override struct {
-	Endpoint, ObjectParam string // Endpoint is an exact endpoint ID, "GET /orgs/{orgId}"
-	Line                  int
+	Endpoint, ObjectParam string // Endpoint is an exact endpoint ID, "GET /orgs/{orgId}"; ObjectParam may be empty when MinRole is set
+	// MinRole is a role name declared as the minimum allowed role for the
+	// endpoint; it replaces the learned minimum. Empty when not declared.
+	MinRole string
+	Line    int
 }
 
 // Ownership holds ownership hints.
@@ -346,7 +349,7 @@ func (p *parser) file0(root *yaml.Node) (*File, *Error) {
 		}
 	}
 	if rn := m["requirements"]; rn != nil {
-		if f.Overrides, e = p.requirements(rn); e != nil {
+		if f.Overrides, e = p.requirements(rn, f.Roles); e != nil {
 			return nil, e
 		}
 	}
@@ -617,7 +620,7 @@ func (p *parser) tenancy(n *yaml.Node) (map[string]string, *Error) {
 	return out, nil
 }
 
-func (p *parser) requirements(n *yaml.Node) ([]Override, *Error) {
+func (p *parser) requirements(n *yaml.Node, roles map[string]int) ([]Override, *Error) {
 	m, e := p.fields(n, "requirements", "overrides")
 	if e != nil {
 		return nil, e
@@ -636,14 +639,15 @@ func (p *parser) requirements(n *yaml.Node) ([]Override, *Error) {
 	seen := map[string]bool{}
 	for i, item := range on.Content {
 		op := fmt.Sprintf("requirements.overrides[%d]", i)
-		im, e := p.fields(item, op, "endpoint", "object_param")
+		im, e := p.fields(item, op, "endpoint", "object_param", "min_role")
 		if e != nil {
 			return nil, e
 		}
-		for _, req := range []string{"endpoint", "object_param"} {
-			if im[req] == nil {
-				return nil, p.err(item, join(op, req), "%s is required", req)
-			}
+		if im["endpoint"] == nil {
+			return nil, p.err(item, join(op, "endpoint"), "endpoint is required")
+		}
+		if im["object_param"] == nil && im["min_role"] == nil {
+			return nil, p.err(item, join(op, "object_param"), "object_param is required (or set min_role)")
 		}
 		ov := Override{Line: item.Line}
 		if ov.Endpoint, e = p.nonEmptyString(im["endpoint"], op+".endpoint"); e != nil {
@@ -657,8 +661,21 @@ func (p *parser) requirements(n *yaml.Node) ([]Override, *Error) {
 			return nil, p.err(im["endpoint"], op+".endpoint", "duplicate override for %q", ov.Endpoint)
 		}
 		seen[ov.Endpoint] = true
-		if ov.ObjectParam, e = p.nonEmptyString(im["object_param"], op+".object_param"); e != nil {
-			return nil, e
+		if im["object_param"] != nil {
+			if ov.ObjectParam, e = p.nonEmptyString(im["object_param"], op+".object_param"); e != nil {
+				return nil, e
+			}
+		}
+		if im["min_role"] != nil {
+			if ov.MinRole, e = p.nonEmptyString(im["min_role"], op+".min_role"); e != nil {
+				return nil, e
+			}
+			if ov.MinRole == "anonymous" {
+				return nil, p.err(im["min_role"], op+".min_role", "min_role cannot be anonymous; declare an endpoint open to anonymous callers with security: [] in the OpenAPI spec")
+			}
+			if _, ok := roles[ov.MinRole]; !ok {
+				return nil, p.err(im["min_role"], op+".min_role", "role %q is not defined in roles", ov.MinRole)
+			}
 		}
 		out = append(out, ov)
 	}

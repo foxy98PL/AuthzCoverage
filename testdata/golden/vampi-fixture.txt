@@ -4,14 +4,14 @@ GET     /                              GAP    -          GAP    GAP
 GET     /books/v1                      GAP    -          GAP    GAP
 GET     /books/v1/{book_title}         ok     GAP        -      ok 401
 GET     /createdb                      GAP    -          GAP    GAP
-GET     /me                            ok     -          GAP    GAP
+GET     /me                            ok     -          -      GAP
 GET     /users/v1                      GAP    -          GAP    GAP
 GET     /users/v1/_debug               GAP    -          GAP    GAP
 GET     /users/v1/{username}           ok     GAP        -      GAP
-POST    /books/v1                      ok     -          GAP    GAP
+POST    /books/v1                      ok     -          -      GAP
 POST    /users/v1/login                GAP    -          GAP    GAP
 POST    /users/v1/register             GAP    -          GAP    GAP
 PUT     /users/v1/{username}/email     GAP    GAP        -      GAP
 PUT     /users/v1/{username}/password  GAP    GAP        -      GAP
 
-required 42  covered 5 (11.9%)  gaps 37
+required 40  covered 5 (12.5%)  gaps 35
