@@ -66,7 +66,11 @@ func main() {
 	addCleanup(func() { _ = os.RemoveAll(tmp) })
 
 	bin := filepath.Join(tmp, "authzcov")
-	gv := strings.TrimSpace(shOutOr(root, "dev", "git", "describe", "--tags", "--always", "--dirty"))
+	gv := strings.TrimSpace(shOutOr(root, "dev", "git", "describe", "--tags", "--always"))
+	// Dirty = changes outside eval/results (make eval rewrites those while it runs).
+	if strings.TrimSpace(shOutOr(root, "", "git", "status", "--porcelain", "--", ".", ":(exclude)eval/results")) != "" {
+		gv += "-dirty"
+	}
 	gc := strings.TrimSpace(shOutOr(root, "", "git", "rev-parse", "--short", "HEAD"))
 	sh(root, "go", "build", "-trimpath", "-ldflags", "-X authzcov/internal/cli.version="+gv+" -X authzcov/internal/cli.commit="+gc, "-o", bin, "./cmd/authzcov")
 	ver := strings.TrimSpace(shOut(root, bin, "version"))

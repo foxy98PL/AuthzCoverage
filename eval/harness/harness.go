@@ -30,7 +30,11 @@ func RepoRoot() (string, error) {
 
 // Build compiles authzcov from root into dir and returns the binary path and its `version` output.
 func Build(root, dir string) (bin, version string, err error) {
-	gv := strings.TrimSpace(outOr(root, "dev", "git", "describe", "--tags", "--always", "--dirty"))
+	gv := strings.TrimSpace(outOr(root, "dev", "git", "describe", "--tags", "--always"))
+	// Dirty = changes outside eval/results (make eval rewrites those while it runs).
+	if strings.TrimSpace(outOr(root, "", "git", "status", "--porcelain", "--", ".", ":(exclude)eval/results")) != "" {
+		gv += "-dirty"
+	}
 	gc := strings.TrimSpace(outOr(root, "", "git", "rev-parse", "--short", "HEAD"))
 	bin = filepath.Join(dir, "authzcov")
 	c := exec.Command("go", "build", "-trimpath", "-ldflags",
