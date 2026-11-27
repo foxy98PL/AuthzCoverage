@@ -1,0 +1,933 @@
+{
+  "app": {
+    "image_digest": "sha256:0a5a224b6e14ae7da6a6ea265178ff71286ff903aec74adee98f660bb0e4ca12",
+    "name": "VAmPI",
+    "version": "master@f16052d"
+  },
+  "authzcov": {
+    "commit": "db3ddcc",
+    "version": "v0.1.0-rc.1"
+  },
+  "cases": [
+    {
+      "id": "v0/attack/VAMPI-BOLA",
+      "kind": "documented",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status bob:404,alice:404) and not flagged"
+    },
+    {
+      "id": "v0/attack/VAMPI-C-BOOK-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "v0/attack/VAMPI-C-DELETE-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "v0/attack/VAMPI-C-DELETE-USER",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status bob:401,alice:401) and not flagged"
+    },
+    {
+      "id": "v0/attack/VAMPI-C-EMAIL-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "v0/attack/VAMPI-C-PW-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "v0/attack/VAMPI-DEBUG",
+      "kind": "documented",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/_debug",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [],
+      "result": "fn",
+      "reason": "no suspicious_allow (probe status anonymous:200); cell is shown as covered (ok), but suspicious_allow is only raised for object-level endpoints (path has an object parameter); this endpoint has none"
+    },
+    {
+      "id": "v0/attack/VAMPI-ENUM",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: User and Password Enumeration"
+    },
+    {
+      "id": "v0/attack/VAMPI-JWTKEY",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: JWT authentication bypass via weak signing key"
+    },
+    {
+      "id": "v0/attack/VAMPI-MASS",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Mass Assignment (register with admin=true)"
+    },
+    {
+      "id": "v0/attack/VAMPI-PWCHANGE",
+      "kind": "documented",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "PUT /users/v1/{username}/password",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but the 2xx changed only the caller's own record (path ignored), not the named victim: Unauthorized Password Change (probe status bob:204,alice:204; bob received 204 for an object owned by alice (and 1 more))"
+    },
+    {
+      "id": "v0/attack/VAMPI-RATE",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Lack of Resources and Rate Limiting"
+    },
+    {
+      "id": "v0/attack/VAMPI-REDOS",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: RegexDOS"
+    },
+    {
+      "id": "v0/attack/VAMPI-SQLI",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: SQLi Injection"
+    },
+    {
+      "id": "v0/attack/VAMPI-U1-ANON",
+      "kind": "undocumented",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status anonymous:200: anonymous received 200 for an object owned by alice"
+    },
+    {
+      "id": "v0/attack/VAMPI-U1-OTHER",
+      "kind": "undocumented",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status bob:200,alice:200: bob received 200 for an object owned by alice (and 1 more)"
+    },
+    {
+      "id": "v0/attack/VAMPI-U2-EMAIL",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "PUT /users/v1/{username}/email",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but the 2xx changed only the caller's own record (path ignored), not the named victim: Email update ignores the {username} path parameter (probe status bob:204,alice:204; bob received 204 for an object owned by alice (and 1 more))"
+    },
+    {
+      "id": "v0/honest/VAMPI-BOLA",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /books/v1/{book_title}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /books/v1/{book_title}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Broken Object Level Authorization)"
+    },
+    {
+      "id": "v0/honest/VAMPI-DEBUG",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/_debug",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/_debug",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Excessive Data Exposure through debug endpoint)"
+    },
+    {
+      "id": "v0/honest/VAMPI-PWCHANGE",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "PUT /users/v1/{username}/password",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "PUT /users/v1/{username}/password",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Unauthorized Password Change)"
+    },
+    {
+      "id": "v0/honest/VAMPI-U1-ANON",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (User lookup has no authentication (anonymous))"
+    },
+    {
+      "id": "v0/honest/VAMPI-U1-OTHER",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (User lookup has no authentication (other user's email readable))"
+    },
+    {
+      "id": "v1/attack/VAMPI-BOLA",
+      "kind": "documented",
+      "expected": [
+        {
+          "endpoint": "GET /books/v1/{book_title}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /books/v1/{book_title}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status bob:200,alice:200: bob received 200 for an object owned by alice (and 1 more)"
+    },
+    {
+      "id": "v1/attack/VAMPI-C-BOOK-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "v1/attack/VAMPI-C-DELETE-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "v1/attack/VAMPI-C-DELETE-USER",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status bob:401,alice:401) and not flagged"
+    },
+    {
+      "id": "v1/attack/VAMPI-C-EMAIL-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "v1/attack/VAMPI-C-PW-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by VAmPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "v1/attack/VAMPI-DEBUG",
+      "kind": "documented",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/_debug",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [],
+      "result": "fn",
+      "reason": "no suspicious_allow (probe status anonymous:200); cell is shown as covered (ok), but suspicious_allow is only raised for object-level endpoints (path has an object parameter); this endpoint has none"
+    },
+    {
+      "id": "v1/attack/VAMPI-ENUM",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: User and Password Enumeration"
+    },
+    {
+      "id": "v1/attack/VAMPI-JWTKEY",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: JWT authentication bypass via weak signing key"
+    },
+    {
+      "id": "v1/attack/VAMPI-MASS",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Mass Assignment (register with admin=true)"
+    },
+    {
+      "id": "v1/attack/VAMPI-PWCHANGE",
+      "kind": "documented",
+      "expected": [
+        {
+          "endpoint": "PUT /users/v1/{username}/password",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "PUT /users/v1/{username}/password",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status bob:204,alice:204: bob received 204 for an object owned by alice (and 1 more)"
+    },
+    {
+      "id": "v1/attack/VAMPI-RATE",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Lack of Resources and Rate Limiting"
+    },
+    {
+      "id": "v1/attack/VAMPI-REDOS",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: RegexDOS"
+    },
+    {
+      "id": "v1/attack/VAMPI-SQLI",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: SQLi Injection"
+    },
+    {
+      "id": "v1/attack/VAMPI-U1-ANON",
+      "kind": "undocumented",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status anonymous:200: anonymous received 200 for an object owned by alice"
+    },
+    {
+      "id": "v1/attack/VAMPI-U1-OTHER",
+      "kind": "undocumented",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status bob:200,alice:200: bob received 200 for an object owned by alice (and 1 more)"
+    },
+    {
+      "id": "v1/attack/VAMPI-U2-EMAIL",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "PUT /users/v1/{username}/email",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but the 2xx changed only the caller's own record (path ignored), not the named victim: Email update ignores the {username} path parameter (probe status bob:204,alice:204; bob received 204 for an object owned by alice (and 1 more))"
+    },
+    {
+      "id": "v1/honest/VAMPI-BOLA",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /books/v1/{book_title}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /books/v1/{book_title}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Broken Object Level Authorization)"
+    },
+    {
+      "id": "v1/honest/VAMPI-DEBUG",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/_debug",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/_debug",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Excessive Data Exposure through debug endpoint)"
+    },
+    {
+      "id": "v1/honest/VAMPI-PWCHANGE",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "PUT /users/v1/{username}/password",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "PUT /users/v1/{username}/password",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Unauthorized Password Change)"
+    },
+    {
+      "id": "v1/honest/VAMPI-U1-ANON",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (User lookup has no authentication (anonymous))"
+    },
+    {
+      "id": "v1/honest/VAMPI-U1-OTHER",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /users/v1/{username}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (User lookup has no authentication (other user's email readable))"
+    }
+  ],
+  "extra": {
+    "note": "tp/fn in honest runs = gap reported yes/no; attack runs = suspicious_allow vs ground truth; tn/fp only meaningful for expected-deny cells",
+    "runs": [
+      {
+        "name": "v1/honest",
+        "vulnerable": 1,
+        "suite": "honest",
+        "har_entries": 30,
+        "coverage_percent": 31,
+        "required": 42,
+        "covered": 13,
+        "suspicious_allow": null,
+        "warnings": [
+          "map[code:single_identity_role message:role \"admin\" has exactly one identity in tenant \"\": same_role_other_user cannot be covered]"
+        ]
+      },
+      {
+        "name": "v1/attack",
+        "vulnerable": 1,
+        "suite": "attack",
+        "har_entries": 49,
+        "coverage_percent": 59.5,
+        "required": 42,
+        "covered": 25,
+        "suspicious_allow": [
+          {
+            "endpoint": "GET /books/v1/{book_title}",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "GET /users/v1/{username}",
+            "relationship": "anonymous"
+          },
+          {
+            "endpoint": "GET /users/v1/{username}",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "PUT /users/v1/{username}/email",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "PUT /users/v1/{username}/password",
+            "relationship": "same_role_other_user"
+          }
+        ],
+        "warnings": [
+          "map[code:single_identity_role message:role \"admin\" has exactly one identity in tenant \"\": same_role_other_user cannot be covered]"
+        ],
+        "probes": [
+          {
+            "tag": "bola_book",
+            "who": "bob",
+            "method": "GET",
+            "path": "/books/v1/alice-book",
+            "status": 200
+          },
+          {
+            "tag": "bola_book",
+            "who": "alice",
+            "method": "GET",
+            "path": "/books/v1/bob-book",
+            "status": 200
+          },
+          {
+            "tag": "book_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/books/v1/alice-book",
+            "status": 401
+          },
+          {
+            "tag": "user_get_other",
+            "who": "bob",
+            "method": "GET",
+            "path": "/users/v1/alice",
+            "status": 200
+          },
+          {
+            "tag": "user_get_other",
+            "who": "alice",
+            "method": "GET",
+            "path": "/users/v1/bob",
+            "status": 200
+          },
+          {
+            "tag": "user_get_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/users/v1/alice",
+            "status": 200
+          },
+          {
+            "tag": "email_other",
+            "who": "bob",
+            "method": "PUT",
+            "path": "/users/v1/alice/email",
+            "status": 204
+          },
+          {
+            "tag": "email_other",
+            "who": "alice",
+            "method": "PUT",
+            "path": "/users/v1/bob/email",
+            "status": 204
+          },
+          {
+            "tag": "email_anon",
+            "who": "anonymous",
+            "method": "PUT",
+            "path": "/users/v1/alice/email",
+            "status": 401
+          },
+          {
+            "tag": "delete_other",
+            "who": "bob",
+            "method": "DELETE",
+            "path": "/users/v1/alice",
+            "status": 401
+          },
+          {
+            "tag": "delete_other",
+            "who": "alice",
+            "method": "DELETE",
+            "path": "/users/v1/bob",
+            "status": 401
+          },
+          {
+            "tag": "delete_anon",
+            "who": "anonymous",
+            "method": "DELETE",
+            "path": "/users/v1/alice",
+            "status": 401
+          },
+          {
+            "tag": "debug_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/users/v1/_debug",
+            "status": 200
+          },
+          {
+            "tag": "debug_user",
+            "who": "alice",
+            "method": "GET",
+            "path": "/users/v1/_debug",
+            "status": 200
+          },
+          {
+            "tag": "debug_admin",
+            "who": "admin",
+            "method": "GET",
+            "path": "/users/v1/_debug",
+            "status": 200
+          },
+          {
+            "tag": "mass_assign",
+            "who": "anonymous",
+            "method": "POST",
+            "path": "/users/v1/register",
+            "status": 200
+          },
+          {
+            "tag": "pw_anon",
+            "who": "anonymous",
+            "method": "PUT",
+            "path": "/users/v1/alice/password",
+            "status": 401
+          },
+          {
+            "tag": "pwchange_other",
+            "who": "bob",
+            "method": "PUT",
+            "path": "/users/v1/alice/password",
+            "status": 204
+          },
+          {
+            "tag": "pwchange_other",
+            "who": "alice",
+            "method": "PUT",
+            "path": "/users/v1/bob/password",
+            "status": 204
+          }
+        ]
+      },
+      {
+        "name": "v0/honest",
+        "vulnerable": 0,
+        "suite": "honest",
+        "har_entries": 30,
+        "coverage_percent": 31,
+        "required": 42,
+        "covered": 13,
+        "suspicious_allow": null,
+        "warnings": [
+          "map[code:single_identity_role message:role \"admin\" has exactly one identity in tenant \"\": same_role_other_user cannot be covered]"
+        ]
+      },
+      {
+        "name": "v0/attack",
+        "vulnerable": 0,
+        "suite": "attack",
+        "har_entries": 49,
+        "coverage_percent": 59.5,
+        "required": 42,
+        "covered": 25,
+        "suspicious_allow": [
+          {
+            "endpoint": "GET /users/v1/{username}",
+            "relationship": "anonymous"
+          },
+          {
+            "endpoint": "GET /users/v1/{username}",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "PUT /users/v1/{username}/email",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "PUT /users/v1/{username}/password",
+            "relationship": "same_role_other_user"
+          }
+        ],
+        "warnings": [
+          "map[code:single_identity_role message:role \"admin\" has exactly one identity in tenant \"\": same_role_other_user cannot be covered]"
+        ],
+        "probes": [
+          {
+            "tag": "bola_book",
+            "who": "bob",
+            "method": "GET",
+            "path": "/books/v1/alice-book",
+            "status": 404
+          },
+          {
+            "tag": "bola_book",
+            "who": "alice",
+            "method": "GET",
+            "path": "/books/v1/bob-book",
+            "status": 404
+          },
+          {
+            "tag": "book_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/books/v1/alice-book",
+            "status": 401
+          },
+          {
+            "tag": "user_get_other",
+            "who": "bob",
+            "method": "GET",
+            "path": "/users/v1/alice",
+            "status": 200
+          },
+          {
+            "tag": "user_get_other",
+            "who": "alice",
+            "method": "GET",
+            "path": "/users/v1/bob",
+            "status": 200
+          },
+          {
+            "tag": "user_get_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/users/v1/alice",
+            "status": 200
+          },
+          {
+            "tag": "email_other",
+            "who": "bob",
+            "method": "PUT",
+            "path": "/users/v1/alice/email",
+            "status": 204
+          },
+          {
+            "tag": "email_other",
+            "who": "alice",
+            "method": "PUT",
+            "path": "/users/v1/bob/email",
+            "status": 204
+          },
+          {
+            "tag": "email_anon",
+            "who": "anonymous",
+            "method": "PUT",
+            "path": "/users/v1/alice/email",
+            "status": 401
+          },
+          {
+            "tag": "delete_other",
+            "who": "bob",
+            "method": "DELETE",
+            "path": "/users/v1/alice",
+            "status": 401
+          },
+          {
+            "tag": "delete_other",
+            "who": "alice",
+            "method": "DELETE",
+            "path": "/users/v1/bob",
+            "status": 401
+          },
+          {
+            "tag": "delete_anon",
+            "who": "anonymous",
+            "method": "DELETE",
+            "path": "/users/v1/alice",
+            "status": 401
+          },
+          {
+            "tag": "debug_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/users/v1/_debug",
+            "status": 200
+          },
+          {
+            "tag": "debug_user",
+            "who": "alice",
+            "method": "GET",
+            "path": "/users/v1/_debug",
+            "status": 200
+          },
+          {
+            "tag": "debug_admin",
+            "who": "admin",
+            "method": "GET",
+            "path": "/users/v1/_debug",
+            "status": 200
+          },
+          {
+            "tag": "mass_assign",
+            "who": "anonymous",
+            "method": "POST",
+            "path": "/users/v1/register",
+            "status": 200
+          },
+          {
+            "tag": "pw_anon",
+            "who": "anonymous",
+            "method": "PUT",
+            "path": "/users/v1/alice/password",
+            "status": 401
+          },
+          {
+            "tag": "pwchange_other",
+            "who": "bob",
+            "method": "PUT",
+            "path": "/users/v1/alice/password",
+            "status": 204
+          },
+          {
+            "tag": "pwchange_other",
+            "who": "alice",
+            "method": "PUT",
+            "path": "/users/v1/bob/password",
+            "status": 204
+          }
+        ]
+      }
+    ]
+  },
+  "generated_at": "2026-11-27T14:25:36Z",
+  "machine": {
+    "arch": "amd64",
+    "cpus": 20,
+    "go_version": "go1.27.4",
+    "os": "linux"
+  },
+  "schema_version": 1,
+  "suite": "vampi",
+  "summary": {
+    "fn": 2,
+    "fp": 3,
+    "out_of_scope": 12,
+    "precision": 0.842,
+    "recall": 0.889,
+    "tn": 11,
+    "tp": 16
+  }
+}

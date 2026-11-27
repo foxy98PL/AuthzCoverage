@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "authzcov-eval-result-v1",
+  "title": "authzcov eval result (schema_version 1)",
+  "description": "Documentation of the single format of eval/results/*.json. Written by the Go package eval/result; a test keeps the required keys in sync with its struct tags.",
+  "type": "object",
+  "required": ["app", "authzcov", "cases", "extra", "generated_at", "machine", "schema_version", "suite", "summary"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "suite": {"type": "string", "description": "e.g. tenantshop-mutants, tenantshop-ablation, vampi"},
+    "generated_at": {"type": "string", "format": "date-time", "description": "UTC; honours SOURCE_DATE_EPOCH"},
+    "app": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"type": "string"},
+        "version": {"type": "string"},
+        "image_digest": {"type": "string"}
+      }
+    },
+    "authzcov": {
+      "type": "object",
+      "required": ["commit", "version"],
+      "properties": {"commit": {"type": "string"}, "version": {"type": "string"}}
+    },
+    "machine": {
+      "type": "object",
+      "required": ["arch", "cpus", "go_version", "os"],
+      "properties": {
+        "arch": {"type": "string"},
+        "cpus": {"type": "integer", "minimum": 1},
+        "go_version": {"type": "string"},
+        "os": {"type": "string"}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["fn", "fp", "out_of_scope", "precision", "recall", "tn", "tp"],
+      "properties": {
+        "tp": {"type": "integer"}, "fp": {"type": "integer"}, "fn": {"type": "integer"},
+        "tn": {"type": "integer"}, "out_of_scope": {"type": "integer"},
+        "precision": {"type": ["number", "null"], "description": "tp/(tp+fp), 3 decimals; null if undefined"},
+        "recall": {"type": ["number", "null"], "description": "tp/(tp+fn), 3 decimals; null if undefined"}
+      }
+    },
+    "cases": {
+      "type": "array",
+      "description": "Sorted by id; ids are unique.",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "expected", "flagged", "result", "reason"],
+        "properties": {
+          "id": {"type": "string"},
+          "kind": {"type": "string"},
+          "expected": {"type": "array", "items": {"$ref": "#/$defs/cell"}},
+          "flagged": {"type": "array", "items": {"$ref": "#/$defs/cell"}},
+          "result": {"enum": ["tp", "fp", "fn", "tn", "out_of_scope"]},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "extra": {"type": "object", "description": "Suite-specific run details (entries, coverage, notes)."}
+  },
+  "$defs": {
+    "cell": {
+      "type": "object",
+      "required": ["endpoint", "relationship"],
+      "properties": {"endpoint": {"type": "string"}, "relationship": {"type": "string"}}
+    }
+  }
+}

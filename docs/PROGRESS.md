@@ -15,7 +15,7 @@ Plan and open decisions: `docs/PLAN.md`.
 - KAN-88 suspicious_allow (new story) → In Review (passed after fix). KAN-73 benchmark → In Review (passed after fix; 138 ms/op, 31.7 MiB RSS on 10k entries).
 - All agent reviews passed (docs/reviews/, REVIEW_QUEUE.md). Owner manual checks: KAN-23 AC3 SARIF upload; KAN-22 AC1/AC4 browser.
 - KAN-74 tenantshop demo → In Review (agent review passed after fix). `make e2e` green; seeded bug → 1 suspicious_allow other_tenant.
-- Next: KAN-28 README/quickstart.
+- Round 4 (2026-11-27 evening): KAN-34 export --plan committed (db3ddcc) → In Review. KAN-90 validation benchmark in progress (VAmPI part ran; mutants/ablation/`make eval` next).
 - Product gap found by KAN-74: `learn_from_create.id_from` only supports `request_json`; server-generated IDs (`response_json`) cannot be learned. Follow-up ticket proposed.
 - 2026-11-27: project moved to GitHub (`origin` https://github.com/foxy98PL/AuthzCoverage, branch `main`). First push 2026-11-27: fcda7ad (all Phase 1–2 work + KAN-74), via a repo-scoped SSH deploy key.
 - Remaining Phase 2 now unblocked: KAN-11 GitHub parts (CI, Dependabot), KAN-26 GitHub Action, KAN-27 release (KAN-71/72), KAN-23 AC3.
@@ -187,6 +187,26 @@ waiting for mitmproxy and a real run.
 - Headers default-deny (benign allowlist keeps scrubbed values; everything else masked); e-mails → user_<hash8>@example.test; hosts → h<N>.test; query values → x; whitelist rebuild of entries.
 - Coverage invariance tested on hartest fixtures + real tenantshop recording; no-secret-survives tests; FuzzPseudonymize 30 s.
 - Shared test key moved to `internal/testkey`. Examples (crAPI, RealWorld) still blocked on recordings.
+
+## KAN-34 — export --plan (In Review)
+- `internal/plan` + `authzcov export --plan`: one probe per gap (endpoint, relationship, attacker identity, object resource/id_hash/owner/tenant, expected outcome); never credentials.
+- With --har/--spec/--identities raw ids resolved → `contains_raw_ids`, file 0600. `schema/plan.v1.json`, `docs/plan.md` (possession/Hadrian interop notes, no adapter). coverage and export share `analyze()`.
+- Agent review (2026-11-27) → 5 findings, all fixed (uncommitted): raw-ID plans need --out (exit 2 on stdout); export --base-path (shared `validateBasePath`) + HAR sha256 mismatch warning; schema test checks plan_version/patterns/additionalProperties; sort wording; no-credentials test covers cookie/API key/query token.
+
+## KAN-90 — validation benchmark (In progress)
+- VAmPI part (untracked until owner commits): `e2e/thirdparty/vampi` (stdlib module `vampieval`): pinned image digest, vulnerable=1/0, scripted recorder (no mitmproxy), `groundtruth.yaml` from VAmPI source @f16052d, honest + attack suites; `run.sh` → `eval/results/vampi.json`.
+- First result (db3ddcc): tp 16, fp 3, fn 2, tn 11, out_of_scope 12; precision 0.842, recall 0.889.
+  - FN ×2 VAMPI-DEBUG: function-level `GET /users/v1/_debug` — suspicious_allow is object-level only (by design; product gap candidate).
+  - FP: v0 PWCHANGE and U2-EMAIL (v0+v1): VAmPI ignores the `{username}` path param and changes the caller's own record; authzcov sees 2xx on another user's object. Response-shape-blind by design (probe phase would resolve).
+- Mutants + ablation + `make eval` done (In Review). New stdlib module `eval/` (`authzcoveval`): `result` (typed schema v1, Validate/Write, SOURCE_DATE_EPOCH, `eval/schema/result.v1.json`), `harness` (build + run authzcov), `tenantshop` suites, `cmd/tenantshop`; `eval/README.md`. vampi harness uses the shared `result` package.
+- tenantshop: `shop.NewVariant(seeded|fixed|<mutant>)`, `shop.Mutants()` (10, one check removed each); `record.FullScript()` (one attacker step per cell, `Step.Cell`), `SeededScript()` unchanged, `RecordScript`. Golden unchanged.
+- Makefile: `eval` = `eval-tenantshop` + `eval-vampi` (checks `docker info`).
+- Mutants: tp 10, fn 1 (customers-role: function-level role check on a tenant-scoped endpoint → relationship unknown), fp 0, fixed app no alarm. Ablation: 12/12, precision 1.0 recall 1.0 (4 attacker steps not ablatable: anonymous on tenant-scoped endpoints + lower_role on customers).
+- Findings for owner: (a) tenant-param-only endpoints (resource orgs) require owner/same_role cells that can never be covered (no learned owner) — requirement rule decision; (b) anonymous 401 on those endpoints doesn't cover the cell because needOwner also applies to anonymous = pending decision KAN-19 F1; (c) DEBUG FN (function-level suspicious_allow).
+- Agent review → fixed: build binary removed + .gitignore whitelist for eval/cmd and e2e/thirdparty; create/customers use the path org (real cross-tenant mutants, golden unchanged); `TestMutantsRemoveExactlyOneCheck`; ablation reports attacker_steps 16 / ablatable 12; vampi cleanup registry (temp HARs + containers removed on fatal), per-run summaries in extra.runs[].summary; README limits. Owner: confirm image digest ↔ VAmPI f16052d.
+- Scaling (`make eval-scaling`, `eval/cmd/scaling`, `eval/results/scaling.json`): bench fixture parametrised (`benchHARN`, streamed writer, 10k bytes pinned by `TestBenchFixtureStable`). 1k/10k/100k/1M: 25 ms / 136 ms / 1.2 s / 15.0 s, slope 0.93; peak RSS 20 / 34 / 175 / 1636 MiB → memory linear in entries (pipeline keeps all exchanges; follow-up ticket). `make bench` 132 ms (no regression).
+- VAmPI image digest ↔ f16052d confirmed: image created 2026-04-07T20:03:18Z, 39 s after the f16052d merge, by VAmPI's Docker Image CI run on f16052d (latest master commit). Migrated harness re-run reproduces tp16 fp3 fn2 tn11 oos12.
+- Open: fresh `make eval-vampi` after the migration (docker not reachable in WSL now; enable Docker Desktop WSL integration). Result files say `-dirty` until regenerated after commit. Later ACs (crAPI, Juice Shop, scaling, article) not started.
 
 ## Decisions made during implementation (review these)
 1. Non-bearer credentials (Basic, cookie, API key) → identity unknown, never anonymous.

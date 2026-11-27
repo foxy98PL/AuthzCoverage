@@ -25,3 +25,16 @@ coverage.txt
 *.swp
 .DS_Store
 .claude/settings.local.json
+
+# Build output (eval harnesses)
+/eval/cmd/*/*
+!/eval/cmd/*/*.go
+/e2e/thirdparty/*/*
+!/e2e/thirdparty/*/*.go
+!/e2e/thirdparty/*/*.yaml
+!/e2e/thirdparty/*/*.sh
+!/e2e/thirdparty/*/go.mod
+!/e2e/thirdparty/*/go.sum
+!/e2e/thirdparty/*/*.md
+/e2e/thirdparty/*/vampieval
+/eval/tenantshop-bin

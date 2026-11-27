@@ -1,0 +1,201 @@
+# Ground truth for VAmPI (erev0s/VAmPI, source commit f16052d, 2026-04-07; the
+# pinned image was built the same day). Derived by reading api_views/*.py,
+# models/*.py and README.md "List of Vulnerabilities", then confirmed by the
+# runner's own probe statuses (see results "extra.probes").
+#
+# Flat subset of YAML (one "- id:" block per item), parsed by the runner.
+#   authz: true  = authorization failure; authzcov is expected to flag it
+#   authz: false = not an authorization problem (out_of_scope for authzcov),
+#                  or a behaviour that is not an authz failure
+#   category: documented | undocumented | control | quirk | non_authz
+#   vulnerable_1 / vulnerable_0: what a forbidden caller gets in that mode
+#                  (allow = 2xx with data/effect on the victim, deny = 401/404,
+#                noop = 2xx but only the caller's own record changes: not an authz failure)
+#   probe: step tag in the recorder that exercises the item
+
+# ---- Documented authorization vulnerabilities ------------------------------
+- id: VAMPI-BOLA
+  name: Broken Object Level Authorization
+  category: documented
+  authz: true
+  endpoint: GET /books/v1/{book_title}
+  relationship: same_role_other_user
+  vulnerable_1: allow
+  vulnerable_0: deny
+  probe: bola_book
+  source: api_views/books.py:get_by_title (vuln: Book.query.filter_by(book_title=...) with no owner filter; else filter_by(user=caller, ...) -> 404)
+
+- id: VAMPI-PWCHANGE
+  name: Unauthorized Password Change
+  category: documented
+  authz: true
+  endpoint: PUT /users/v1/{username}/password
+  relationship: same_role_other_user
+  vulnerable_1: allow
+  vulnerable_0: noop
+  probe: pwchange_other
+  source: api_views/users.py:update_password (vuln: User.query.filter_by(username=<path>) changes any user's password; else it changes only the token subject's own password and ignores the path, still returning 204 = noop for the named victim)
+
+- id: VAMPI-DEBUG
+  name: Excessive Data Exposure through debug endpoint
+  category: documented
+  authz: true
+  endpoint: GET /users/v1/_debug
+  relationship: anonymous
+  vulnerable_1: allow
+  vulnerable_0: allow
+  probe: debug_anon
+  source: api_views/users.py:debug (no token check in either mode; app.py comment: "the debug endpoint" stays vulnerable when vulnerable=0)
+
+# ---- Undocumented but real (found by reading the source) --------------------
+- id: VAMPI-U1-OTHER
+  name: User lookup has no authentication (other user's email readable)
+  category: undocumented
+  authz: true
+  endpoint: GET /users/v1/{username}
+  relationship: same_role_other_user
+  vulnerable_1: allow
+  vulnerable_0: allow
+  probe: user_get_other
+  source: api_views/users.py:get_by_username (no token_validator call; spec has no security on this operation)
+
+- id: VAMPI-U1-ANON
+  name: User lookup has no authentication (anonymous)
+  category: undocumented
+  authz: true
+  endpoint: GET /users/v1/{username}
+  relationship: anonymous
+  vulnerable_1: allow
+  vulnerable_0: allow
+  probe: user_get_anon
+  source: api_views/users.py:get_by_username
+
+# ---- Quirk: flagged by a path-based tool, but not an authz failure ----------
+- id: VAMPI-U2-EMAIL
+  name: Email update ignores the {username} path parameter
+  category: quirk
+  authz: false
+  endpoint: PUT /users/v1/{username}/email
+  relationship: same_role_other_user
+  vulnerable_1: noop
+  vulnerable_0: noop
+  probe: email_other
+  source: api_views/users.py:update_email (always updates User.query.filter_by(username=resp['sub']): the caller's own record changes, the named victim is untouched; 204 in both modes)
+
+# ---- Controls: forbidden in both modes (a flag here is a false positive) ----
+- id: VAMPI-C-BOOK-ANON
+  name: Book read without token is rejected
+  category: control
+  authz: true
+  endpoint: GET /books/v1/{book_title}
+  relationship: anonymous
+  vulnerable_1: deny
+  vulnerable_0: deny
+  probe: book_anon
+  source: openapi3.yml security bearerAuth (connexion rejects with 401)
+
+- id: VAMPI-C-PW-ANON
+  name: Password change without token is rejected
+  category: control
+  authz: true
+  endpoint: PUT /users/v1/{username}/password
+  relationship: anonymous
+  vulnerable_1: deny
+  vulnerable_0: deny
+  probe: pw_anon
+  source: openapi3.yml security bearerAuth
+
+- id: VAMPI-C-EMAIL-ANON
+  name: Email change without token is rejected
+  category: control
+  authz: true
+  endpoint: PUT /users/v1/{username}/email
+  relationship: anonymous
+  vulnerable_1: deny
+  vulnerable_0: deny
+  probe: email_anon
+  source: openapi3.yml security bearerAuth
+
+- id: VAMPI-C-DELETE-USER
+  name: Delete user is admin-only (normal user rejected)
+  category: control
+  authz: true
+  endpoint: DELETE /users/v1/{username}
+  relationship: same_role_other_user
+  vulnerable_1: deny
+  vulnerable_0: deny
+  probe: delete_other
+  source: api_views/users.py:delete_user (user.admin check, 401 "Only Admins may delete users!")
+
+- id: VAMPI-C-DELETE-ANON
+  name: Delete user without token is rejected
+  category: control
+  authz: true
+  endpoint: DELETE /users/v1/{username}
+  relationship: anonymous
+  vulnerable_1: deny
+  vulnerable_0: deny
+  probe: delete_anon
+  source: openapi3.yml security bearerAuth
+
+# ---- Not authorization problems (out_of_scope for authzcov) -----------------
+- id: VAMPI-SQLI
+  name: SQLi Injection
+  category: non_authz
+  authz: false
+  endpoint: GET /users/v1/{username}
+  relationship: n/a
+  vulnerable_1: n/a
+  vulnerable_0: n/a
+  source: models/user_model.py:get_user (vuln: f-string SQL; else ORM filter_by)
+
+- id: VAMPI-MASS
+  name: Mass Assignment (register with admin=true)
+  category: non_authz
+  authz: false
+  endpoint: POST /users/v1/register
+  relationship: n/a
+  vulnerable_1: n/a
+  vulnerable_0: n/a
+  probe: mass_assign
+  source: api_views/users.py:register_user (vuln: honours "admin" from the body)
+
+- id: VAMPI-ENUM
+  name: User and Password Enumeration
+  category: non_authz
+  authz: false
+  endpoint: POST /users/v1/login
+  relationship: n/a
+  vulnerable_1: n/a
+  vulnerable_0: n/a
+  source: api_views/users.py:login_user (vuln: distinct error messages)
+
+- id: VAMPI-REDOS
+  name: RegexDOS
+  category: non_authz
+  authz: false
+  endpoint: PUT /users/v1/{username}/email
+  relationship: n/a
+  vulnerable_1: n/a
+  vulnerable_0: n/a
+  source: api_views/users.py:update_email (vuln: catastrophic-backtracking email regex)
+
+- id: VAMPI-RATE
+  name: Lack of Resources and Rate Limiting
+  category: non_authz
+  authz: false
+  endpoint: POST /users/v1/login
+  relationship: n/a
+  vulnerable_1: n/a
+  vulnerable_0: n/a
+  source: no limiter anywhere in the app (same in both modes)
+
+- id: VAMPI-JWTKEY
+  name: JWT authentication bypass via weak signing key
+  category: non_authz
+  authz: false
+  endpoint: n/a
+  relationship: n/a
+  vulnerable_1: n/a
+  vulnerable_0: n/a
+  source: config.py SECRET_KEY='random' (same in both modes)

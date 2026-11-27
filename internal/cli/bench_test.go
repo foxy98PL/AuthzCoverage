@@ -1,12 +1,16 @@
 package cli
 
 import (
+	"bufio"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -74,8 +78,27 @@ func benchIdentitiesYAML() string {
 }
 
 // benchHAR builds a deterministic HAR with exactly benchEntries entries.
-func benchHAR(t testing.TB) []hartest.Entry {
+func benchHAR(t testing.TB) []hartest.Entry { return benchHARN(t, benchEntries) }
+
+// benchHARN builds a deterministic HAR with exactly n entries (n >= 1). The proportions of the
+// entry kinds are the same at every n; the object count grows with n through the create entries.
+func benchHARN(t testing.TB, n int) []hartest.Entry {
 	t.Helper()
+	es := make([]hartest.Entry, 0, n)
+	benchGen(t, n, func(e hartest.Entry) { es = append(es, e) })
+	return es
+}
+
+// benchGen calls emit exactly n times with the entries of the benchmark HAR, in order.
+func benchGen(t testing.TB, n int, emit func(hartest.Entry)) {
+	t.Helper()
+	count := 0
+	push := func(e hartest.Entry) {
+		if count < n {
+			emit(e)
+			count++
+		}
+	}
 	const host = "http://localhost:8080"
 	rng := rand.New(rand.NewPCG(1, 2)) //nolint:gosec // deterministic fixture generator, not security
 	tok := make([]string, len(benchIdentities))
@@ -89,7 +112,6 @@ func benchHAR(t testing.TB) []hartest.Entry {
 		owner   int
 	}
 	var objs []obj
-	es := make([]hartest.Entry, 0, benchEntries)
 	create := func(owner int, res string) {
 		id := fmt.Sprintf("%s-%d", res, len(objs))
 		objs = append(objs, obj{res, id, owner})
@@ -97,7 +119,7 @@ func benchHAR(t testing.TB) []hartest.Entry {
 		if res == "projects" {
 			url = host + "/orgs/" + benchIdentities[owner].tenant + "/projects"
 		}
-		es = append(es, hartest.Entry{Method: "POST", URL: url, Status: 201, Headers: auth(owner),
+		push(hartest.Entry{Method: "POST", URL: url, Status: 201, Headers: auth(owner),
 			ReqJSON: `{"id":"` + id + `","name":"n"}`, RespJSON: `{"id":"` + id + `"}`})
 	}
 	all := append(append([]string{}, benchResources...), "projects")
@@ -114,47 +136,53 @@ func benchHAR(t testing.TB) []hartest.Entry {
 		}
 		return host + "/" + o.res + "/" + o.id
 	}
-	for len(es) < benchEntries {
+	for count < n {
 		o := objs[rng.IntN(len(objs))]
 		who := rng.IntN(len(benchIdentities))
 		r := rng.IntN(100)
 		switch {
 		case r < 3:
-			es = append(es, hartest.Entry{Method: "GET", URL: fmt.Sprintf("%s/unknown/%d/path", host, rng.IntN(1000)), Status: 404, Headers: auth(who)})
+			push(hartest.Entry{Method: "GET", URL: fmt.Sprintf("%s/unknown/%d/path", host, rng.IntN(1000)), Status: 404, Headers: auth(who)})
 		case r < 4:
-			es = append(es, hartest.Entry{Method: "GET", URL: fmt.Sprintf("%s/static/app-%d.js", host, rng.IntN(50)), Status: 200, RespMIME: "application/javascript", RespJSON: "x"})
+			push(hartest.Entry{Method: "GET", URL: fmt.Sprintf("%s/static/app-%d.js", host, rng.IntN(50)), Status: 200, RespMIME: "application/javascript", RespJSON: "x"})
 		case r < 10:
 			create(who, all[rng.IntN(len(all))])
 		case r < 20:
-			es = append(es, hartest.Entry{Method: "GET", URL: path(o), Status: 401})
+			push(hartest.Entry{Method: "GET", URL: path(o), Status: 401})
 		case r < 40: // owner reads
-			es = append(es, hartest.Entry{Method: "GET", URL: path(o), Status: 200, Headers: auth(o.owner), RespJSON: `{"id":"` + o.id + `"}`})
+			push(hartest.Entry{Method: "GET", URL: path(o), Status: 200, Headers: auth(o.owner), RespJSON: `{"id":"` + o.id + `"}`})
 		case r < 55: // owner writes
 			m := []string{"PUT", "DELETE"}[rng.IntN(2)]
 			if o.res == "projects" && m == "PUT" {
 				m = "DELETE"
 			}
-			es = append(es, hartest.Entry{Method: m, URL: path(o), Status: 200, Headers: auth(o.owner), ReqJSON: `{"name":"x"}`})
+			push(hartest.Entry{Method: m, URL: path(o), Status: 200, Headers: auth(o.owner), ReqJSON: `{"name":"x"}`})
 		case r < 80: // cross-user reads, mostly denied
 			st := 403
 			if rng.IntN(10) == 0 {
 				st = 200
 			}
-			es = append(es, hartest.Entry{Method: "GET", URL: path(o), Status: st, Headers: auth(who)})
+			push(hartest.Entry{Method: "GET", URL: path(o), Status: st, Headers: auth(who)})
 		default: // lists
 			res := all[rng.IntN(len(all))]
 			url := host + "/" + res
 			if res == "projects" {
 				url = host + "/orgs/" + benchIdentities[who].tenant + "/projects"
 			}
-			es = append(es, hartest.Entry{Method: "GET", URL: url, Status: 200, Headers: auth(who), RespJSON: `[]`})
+			push(hartest.Entry{Method: "GET", URL: url, Status: 200, Headers: auth(who), RespJSON: `[]`})
 		}
 	}
-	return es[:benchEntries]
 }
 
-// writeBenchFixture writes spec.yaml, bench.har and identities.yaml into dir.
+// writeBenchFixture writes spec.yaml, bench.har and identities.yaml (benchEntries entries) into dir.
 func writeBenchFixture(t testing.TB, dir string) (spec, har, ids string) {
+	t.Helper()
+	return writeBenchFixtureN(t, dir, benchEntries)
+}
+
+// writeBenchFixtureN is writeBenchFixture with n HAR entries. The HAR is streamed entry by entry,
+// so 1M entries need no giant in-memory document; the bytes equal hartest.WriteHAR's.
+func writeBenchFixtureN(t testing.TB, dir string, n int) (spec, har, ids string) {
 	t.Helper()
 	spec = filepath.Join(dir, "spec.yaml")
 	ids = filepath.Join(dir, "identities.yaml")
@@ -164,7 +192,38 @@ func writeBenchFixture(t testing.TB, dir string) (spec, har, ids string) {
 	if err := os.WriteFile(ids, []byte(benchIdentitiesYAML()), 0o600); err != nil { //nolint:gosec // dir is a test temp dir
 		t.Fatal(err)
 	}
-	har = hartest.WriteHAR(t, dir, "bench.har", benchHAR(t)...)
+	har = filepath.Join(dir, "bench.har")
+	f, err := os.Create(har) //nolint:gosec // dir is a test temp dir
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := bufio.NewWriterSize(f, 1<<20)
+	// hartest.HAR of one entry is prefix + entry + suffix; reuse it so the format stays hartest's.
+	one := string(hartest.HAR(hartest.Entry{Method: "GET", URL: "http://x/", Status: 200}))
+	i := strings.Index(one, `"entries":[`) + len(`"entries":[`)
+	j := strings.LastIndex(one, `],"version"`)
+	if i < len(`"entries":[`) || j < i {
+		t.Fatalf("unexpected hartest.HAR layout: %s", one)
+	}
+	prefix, suffix := one[:i], one[j:]
+	_, _ = w.WriteString(prefix)
+	first := true
+	benchGen(t, n, func(e hartest.Entry) {
+		raw := hartest.HAR(e)
+		ent := raw[len(prefix) : len(raw)-len(suffix)]
+		if !first {
+			_ = w.WriteByte(',')
+		}
+		first = false
+		_, _ = w.Write(ent)
+	})
+	_, _ = w.WriteString(suffix)
+	if err := w.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
 	return spec, har, ids
 }
 
@@ -213,5 +272,46 @@ func TestWriteBenchFixture(t *testing.T) {
 	if dir == "" {
 		t.Skip("set AUTHZCOV_BENCH_FIXTURE_DIR to write the benchmark fixture")
 	}
-	writeBenchFixture(t, dir)
+	n := benchEntries
+	if v := os.Getenv("AUTHZCOV_BENCH_ENTRIES"); v != "" {
+		var err error
+		if n, err = strconv.Atoi(v); err != nil || n < 1 {
+			t.Fatalf("AUTHZCOV_BENCH_ENTRIES=%q: want a positive integer", v)
+		}
+	}
+	writeBenchFixtureN(t, dir, n)
+}
+
+// TestBenchFixtureStable pins the 10k fixture bytes: scripts/bench.sh compares against a recorded
+// baseline, so a generator change must be deliberate.
+func TestBenchFixtureStable(t *testing.T) {
+	dir := t.TempDir()
+	spec, har, ids := writeBenchFixture(t, dir)
+	for path, want := range map[string]string{
+		har:  "d6e550667a081b8f34c675fd5d10d461361949adbd358a6d6bfbd4033815004f",
+		ids:  "3bcb29c10271e8a8573b2e667dfb3679f0870083e3fc7858e4d8f3c975e12bb1",
+		spec: "e4286c06001ed4571d5414155787225dd13b43bda695170acae5c95637b41d36",
+	} {
+		b, err := os.ReadFile(path) //nolint:gosec // test temp dir
+		if err != nil {
+			t.Fatal(err)
+		}
+		sum := sha256.Sum256(b)
+		if got := hex.EncodeToString(sum[:]); got != want {
+			t.Errorf("%s sha256 = %s, want %s", filepath.Base(path), got, want)
+		}
+	}
+	// The streamed file equals the in-memory hartest document.
+	b, _ := os.ReadFile(har) //nolint:gosec // test temp dir
+	if !bytes.Equal(b, hartest.HAR(benchHAR(t)...)) {
+		t.Error("streamed HAR differs from hartest.HAR")
+	}
+}
+
+func TestBenchHARNProportions(t *testing.T) {
+	for _, n := range []int{1000, 5000} {
+		if got := len(benchHARN(t, n)); got != n {
+			t.Errorf("benchHARN(%d) has %d entries", n, got)
+		}
+	}
 }

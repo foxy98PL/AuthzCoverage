@@ -1,0 +1,277 @@
+{
+  "app": {
+    "name": "tenantshop",
+    "version": "in-tree"
+  },
+  "authzcov": {
+    "commit": "db3ddcc",
+    "version": "v0.1.0-rc.1-dirty"
+  },
+  "cases": [
+    {
+      "id": "ablation/DELETE /orgs/{orgId}/orders/{orderId}|anonymous",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/DELETE /orgs/{orgId}/orders/{orderId}|other_tenant",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/DELETE /orgs/{orgId}/orders/{orderId}|same_role_other_user",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/GET /orgs/{orgId}/customers|other_tenant",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/customers",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/customers",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/GET /orgs/{orgId}/orders/{orderId}|anonymous",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/GET /orgs/{orgId}/orders/{orderId}|other_tenant",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/GET /orgs/{orgId}/orders/{orderId}|same_role_other_user",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/GET /orgs/{orgId}/orders|other_tenant",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/POST /orgs/{orgId}/orders|other_tenant",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "POST /orgs/{orgId}/orders",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "POST /orgs/{orgId}/orders",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/PUT /orgs/{orgId}/orders/{orderId}|anonymous",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/PUT /orgs/{orgId}/orders/{orderId}|other_tenant",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    },
+    {
+      "id": "ablation/PUT /orgs/{orgId}/orders/{orderId}|same_role_other_user",
+      "kind": "ablation",
+      "expected": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "dropping the request turned the cell from covered to GAP"
+    }
+  ],
+  "extra": {
+    "ablatable": 12,
+    "attacker_steps": 16,
+    "baseline": {
+      "name": "fixed",
+      "har_entries": 59,
+      "coverage_percent": 51.5,
+      "required": 33,
+      "covered": 17,
+      "suspicious_allow": []
+    },
+    "note": "precision and recall are over the ablatable cells only (attacker steps whose cell is required and covered in the baseline; the rest are listed in skipped_steps). Each such attacker request of record.FullScript is dropped in turn (fresh server, fresh authzcov run); tp = that cell went covered to missing, fp = any other cell whose state or statuses changed, fn = the cell stayed covered",
+    "skipped_steps": [
+      {
+        "cell": "GET /orgs/{orgId}/orders|anonymous",
+        "reason": "required but not covered in the baseline (state missing); there is nothing to lose"
+      },
+      {
+        "cell": "GET /orgs/{orgId}/customers|anonymous",
+        "reason": "required but not covered in the baseline (state missing); there is nothing to lose"
+      },
+      {
+        "cell": "GET /orgs/{orgId}/customers|lower_role",
+        "reason": "not a required cell for this endpoint (baseline state absent); authzcov does not count it, so dropping it cannot lose coverage"
+      },
+      {
+        "cell": "POST /orgs/{orgId}/orders|anonymous",
+        "reason": "required but not covered in the baseline (state missing); there is nothing to lose"
+      }
+    ]
+  },
+  "generated_at": "2026-11-27T20:48:00Z",
+  "machine": {
+    "arch": "amd64",
+    "cpus": 20,
+    "go_version": "go1.27.4",
+    "os": "linux"
+  },
+  "schema_version": 1,
+  "suite": "tenantshop-ablation",
+  "summary": {
+    "fn": 0,
+    "fp": 0,
+    "out_of_scope": 0,
+    "precision": 1,
+    "recall": 1,
+    "tn": 0,
+    "tp": 12
+  }
+}

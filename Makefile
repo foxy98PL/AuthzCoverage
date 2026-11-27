@@ -4,7 +4,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 LDFLAGS := -s -w -X authzcov/internal/cli.version=$(VERSION) -X authzcov/internal/cli.commit=$(COMMIT)
 
-.PHONY: build test lint vet vuln fuzz golden check check-offline hooks clean bench e2e fixturecheck gif
+.PHONY: build test lint vet vuln fuzz golden check check-offline hooks clean bench e2e fixturecheck gif eval eval-tenantshop eval-vampi eval-scaling
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN) ./cmd/authzcov
@@ -67,3 +67,20 @@ e2e:
 gif:
 	@command -v vhs >/dev/null 2>&1 || { echo "vhs not found: install it from https://github.com/charmbracelet/vhs (it also needs ttyd and ffmpeg)" >&2; exit 1; }
 	vhs docs/demo.tape
+
+# Validation benchmark (KAN-90): writes eval/results/*.json. Needs docker for the VAmPI suite.
+eval: eval-tenantshop eval-vampi eval-scaling
+
+# Seeded mutants and recorder ablation on tenantshop (in-process, no docker).
+eval-tenantshop:
+	cd eval && go vet ./... && go test ./... && go run ./cmd/tenantshop -out results
+
+# Scaling of `coverage` with HAR size (machine-dependent; slow at 1M). Override: make eval-scaling SIZES=1000,10000
+SIZES ?= 1000,10000,100000,1000000
+eval-scaling:
+	cd eval && go run ./cmd/scaling -sizes $(SIZES) -runs 3 -out results
+
+# VAmPI (third-party, pinned docker image).
+eval-vampi:
+	@docker info >/dev/null 2>&1 || { echo "docker is missing or not running: eval-vampi needs docker (run 'make eval-tenantshop' for the docker-free suites)" >&2; exit 1; }
+	e2e/thirdparty/vampi/run.sh

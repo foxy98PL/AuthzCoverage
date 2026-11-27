@@ -1,0 +1,17 @@
+# Identities for the VAmPI evaluation. No secrets: callers are matched by the
+# decoded JWT "sub" claim (VAmPI puts the username in sub: models/user_model.py
+# encode_auth_token). "admin" is the account seeded by /createdb.
+version: 1
+roles: {user: 10, admin: 100}
+identities:
+  - {name: alice, role: user, match: {jwt: {sub: alice}}}
+  - {name: bob, role: user, match: {jwt: {sub: bob}}}
+  - {name: carol, role: user, match: {jwt: {sub: carol}}}
+  - {name: admin, role: admin, match: {jwt: {sub: admin}}}
+resources: {book_title: books, username: users}
+ownership:
+  self_params: {username: subject}
+  learn_from_create:
+    - match: {method: POST, path: /books/v1}
+      resource: books
+      id_from: {request_json: book_title}

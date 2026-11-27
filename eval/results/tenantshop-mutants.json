@@ -1,0 +1,382 @@
+{
+  "app": {
+    "name": "tenantshop",
+    "version": "in-tree"
+  },
+  "authzcov": {
+    "commit": "db3ddcc",
+    "version": "v0.1.0-rc.1-dirty"
+  },
+  "cases": [
+    {
+      "id": "fixed/no-alarm",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "no suspicious_allow on the unmutated app"
+    },
+    {
+      "id": "mutant/create-tenant",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "POST /orgs/{orgId}/orders",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "POST /orgs/{orgId}/orders",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "create order: caller's org vs {orgId} not compared: suspicious_allow raised: adminb (tenant OrgB) received 201 for an object in tenant OrgA"
+    },
+    {
+      "id": "mutant/customers-role",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/customers",
+          "relationship": "lower_role"
+        }
+      ],
+      "flagged": [],
+      "result": "fn",
+      "reason": "list customers: admin-only role check removed: no suspicious_allow on GET /orgs/{orgId}/customers|lower_role; authzcov built no lower_role cell for this endpoint, so the call was not classified as that relationship; it was recorded under relationship unknown (statuses map[200:3]): without a learned owner or minimum role authzcov will not call it an attack, and unknown never counts"
+    },
+    {
+      "id": "mutant/customers-tenant",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/customers",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/customers",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "list customers: caller's org vs {orgId} not compared: suspicious_allow raised: adminb (tenant OrgB) received 200 for an object in tenant OrgA"
+    },
+    {
+      "id": "mutant/delete-owner",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "DELETE order: owner-or-admin check removed: suspicious_allow raised: amy received 204 for an object owned by ann"
+    },
+    {
+      "id": "mutant/delete-tenant",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "DELETE order: caller's org vs {orgId} not compared: suspicious_allow raised: adminb (tenant OrgB) received 204 for an object owned by ann in tenant OrgA"
+    },
+    {
+      "id": "mutant/get-owner",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "GET order: owner-or-admin check removed: suspicious_allow raised: amy received 200 for an object owned by ann"
+    },
+    {
+      "id": "mutant/get-tenant",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "GET order: caller's org vs {orgId} not compared: suspicious_allow raised: adminb (tenant OrgB) received 200 for an object owned by ann in tenant OrgA"
+    },
+    {
+      "id": "mutant/list-tenant",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "list orders: caller's org vs {orgId} not compared: suspicious_allow raised: adminb (tenant OrgB) received 200 for an object in tenant OrgA"
+    },
+    {
+      "id": "mutant/put-owner",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "PUT order: owner-or-admin check removed: suspicious_allow raised: amy received 200 for an object owned by ann"
+    },
+    {
+      "id": "mutant/put-tenant",
+      "kind": "mutant",
+      "expected": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "PUT order: caller's org vs {orgId} not compared: suspicious_allow raised: adminb (tenant OrgB) received 200 for an object owned by ann in tenant OrgA"
+    },
+    {
+      "id": "seeded/get-tenant",
+      "kind": "seeded",
+      "expected": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+          "relationship": "other_tenant"
+        }
+      ],
+      "result": "tp",
+      "reason": "the seeded bug (getOrder without tenant check): suspicious_allow raised: adminb (tenant OrgB) received 200 for an object owned by ann in tenant OrgA"
+    }
+  ],
+  "extra": {
+    "note": "every variant is recorded with record.FullScript (one attacker request per required cell); tp = suspicious_allow on the mutant's endpoint and relationship, fp = any other suspicious_allow in that run",
+    "runs": [
+      {
+        "name": "fixed",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": []
+      },
+      {
+        "name": "seeded",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+            "relationship": "other_tenant"
+          }
+        ]
+      },
+      {
+        "name": "get-tenant",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+            "relationship": "other_tenant"
+          }
+        ]
+      },
+      {
+        "name": "get-owner",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "GET /orgs/{orgId}/orders/{orderId}",
+            "relationship": "same_role_other_user"
+          }
+        ]
+      },
+      {
+        "name": "put-tenant",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+            "relationship": "other_tenant"
+          }
+        ]
+      },
+      {
+        "name": "put-owner",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "PUT /orgs/{orgId}/orders/{orderId}",
+            "relationship": "same_role_other_user"
+          }
+        ]
+      },
+      {
+        "name": "delete-tenant",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+            "relationship": "other_tenant"
+          }
+        ]
+      },
+      {
+        "name": "delete-owner",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "DELETE /orgs/{orgId}/orders/{orderId}",
+            "relationship": "same_role_other_user"
+          }
+        ]
+      },
+      {
+        "name": "list-tenant",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "GET /orgs/{orgId}/orders",
+            "relationship": "other_tenant"
+          }
+        ]
+      },
+      {
+        "name": "create-tenant",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "POST /orgs/{orgId}/orders",
+            "relationship": "other_tenant"
+          }
+        ]
+      },
+      {
+        "name": "customers-role",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": []
+      },
+      {
+        "name": "customers-tenant",
+        "har_entries": 59,
+        "coverage_percent": 51.5,
+        "required": 33,
+        "covered": 17,
+        "suspicious_allow": [
+          {
+            "endpoint": "GET /orgs/{orgId}/customers",
+            "relationship": "other_tenant"
+          }
+        ]
+      }
+    ]
+  },
+  "generated_at": "2026-11-27T20:48:00Z",
+  "machine": {
+    "arch": "amd64",
+    "cpus": 20,
+    "go_version": "go1.27.4",
+    "os": "linux"
+  },
+  "schema_version": 1,
+  "suite": "tenantshop-mutants",
+  "summary": {
+    "fn": 1,
+    "fp": 0,
+    "out_of_scope": 0,
+    "precision": 1,
+    "recall": 0.909,
+    "tn": 1,
+    "tp": 10
+  }
+}
