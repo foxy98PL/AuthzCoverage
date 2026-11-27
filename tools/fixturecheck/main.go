@@ -1,0 +1,319 @@
+// Command fixturecheck fails when a committed fixture could hold real data:
+// a JWT that was not minted for tests, or a HAR file that mentions a host
+// outside the demo-host allowlist. Standard library only.
+//
+// Usage: go run ./tools/fixturecheck   (from the repository root)
+package main
+
+import (
+	"archive/zip"
+	"bufio"
+	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strings"
+)
+
+// testIssuer is the only "iss" a fixture JWT may carry without an allowlist entry.
+const testIssuer = "authzcov-test"
+
+const allowFile = "tools/fixturecheck/allow.txt"
+
+// maxFileSize bounds what is read into memory per file or zip member.
+const maxFileSize = 64 << 20
+
+var jwtRe = regexp.MustCompile(`eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*`)
+
+// demoHosts: exact names, or "*.suffix" patterns that match any subdomain.
+var demoHosts = []string{"localhost", "127.0.0.1", "::1", "*.test", "example.com", "*.example.com", "example.test"}
+
+type failure struct {
+	path   string
+	line   int
+	reason string
+}
+
+func (f failure) String() string { return fmt.Sprintf("%s:%d: %s", f.path, f.line, f.reason) }
+
+// allowlist maps path -> set of sha256 hex prefixes (12 chars) of allowed tokens.
+type allowlist map[string]map[string]string
+
+func tokenHash(tok string) string {
+	sum := sha256.Sum256([]byte(tok))
+	return hex.EncodeToString(sum[:])[:12]
+}
+
+// parseAllowlist reads lines "path sha256prefix reason..."; '#' starts a comment.
+func parseAllowlist(r io.Reader) (allowlist, error) {
+	al := allowlist{}
+	sc := bufio.NewScanner(r)
+	n := 0
+	for sc.Scan() {
+		n++
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		f := strings.Fields(line)
+		if len(f) < 3 {
+			return nil, fmt.Errorf("allow list line %d: want \"path hash12 reason\"", n)
+		}
+		if len(f[1]) != 12 {
+			return nil, fmt.Errorf("allow list line %d: hash must be 12 hex chars", n)
+		}
+		if al[f[0]] == nil {
+			al[f[0]] = map[string]string{}
+		}
+		al[f[0]][f[1]] = strings.Join(f[2:], " ")
+	}
+	return al, sc.Err()
+}
+
+func (al allowlist) allows(path, tok string) bool {
+	_, ok := al[path][tokenHash(tok)]
+	return ok
+}
+
+func decodeSegment(s string) (map[string]any, error) {
+	b, err := base64.RawURLEncoding.DecodeString(strings.TrimRight(s, "="))
+	if err != nil {
+		return nil, err
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// checkToken returns "" when the token is acceptable, else the failure reason.
+func checkToken(tok string) string {
+	parts := strings.Split(tok, ".")
+	if _, err := decodeSegment(parts[0]); err != nil {
+		return "JWT-shaped string with undecodable header"
+	}
+	payload, err := decodeSegment(parts[1])
+	if err != nil {
+		return "JWT-shaped string with undecodable payload"
+	}
+	if iss, _ := payload["iss"].(string); iss != testIssuer {
+		return fmt.Sprintf("JWT %s... has iss %q, want %q (or add \"path %s reason\" to %s)", tok[:12], iss, testIssuer, tokenHash(tok), allowFile)
+	}
+	return ""
+}
+
+func isBinary(b []byte) bool {
+	head := b
+	if len(head) > 8000 {
+		head = head[:8000]
+	}
+	return bytes.IndexByte(head, 0) >= 0
+}
+
+// scanJWTs checks every JWT-shaped string in a text blob.
+func scanJWTs(path string, data []byte, al allowlist) []failure {
+	var out []failure
+	for i, line := range strings.Split(string(data), "\n") {
+		for _, tok := range jwtRe.FindAllString(line, -1) {
+			if al.allows(path, tok) {
+				continue
+			}
+			if reason := checkToken(tok); reason != "" {
+				out = append(out, failure{path, i + 1, reason})
+			}
+		}
+	}
+	return out
+}
+
+func hostAllowed(host string) bool {
+	host = strings.ToLower(host)
+	for _, p := range demoHosts {
+		if rest, ok := strings.CutPrefix(p, "*."); ok {
+			if strings.HasSuffix(host, "."+rest) {
+				return true
+			}
+		} else if host == p {
+			return true
+		}
+	}
+	return false
+}
+
+func lineOf(data []byte, needle string) int {
+	i := bytes.Index(data, []byte(needle))
+	if i < 0 {
+		return 1
+	}
+	return bytes.Count(data[:i], []byte("\n")) + 1
+}
+
+// scanHAR checks every request URL host of one HAR document.
+func scanHAR(path string, data []byte) []failure {
+	var doc struct {
+		Log struct {
+			Entries []struct {
+				Request struct {
+					URL string `json:"url"`
+				} `json:"request"`
+			} `json:"entries"`
+		} `json:"log"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return []failure{{path, 1, "HAR is not valid JSON: " + err.Error()}}
+	}
+	var out []failure
+	seen := map[string]bool{}
+	for _, e := range doc.Log.Entries {
+		u, err := url.Parse(e.Request.URL)
+		if err != nil || u.Hostname() == "" {
+			out = append(out, failure{path, lineOf(data, e.Request.URL), "request URL has no parsable host"})
+			continue
+		}
+		h := u.Hostname()
+		if !hostAllowed(h) && !seen[h] {
+			seen[h] = true
+			out = append(out, failure{path, lineOf(data, e.Request.URL), fmt.Sprintf("HAR request host %q is not a demo host", h)})
+		}
+	}
+	return out
+}
+
+func scanZip(path string, data []byte, al allowlist) []failure {
+	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return []failure{{path, 1, "cannot read zip: " + err.Error()}}
+	}
+	var out []failure
+	for _, f := range zr.File {
+		if f.FileInfo().IsDir() {
+			continue
+		}
+		name := path + "!" + f.Name
+		rc, err := f.Open()
+		if err != nil {
+			out = append(out, failure{name, 1, "cannot open zip member: " + err.Error()})
+			continue
+		}
+		b, err := io.ReadAll(io.LimitReader(rc, maxFileSize))
+		_ = rc.Close()
+		if err != nil {
+			out = append(out, failure{name, 1, "cannot read zip member: " + err.Error()})
+			continue
+		}
+		out = append(out, scanContent(name, b, al)...)
+	}
+	return out
+}
+
+// scanContent dispatches on the (possibly "zip!member") name.
+func scanContent(path string, data []byte, al allowlist) []failure {
+	var out []failure
+	lower := strings.ToLower(path)
+	switch {
+	case strings.HasSuffix(lower, ".har.zip"):
+		return scanZip(path, data, al)
+	case strings.HasSuffix(lower, ".har"):
+		out = append(out, scanHAR(path, data)...)
+	}
+	if isBinary(data) {
+		return out
+	}
+	return append(out, scanJWTs(path, data, al)...)
+}
+
+func scanFile(root, rel string, al allowlist) []failure {
+	full := filepath.Join(root, rel)
+	st, err := os.Lstat(full)
+	if err != nil || !st.Mode().IsRegular() {
+		return nil // deleted from the worktree, or a symlink/submodule
+	}
+	if st.Size() > maxFileSize {
+		return []failure{{rel, 1, "file larger than 64 MiB, not scanned"}}
+	}
+	data, err := os.ReadFile(full) //nolint:gosec // paths come from git ls-files
+	if err != nil {
+		return []failure{{rel, 1, "cannot read: " + err.Error()}}
+	}
+	return scanContent(filepath.ToSlash(rel), data, al)
+}
+
+func scanFiles(root string, files []string, al allowlist) []failure {
+	var out []failure
+	for _, f := range files {
+		out = append(out, scanFile(root, f, al)...)
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].path != out[j].path {
+			return out[i].path < out[j].path
+		}
+		return out[i].line < out[j].line
+	})
+	return out
+}
+
+func gitFiles(root string) ([]string, error) {
+	cmd := exec.Command("git", "ls-files", "-z", "--cached", "--others", "--exclude-standard")
+	cmd.Dir = root
+	b, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git ls-files: %w", err)
+	}
+	var files []string
+	seen := map[string]bool{}
+	for _, f := range strings.Split(string(b), "\x00") {
+		if f != "" && !seen[f] {
+			seen[f] = true
+			files = append(files, f)
+		}
+	}
+	return files, nil
+}
+
+func run(root string, stdout, stderr io.Writer) int {
+	var al allowlist
+	f, err := os.Open(filepath.Join(root, allowFile)) //nolint:gosec // fixed repo path
+	switch {
+	case err == nil:
+		al, err = parseAllowlist(f)
+		_ = f.Close()
+		if err != nil {
+			fmt.Fprintln(stderr, "fixturecheck:", err)
+			return 2
+		}
+	case os.IsNotExist(err):
+		al = allowlist{}
+	default:
+		fmt.Fprintln(stderr, "fixturecheck:", err)
+		return 2
+	}
+	files, err := gitFiles(root)
+	if err != nil {
+		fmt.Fprintln(stderr, "fixturecheck:", err)
+		return 2
+	}
+	fails := scanFiles(root, files, al)
+	for _, fl := range fails {
+		fmt.Fprintln(stdout, fl)
+	}
+	if len(fails) > 0 {
+		fmt.Fprintf(stdout, "fixturecheck: FAIL, %d problem(s) in %d files\n", len(fails), len(files))
+		return 1
+	}
+	fmt.Fprintf(stdout, "fixturecheck: ok, %d files scanned\n", len(files))
+	return 0
+}
+
+func main() {
+	os.Exit(run(".", os.Stdout, os.Stderr))
+}

@@ -173,6 +173,14 @@ waiting for mitmproxy and a real run.
 - `version: source` builds from the action checkout; `.github/workflows/action-test.yml` runs it on tenantshop: outputs 36.4 / 21, passing gate, deliberately failing gate (outcome failure).
 - All inputs via env (no `${{ }}` in run:). Download path + `v0` moving tag only testable after the first release.
 
+## KAN-30 — fixture checks, demo tape, Pages (In Review)
+- `tools/fixturecheck` (stdlib): any JWT with iss ≠ authzcov-test fails unless allowlisted per path + sha256-12 (`tools/fixturecheck/allow.txt`, 7 entries); HAR hosts must be demo hosts; .har.zip scanned. In `check-offline` and a CI job.
+- `docs/demo.tape` + `make gif` (discover, coverage, failing gate); GIF not rendered (no ttyd/ffmpeg here).
+- `.github/workflows/pages.yml`: tenantshop HTML report → Pages; deploy only on manual run or `vars.PAGES_ENABLED == 'true'`.
+
+## KAN-64 — CONTRIBUTING.md (In Review)
+- DOC-08 adapted: real commands (all verified), package map, fixture rules incl. fixturecheck; deps discussed in an issue (no ADR dir); DCO sign-off kept.
+
 ## Decisions made during implementation (review these)
 1. Non-bearer credentials (Basic, cookie, API key) → identity unknown, never anonymous.
 2. Request/response JSON bodies are scrubbed of password/token/secret fields at ingest.

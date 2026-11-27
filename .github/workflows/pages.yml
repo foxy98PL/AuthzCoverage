@@ -1,0 +1,73 @@
+name: Sample report
+
+# Publishes a coverage report for the tenantshop demo API to GitHub Pages.
+# One-time owner setup: Settings > Pages > Source: GitHub Actions. Until then the deploy job fails.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "internal/**"
+      - "e2e/apps/tenantshop/**"
+      - "cmd/**"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build authzcov
+        run: make build
+
+      - name: Start tenantshop and record a HAR
+        run: |
+          (cd e2e/apps/tenantshop && go run . -addr :8090 > "$RUNNER_TEMP/tenantshop.log" 2>&1 &)
+          curl -fsS --retry 30 --retry-delay 2 --retry-connrefused -o /dev/null http://localhost:8090/openapi.yaml
+          BASE=http://localhost:8090 e2e/recorders/tenantshop.sh
+
+      - name: Coverage and HTML report
+        run: |
+          mkdir -p site
+          ./bin/authzcov coverage \
+            --spec e2e/apps/tenantshop/shop/openapi.yaml \
+            --identities e2e/apps/tenantshop/identities.yaml \
+            --har testdata/raw/tenantshop.har \
+            --out authzcov-out
+          ./bin/authzcov report --in authzcov-out/coverage.json --format html > site/index.html
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    # Pages must be enabled first (Settings > Pages > Source: GitHub Actions), then set the repo
+    # variable PAGES_ENABLED=true so pushes deploy. Until then only manual runs try to deploy.
+    if: github.event_name == 'workflow_dispatch' || vars.PAGES_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

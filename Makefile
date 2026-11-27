@@ -4,7 +4,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 LDFLAGS := -s -w -X authzcov/internal/cli.version=$(VERSION) -X authzcov/internal/cli.commit=$(COMMIT)
 
-.PHONY: build test lint vet vuln fuzz golden check check-offline hooks clean bench e2e
+.PHONY: build test lint vet vuln fuzz golden check check-offline hooks clean bench e2e fixturecheck gif
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN) ./cmd/authzcov
@@ -37,8 +37,12 @@ golden:
 vuln:
 	govulncheck ./...
 
+# Fails on JWTs not minted for tests and on HAR files with non-demo hosts.
+fixturecheck:
+	go run ./tools/fixturecheck
+
 # Offline gate used by the pre-commit hook.
-check-offline: vet lint
+check-offline: vet lint fixturecheck
 	go test -race ./...
 
 # Full gate.
@@ -58,3 +62,8 @@ bench:
 # End-to-end demo apps (separate Go modules); builds authzcov from source.
 e2e:
 	cd e2e/apps/tenantshop && go vet ./... && go test ./... && go test -tags e2e -count=1 ./...
+
+# Re-render docs/demo.gif from docs/demo.tape (needs vhs, ttyd and ffmpeg on PATH).
+gif:
+	@command -v vhs >/dev/null 2>&1 || { echo "vhs not found: install it from https://github.com/charmbracelet/vhs (it also needs ttyd and ffmpeg)" >&2; exit 1; }
+	vhs docs/demo.tape

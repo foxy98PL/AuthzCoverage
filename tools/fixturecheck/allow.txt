@@ -1,0 +1,10 @@
+# fixturecheck allowlist. Format: path sha256-prefix(12) reason
+# Get the prefix from the failure message. An entry covers exactly one token in one file,
+# so a new token in the same file still fails. Prefer minting tokens with iss "authzcov-test" instead.
+internal/config/config_test.go 4653cc324443 synthetic unsigned test token (sub bob), not a real credential
+internal/identity/extract_v1_test.go 35e664474a84 synthetic alg=none test token (sub a), not a real credential
+internal/identity/identity_test.go 35e664474a84 synthetic alg=none test token (sub a), not a real credential
+internal/redact/redact_test.go 432b86b29fc6 synthetic test token (sub alice) for redaction tests
+internal/redact/redact_test.go 4406b062a4a4 synthetic test token (sub x) for redaction tests
+internal/redact/redact_test.go bcbaff226943 synthetic alg=none test token (sub x) for redaction tests
+testdata/specs/vampi.yml a97c0765dbb4 upstream VAmPI OpenAPI spec example token (expired 2022, John.Doe demo user)
