@@ -539,6 +539,7 @@ func FuzzPseudonymize(f *testing.F) {
 	f.Add([]byte(`{"log":{"entries":[{"request":{"url":"::","headers":[{"name":"Authorization","value":"Basic !!!"}]},"response":{"content":{"text":"x","encoding":"base64"}}},1,null,"s"]}}`))
 	f.Add([]byte(`{"log":{"entries":[{"request":{"url":"http://[::1]:80/a%zz@x.com","postData":{"mimeType":"application/x-www-form-urlencoded","text":"a=%zz&b&&=c"}}}]}}`))
 	f.Add([]byte(`{"log":{"entries":[]}}`))
+	f.Add([]byte(`{"log":{"entries":[{"request":{"url":"ws://u:p@h:1//x","headers":[{"name":"Cookie","value":"a;b=;=c"},{"name":"Location","value":"//a%40b.cc/x"}]},"response":{"content":{"mimeType":"application/json","text":"{\"password\":{\"a\":[1]},\"m\":\"token: abcdefghij a.b.c.d.e\"}"}}}]}}`))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		p, err := NewPseudonymizer(PseudoOptions{Key: testRunKey, KeepClaims: []string{"sub", "x"}})
 		if err != nil {
@@ -632,6 +633,173 @@ func TestPseudoJWTWithSpacedPayload(t *testing.T) {
 	for _, s := range []string{spaced, strings.Split(spaced, ".")[1], strings.Split(spaced, ".")[2], "SPACEDPAYLOAD"} {
 		if strings.Contains(out, s) {
 			t.Errorf("%q survived", s)
+		}
+	}
+}
+
+// ---- adversarial-review regressions ----
+
+func respText(e map[string]any) string {
+	return e["response"].(map[string]any)["content"].(map[string]any)["text"].(string)
+}
+
+func respBodyOf(t *testing.T, body string) (string, string) {
+	t.Helper()
+	out, doc := pseudoize(t, newPseudo(t), harOf(mkEntry("GET", "http://h/x", nil, "", 200, nil, body)))
+	return out, respText(entriesOf(doc)[0])
+}
+
+// 1. JWT header with leading whitespace / unusual prefix is still a JWT.
+func TestPseudoJWTOddHeaderDetected(t *testing.T) {
+	b64 := base64.RawURLEncoding.EncodeToString
+	odd := b64([]byte(` {"alg":"HS256","typ":"JWT"}`)) + "." + b64([]byte(`{"sub":"zoe","hidden":"ODDCLAIMVALUE"}`)) + "." + b64([]byte("odd-signature-bytes"))
+	parts := strings.Split(odd, ".")
+	e := mkEntry("POST", "http://h/x?q="+odd, nil, "", 200, nil, `{"note":"jwt: `+odd+` end","other":"host.example.`+odd+`"}`)
+	e["request"].(map[string]any)["postData"] = map[string]any{"mimeType": "application/x-www-form-urlencoded", "text": "a=" + odd + "&b=ok"}
+	out, _ := pseudoize(t, newPseudo(t), harOf(e))
+	for _, s := range append(parts, odd, "ODDCLAIMVALUE") {
+		if strings.Contains(out, s) {
+			t.Errorf("%q survived", s)
+		}
+	}
+	if !strings.Contains(out, "b=ok") {
+		t.Error("benign form field lost")
+	}
+}
+
+// 2. Everything under a sensitive key is masked, whatever its type.
+func TestPseudoSensitiveKeySubtree(t *testing.T) {
+	body := `{"password":{"value":"CANARY-PW1"},"token":{"raw":"CANARY-TOK2"},"Authorization":{"x":"CANARY-AUTH3"},` +
+		`"api_key":["CANARY-LIST4",{"d":"CANARY-LIST5"}],"refresh_token":123456789,"secret":true,"id":"o-1"}`
+	out, txt := respBodyOf(t, body)
+	for _, s := range []string{"CANARY-", "123456789"} {
+		if strings.Contains(out, s) {
+			t.Errorf("%q survived: %s", s, txt)
+		}
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(txt), &m); err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range []string{"password", "token", "Authorization", "api_key", "refresh_token", "secret"} {
+		if _, isStr := m[k].(string); !isStr {
+			t.Errorf("%s = %v, want a masked string", k, m[k])
+		}
+	}
+	if m["id"] != "o-1" {
+		t.Errorf("id = %v", m["id"])
+	}
+}
+
+// 3. Sensitive key matching.
+func TestPseudoSensitiveKeyMatching(t *testing.T) {
+	masked := []string{"x-api-key", "accessKey", "access_key_id", "private_key", "credentials", "SessionId", "auth", "x_auth_header", "signature",
+		"Set-Cookie", "otp", "pin", "cvv", "ssn", "passw0rd", "db_pwd", "user.password", "access.token", "clientSecret", "Passwd"}
+	lowEntropy := map[string]bool{"otp": true, "pin": true, "cvv": true, "ssn": true, "passw0rd": true, "db_pwd": true, "user.password": true, "Passwd": true}
+	kept := []string{"id", "orderId", "userId", "username", "book_title", "name", "email_count", "pinned", "title", "Books", "org_id", "role"}
+	obj := map[string]any{}
+	for _, k := range masked {
+		obj[k] = "VAL-" + k
+	}
+	for _, k := range kept {
+		obj[k] = "VAL-" + k
+	}
+	raw, _ := json.Marshal(obj)
+	_, txt := respBodyOf(t, string(raw))
+	var got map[string]any
+	if err := json.Unmarshal([]byte(txt), &got); err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range masked {
+		v, _ := got[k].(string)
+		switch {
+		case strings.Contains(v, "VAL-"):
+			t.Errorf("key %q not masked: %q", k, v)
+		case lowEntropy[k] && v != "[redacted]":
+			t.Errorf("low-entropy key %q = %q, want [redacted] without hash", k, v)
+		}
+	}
+	for _, k := range kept {
+		if got[k] != "VAL-"+k {
+			t.Errorf("key %q wrongly masked: %v", k, got[k])
+		}
+	}
+}
+
+// 4. Scheme-relative URLs.
+func TestPseudoSchemeRelativeURLs(t *testing.T) {
+	e := mkEntry("GET", "http://h/x", nil, "", 302, hdrs("Location", "//cdn.corp.example/a?x=SECRETQ", "Content-Location", "//cdn.corp.example/b"),
+		`{"u":"//cdn.corp.example/x","v":"see //other.corp.example/y here","p":"/files//x","q":"a//b"}`)
+	out, doc := pseudoize(t, newPseudo(t), harOf(e))
+	if strings.Contains(out, "corp.example") || strings.Contains(out, "SECRETQ") {
+		t.Fatalf("leak: %s", out)
+	}
+	txt := respText(entriesOf(doc)[0])
+	for _, w := range []string{`"u":"//h2.test/x"`, `//h3.test/y here`, `"p":"/files//x"`, `"q":"a//b"`} {
+		if !strings.Contains(txt, w) {
+			t.Errorf("body lacks %s: %s", w, txt)
+		}
+	}
+	var loc string
+	for _, h := range entriesOf(doc)[0]["response"].(map[string]any)["headers"].([]any) {
+		if m := h.(map[string]any); m["name"] == "Location" {
+			loc, _ = m["value"].(string)
+		}
+	}
+	if !strings.HasPrefix(loc, "//h") || !strings.HasSuffix(strings.SplitN(loc, "?", 2)[0], ".test/a") {
+		t.Errorf("Location = %q", loc)
+	}
+}
+
+// 5. Any URL scheme; userinfo dropped.
+func TestPseudoAnySchemeURLs(t *testing.T) {
+	body := `{"db":"postgres://user:DBPASS@db.real-company.com:5432/x?password=QPASS","a":"ws://live.real-company.com/s","b":"wss://sock.real-company.com:443/s",` +
+		`"c":"ftp://files.real-company.com/f","d":"sftp://sf.real-company.com/f","e":"git://git.real-company.com/r.git","f":"redis://:REDISPW@cache.real-company.com:6379/0",` +
+		`"g":"mongodb://root:MONGOPW@mongo.real-company.com/db","h":"amqp://guest:AMQPPW@mq.real-company.com:5672/v","i":"jdbc:postgresql://jdb.real-company.com/x"}`
+	out, txt := respBodyOf(t, body)
+	for _, s := range []string{"real-company", "DBPASS", "QPASS", "REDISPW", "MONGOPW", "AMQPPW", "user:"} {
+		if strings.Contains(out, s) {
+			t.Errorf("%q survived: %s", s, txt)
+		}
+	}
+	if !regexp.MustCompile(`"db":"postgres://h\d+\.test/x\?password=x"`).MatchString(txt) {
+		t.Errorf("db url = %s", txt)
+	}
+}
+
+// 6. Percent-encoded e-mails.
+func TestPseudoPercentEncodedEmails(t *testing.T) {
+	e := mkEntry("GET", "http://h/users/bob%40corp.example/x?mail=ann%40corp.example", hdrs("User-Agent", "ua BOB%40CORP.EXAMPLE"), "", 200, nil,
+		`{"u":"https://h/x?owner=carl%40corp.example","v":"dave%40corp.example","w":"ERIN%40Corp.Example"}`)
+	out, _ := pseudoize(t, newPseudo(t), harOf(e))
+	if strings.Contains(strings.ToLower(out), "corp.example") || strings.Contains(strings.ToLower(out), "%40") {
+		t.Errorf("percent-encoded email survived: %s", out)
+	}
+}
+
+// 7. Cookie parts without "=".
+func TestPseudoCookieWithoutEquals(t *testing.T) {
+	e := mkEntry("GET", "http://h/x", hdrs("Cookie", "RAWSESSIONVALUE; theme=x"), "", 200, hdrs("Set-Cookie", "RAWSETVALUE; Path=/"), "")
+	out, doc := pseudoize(t, newPseudo(t), harOf(e))
+	if strings.Contains(out, "RAWSESSIONVALUE") || strings.Contains(out, "RAWSETVALUE") {
+		t.Fatalf("bare cookie value survived: %s", out)
+	}
+	if c := reqHeader(entriesOf(doc)[0], "Cookie"); !regexp.MustCompile(`^tok_[0-9a-f]{8}; theme=tok_[0-9a-f]{8}$`).MatchString(c) {
+		t.Errorf("cookie = %q", c)
+	}
+}
+
+// 8. Free-text credentials.
+func TestPseudoFreeTextCredentials(t *testing.T) {
+	body := `{"m1":"Authorization: Bearer CANARYBEARER99","m2":"call with apikey=CANARYKEY1234 now","m3":"token: CANARYTOKEN77 ok",` +
+		`"m4":"Basic Q0FOQVJZVVNFUjpQVw==","m5":"api-key CANARYAPIKEY5","m6":"token ok","m7":"tokens are great"}`
+	out, txt := respBodyOf(t, body)
+	if strings.Contains(out, "CANARY") || strings.Contains(out, "Q0FOQVJZ") {
+		t.Fatalf("free-text secret survived: %s", txt)
+	}
+	for _, w := range []string{"Bearer tok_", "apikey=tok_", "token: tok_", "Basic tok_", `"m6":"token ok"`, `"m7":"tokens are great"`} {
+		if !strings.Contains(txt, w) {
+			t.Errorf("body lacks %q: %s", w, txt)
 		}
 	}
 }

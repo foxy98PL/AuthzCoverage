@@ -78,7 +78,7 @@ Format docs: [docs/identities.md](docs/identities.md), [docs/quickstart.md](docs
 4. Every bug fix adds a table-test row or a fuzz seed that fails without the fix.
 5. Keep pull requests under about 400 lines of change. Split larger work.
 6. Use [Conventional Commits](https://www.conventionalcommits.org/), for example `fix(match): handle trailing slash`. Reference the issue number in the body or the pull request.
-7. Sign off every commit (DCO): `git commit -s`.
+7. No sign-off is needed. By opening a pull request you agree that your contribution is licensed under Apache-2.0 (section 5 of the licence).
 
 ## Test fixtures
 

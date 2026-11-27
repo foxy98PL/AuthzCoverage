@@ -98,9 +98,14 @@ func hmacHex(key []byte, raw string) string {
 func (p *Pseudonymizer) hash8(raw string) string { return hmacHex(p.key, raw)[:8] }
 
 var (
-	jwtRe    = regexp.MustCompile(`eyJ[A-Za-z0-9_-]{2,}\.[A-Za-z0-9_-]{2,}\.[A-Za-z0-9_-]*`)
+	runRe   = regexp.MustCompile(`[A-Za-z0-9_.-]{11,}`)
+	pctAtRe = regexp.MustCompile(`(?i)%40`)
+	pctMail = regexp.MustCompile(`(?i)[A-Za-z0-9._%+'-]+%40[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}`)
+	freeRe  = regexp.MustCompile(`(?i)\b(bearer|basic|token|apikey|api-key)(\s*[:= ]\s*)([A-Za-z0-9._~+/=-]{8,})`)
+	// urlRe matches scheme://... (any scheme) or a scheme-relative //host/... that
+	// starts the string or follows whitespace, a quote or one of ( = , ;.
+	urlRe    = regexp.MustCompile(`(?i)(?:(^|[^A-Za-z0-9+.-])([A-Za-z][A-Za-z0-9+.-]{1,15}:)//|(^|[\s"'(=,;])//)[^\s"'<>\\]*`)
 	emailRe  = regexp.MustCompile(`[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}`)
-	urlRe    = regexp.MustCompile(`(?i)https?://[^\s"'<>\\]+`)
 	hdrName  = regexp.MustCompile("^[!#$%&'*+.^_`|~0-9A-Za-z-]+$")
 	schemeRe = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_-]{0,31}$`)
 	timeRe   = regexp.MustCompile(`^[0-9T:.+Z-]+$`)
@@ -116,7 +121,7 @@ func (p *Pseudonymizer) opaque(raw string) string {
 // credential returns the replacement for a credential value: a re-signed JWT
 // when raw is a decodable JWT, tok_<hash8> otherwise.
 func (p *Pseudonymizer) credential(raw string) string {
-	if len(raw) <= maxPseudoJWT && jwtRe.FindString(raw) == raw {
+	if len(raw) <= maxPseudoJWT && isJWT(raw) {
 		fp := Fingerprint(raw)
 		if out, ok := p.jwts[fp]; ok {
 			return out
@@ -156,27 +161,104 @@ func (p *Pseudonymizer) email(m string) string {
 	return "user_" + p.hash8(strings.ToLower(m)) + "@example.test"
 }
 
-// scrub replaces JWTs and email addresses inside s.
+// isJOSEHeader reports whether part base64url-decodes to a JSON object with an
+// "alg" key (leading whitespace allowed).
+func isJOSEHeader(part string) bool {
+	if len(part) < 8 || len(part) > 2048 {
+		return false
+	}
+	dec, err := base64.RawURLEncoding.DecodeString(strings.TrimRight(part, "="))
+	if err != nil {
+		return false
+	}
+	var m map[string]json.RawMessage
+	if json.Unmarshal(dec, &m) != nil {
+		return false
+	}
+	_, ok := m["alg"]
+	return ok
+}
+
+// isJWT reports a compact JWS: three base64url parts, the first a JOSE header.
+func isJWT(s string) bool {
+	parts := strings.Split(s, ".")
+	if len(parts) != 3 || parts[1] == "" || !isJOSEHeader(parts[0]) {
+		return false
+	}
+	for _, q := range parts {
+		for _, r := range q {
+			if !isBase64URL(r) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// scrubJWT replaces every JWT inside s (linear time: runs of token characters
+// are split on dots and scanned for header.payload.signature windows).
+func (p *Pseudonymizer) scrubJWT(s string) string {
+	return runRe.ReplaceAllStringFunc(s, func(run string) string {
+		if strings.Count(run, ".") < 2 {
+			return run
+		}
+		parts := strings.Split(run, ".")
+		var b strings.Builder
+		for i := 0; i < len(parts); {
+			if i+2 < len(parts) && parts[i+1] != "" && isJOSEHeader(parts[i]) {
+				b.WriteString(p.credential(parts[i] + "." + parts[i+1] + "." + parts[i+2]))
+				i += 3
+			} else {
+				b.WriteString(parts[i])
+				i++
+			}
+			if i < len(parts) {
+				b.WriteByte('.')
+			}
+		}
+		return b.String()
+	})
+}
+
+func (p *Pseudonymizer) freeText(m string) string {
+	sub := freeRe.FindStringSubmatch(m)
+	val := sub[3]
+	if strings.HasPrefix(val, "tok_") || strings.HasPrefix(val, "user_") || isJWT(val) {
+		return m
+	}
+	return sub[1] + sub[2] + p.opaque(val)
+}
+
+// scrub replaces JWTs, e-mail addresses (plain or %40-encoded) and
+// "bearer/basic/token/apikey <value>" free-text credentials inside s.
 func (p *Pseudonymizer) scrub(s string) string {
-	if strings.Contains(s, "eyJ") {
-		s = jwtRe.ReplaceAllStringFunc(s, p.credential)
+	if strings.Count(s, ".") >= 2 {
+		s = p.scrubJWT(s)
+	}
+	if strings.Contains(s, "%") {
+		s = pctMail.ReplaceAllStringFunc(s, func(m string) string { return p.email(pctAtRe.ReplaceAllString(m, "@")) })
 	}
 	if strings.Contains(s, "@") {
 		s = emailRe.ReplaceAllStringFunc(s, p.email)
 	}
-	return s
+	return freeRe.ReplaceAllStringFunc(s, p.freeText)
 }
 
-// text scrubs s and rewrites absolute http(s) URLs inside it.
+// text scrubs s and rewrites URLs (any scheme, or scheme-relative) inside it.
 func (p *Pseudonymizer) text(s string) string {
-	if !strings.Contains(s, "://") {
+	if !strings.Contains(s, "//") {
 		return p.scrub(s)
 	}
 	var b strings.Builder
 	last := 0
-	for _, loc := range urlRe.FindAllStringIndex(s, -1) {
+	for _, loc := range urlRe.FindAllStringSubmatchIndex(s, -1) {
+		bs, be := loc[2], loc[3]
+		if bs < 0 {
+			bs, be = loc[6], loc[7]
+		}
 		b.WriteString(p.scrub(s[last:loc[0]]))
-		b.WriteString(p.absURL(s[loc[0]:loc[1]]))
+		b.WriteString(s[bs:be]) // the single boundary character
+		b.WriteString(p.rewriteURL(s[be:loc[1]]))
 		last = loc[1]
 	}
 	b.WriteString(p.scrub(s[last:]))
@@ -185,19 +267,31 @@ func (p *Pseudonymizer) text(s string) string {
 
 const invalidURL = "http://invalid.test/"
 
-// absURL rewrites an absolute URL: host mapped, userinfo/port/fragment dropped,
-// query values masked, path segments scrubbed.
-func (p *Pseudonymizer) absURL(raw string) string {
-	u, err := url.Parse(raw)
-	if err != nil || !u.IsAbs() || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return invalidURL
+// rewriteURL rewrites "<scheme>://auth/path?query#frag" or "//auth/path...":
+// host mapped, userinfo/port/fragment dropped, query values masked, path scrubbed.
+func (p *Pseudonymizer) rewriteURL(u string) string {
+	i := strings.Index(u, "//")
+	prefix, rest := strings.ToLower(u[:i+2]), u[i+2:]
+	e := strings.IndexAny(rest, "/?#")
+	if e < 0 {
+		e = len(rest)
 	}
-	q, _ := p.maskQuery(u.RawQuery)
-	out := strings.ToLower(u.Scheme) + "://" + p.mapHost(u.Host) + p.cleanPath(u.EscapedPath())
-	if q != "" {
+	tail, _, _ := strings.Cut(rest[e:], "#")
+	path, query, _ := strings.Cut(tail, "?")
+	out := prefix + p.mapHost(rest[:e]) + p.cleanPath(path)
+	if q, _ := p.maskQuery(query); q != "" {
 		out += "?" + q
 	}
 	return out
+}
+
+// absURL rewrites an absolute URL of any scheme.
+func (p *Pseudonymizer) absURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || !u.IsAbs() || u.Host == "" {
+		return invalidURL
+	}
+	return p.rewriteURL(raw)
 }
 
 func (p *Pseudonymizer) mapHost(authority string) string {
@@ -266,7 +360,7 @@ func (p *Pseudonymizer) maskQuery(raw string) (string, []kvPair) {
 // relURL rewrites a URL reference that may be relative (Location).
 func (p *Pseudonymizer) relURL(s string) string {
 	t := strings.TrimSpace(s)
-	if strings.HasPrefix(t, "/") {
+	if strings.HasPrefix(t, "/") && !strings.HasPrefix(t, "//") {
 		path, query, _ := strings.Cut(t, "?")
 		path, _, _ = strings.Cut(path, "#")
 		query, _, _ = strings.Cut(query, "#")
@@ -276,53 +370,57 @@ func (p *Pseudonymizer) relURL(s string) string {
 		}
 		return out
 	}
-	return p.text(s)
+	return p.text(t)
 }
 
 // ---- JSON / form bodies ----
 
+// keyClass classifies a body key: password (low entropy, no hash), token
+// (credential-like) or plain. Keys are normalised (lower-case, '-', '_', '.' and
+// spaces dropped); matching is by substring, so e.g. "author" is masked too.
+func keyClass(k string) mode {
+	n := strings.NewReplacer("-", "", "_", "", ".", "", " ", "").Replace(strings.ToLower(k))
+	switch {
+	case strings.Contains(n, "passw"), strings.Contains(n, "pwd"), n == "pin", n == "cvv", n == "ssn",
+		strings.HasPrefix(n, "otp"), strings.HasSuffix(n, "otp"), strings.Contains(n, "totp"), strings.Contains(n, "hotp"):
+		return password
+	}
+	for _, sub := range []string{"secret", "token", "apikey", "accesskey", "privatekey", "credential", "session", "auth", "signature", "cookie"} {
+		if strings.Contains(n, sub) {
+			return token
+		}
+	}
+	return plain
+}
+
+// walk pseudonymises a decoded JSON value. Under a sensitive key the whole
+// value is masked whatever its type: strings become a re-signed JWT or
+// tok_<hash8> (token keys) or "[redacted]" (password keys); objects, arrays,
+// numbers and booleans become the string "[redacted]"; null stays null.
 func (p *Pseudonymizer) walk(v any, m mode) any {
+	if m != plain && v != nil {
+		p.st.BodyFields++
+		if t, ok := v.(string); ok && m == token {
+			return p.credential(t)
+		}
+		return "[redacted]"
+	}
 	switch t := v.(type) {
 	case map[string]any:
 		out := make(map[string]any, len(t))
 		for k, val := range t {
-			cm := plain
-			switch {
-			case isPasswordKey(k):
-				cm = password
-			case isSensitiveKey(k):
-				cm = token
-			}
-			out[p.scrub(k)] = p.walk(val, cm)
+			out[p.scrub(k)] = p.walk(val, keyClass(k))
 		}
 		return out
 	case []any:
 		out := make([]any, len(t))
 		for i, val := range t {
-			out[i] = p.walk(val, m)
+			out[i] = p.walk(val, plain)
 		}
 		return out
 	case string:
-		switch m {
-		case password:
-			p.st.BodyFields++
-			return "[redacted]"
-		case token:
-			p.st.BodyFields++
-			return p.credential(t)
-		}
 		return p.text(t)
-	case json.Number:
-		if m != plain {
-			p.st.BodyFields++
-			return "[redacted]"
-		}
-		return t
 	default:
-		if m != plain && v != nil {
-			p.st.BodyFields++
-			return "[redacted]"
-		}
 		return v
 	}
 }
@@ -365,10 +463,10 @@ func (p *Pseudonymizer) formBody(s string) string {
 		switch {
 		case !hasEq:
 			parts[i] = nk
-		case isPasswordKey(kd):
+		case keyClass(kd) == password:
 			p.st.BodyFields++
 			parts[i] = nk + "=" + url.QueryEscape("[redacted]")
-		case isSensitiveKey(kd):
+		case keyClass(kd) == token:
 			p.st.BodyFields++
 			parts[i] = nk + "=" + url.QueryEscape(p.credential(vd))
 		default:
@@ -460,13 +558,19 @@ func (p *Pseudonymizer) cookieHeader(v string) string {
 	parts := strings.Split(v, ";")
 	out := make([]string, 0, len(parts))
 	for _, part := range parts {
-		name, val, ok := strings.Cut(strings.TrimSpace(part), "=")
-		if name == "" && !ok {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		name, val, ok := strings.Cut(part, "=")
+		if !ok { // a bare value: mask it whole
+			p.st.CookiesMasked++
+			out = append(out, p.credential(part))
 			continue
 		}
 		name = p.scrub(name)
-		if !ok || val == "" {
-			out = append(out, name)
+		if val == "" {
+			out = append(out, name+"=")
 			continue
 		}
 		p.st.CookiesMasked++
@@ -560,9 +664,17 @@ func (p *Pseudonymizer) entry(e map[string]any) map[string]any {
 		method = "GET"
 	}
 	reqURL, query := invalidURL, []kvPair(nil)
-	if u, err := url.Parse(str(rq, "url")); err == nil && u.IsAbs() && u.Host != "" && (u.Scheme == "http" || u.Scheme == "https") {
+	if u, err := url.Parse(str(rq, "url")); err == nil && u.IsAbs() && u.Host != "" {
 		reqURL = p.absURL(str(rq, "url"))
-		_, query = p.maskQuery(u.RawQuery)
+		if _, q, ok := strings.Cut(reqURL, "?"); ok {
+			for _, part := range strings.Split(q, "&") {
+				k, v, _ := strings.Cut(part, "=")
+				if dk, err := url.QueryUnescape(k); err == nil {
+					k = dk
+				}
+				query = append(query, kvPair{k, v})
+			}
+		}
 	}
 	qs := make([]any, 0, len(query))
 	for _, q := range query {
