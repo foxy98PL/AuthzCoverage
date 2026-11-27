@@ -1,0 +1,25 @@
+# Review queue
+
+Implementation orchestrator appends rows; review orchestrator updates **Status** and writes
+`docs/reviews/<KEY>.md` (or a batch file). Status: `queued` → `in review` → `passed` | `findings` → (fixed) `queued`.
+
+| Ticket | Scope (packages) | Acceptance criteria | Status |
+| --- | --- | --- | --- |
+| KAN-10 | repo skeleton, internal/cli | Jira KAN-10 | queued (not agent-reviewed yet) |
+| KAN-68 | internal/spec | Jira KAN-68 | passed — reviews/batch-2026-11-27.md |
+| KAN-70 | internal/spec/lines.go | Jira KAN-70 | passed — reviews/batch-2026-11-27.md |
+| KAN-69 | internal/match 🔒 | Jira KAN-69 | passed — reviews/batch-2026-11-27.md |
+| KAN-15 | internal/{ingest/har,redact,identity 🔒,config,testutil/hartest} | Jira KAN-15 | passed (R1/R3 nits) — reviews/batch-2026-11-27.md |
+| KAN-16 | internal/{ownership,relate 🔒,matrix 🔒,report/table,cli/pipeline.go} | Jira KAN-16 | passed after fix (internal/cli/same_role_e2e_test.go: bob reads alice's book → SAME_ROLE ok / ok 403) — reviews/batch-2026-11-27.md |
+| KAN-17 | internal/{match 🔒 Explain,ingest/har/zip.go,basepath,cli/{explain,unmatched,pipeline}.go} | Jira KAN-17 | passed after fix (4 findings fixed) — reviews/KAN-17.md |
+| KAN-18 | internal/{config,identity 🔒,cli/{pipeline,discover}.go}, schema/, docs/identities.md | Jira KAN-18 | passed after fix (3 findings fixed; security change needs owner sign-off) — reviews/KAN-18.md |
+| KAN-19 | internal/{config,ownership,relate 🔒,matrix 🔒,report/table,cli}, testdata/golden | Jira KAN-19 (code part) | passed after fix; F1 owner decision, F3 blocked on recordings — reviews/KAN-19.md |
+| KAN-20 | internal/report/coveragejson, internal/ownership (Objects), internal/cli/{coverage,pipeline,report,unmatched,version}.go, schema/coverage.v1.json, testdata/golden/*.coverage.json | Jira KAN-20 (4 ACs) + DOC-04 coverage.json field table | passed after fix (F1 unmatched ID leak, F3 clock, F4 Basic e2e, F5 schema test) — reviews/KAN-20.md |
+| KAN-21 | internal/report/markdown, internal/cli/{report.go,report_markdown_test.go,golden_test.go}, testdata/golden/*.md | Jira KAN-21 (4 ACs) + escaping rules | passed after fix (F1 MaxBytes overrun fixed) — reviews/KAN-21.md |
+| KAN-24 | internal/{waivers,baseline}, internal/report/coveragejson (Cell.Waiver), internal/cli/{baseline,coverage,pipeline,root}.go, schema/{baseline,waivers}.v1.json | Jira KAN-24 (5 ACs) + DOC-04 baseline/waivers | passed after fix (F1–F4 test gaps closed) — reviews/KAN-24.md |
+| KAN-25 | internal/gate, internal/cli/{gate,gate_test,root}.go | Jira KAN-25 (5 ACs) + DOC-04 gate rules | passed after fix (F1 --max-drop Inf rejected) — reviews/KAN-25.md |
+| KAN-23 | internal/report/sarif, internal/cli/{report.go,report_sarif_test.go,golden_test.go}, testdata/golden/*.sarif | Jira KAN-23 (AC1,2,4; AC3 owner upload) | passed after fix (F1 uri, F2 dropped kinds) — reviews/KAN-23.md |
+| KAN-22 | internal/report/html, internal/cli/{report.go,report_html_test.go,golden_test.go}, testdata/golden/*.html | Jira KAN-22 (5 ACs; AC1/AC4 browser check by owner) | passed after fix (F2 control-char filter) — reviews/KAN-22.md |
+| KAN-88 | internal/suspicious 🔒-style, coveragejson, cli/pipeline.go, report/{table,markdown} | Jira KAN-88 (6 ACs) | passed after fix (F3 anonymous guard, F4 message) — reviews/KAN-88.md |
+| KAN-73 | internal/cli/bench_test.go, scripts/bench.sh, Makefile (bench), docs/benchmarks.md | Jira KAN-73 (local: < 5 s, > 20% regression, peak RSS) | passed after fix (bench.sh args, RSS warning) — reviews/KAN-73.md |
+| KAN-74 | e2e/apps/tenantshop (separate stdlib module: shop, record, cmd/record, e2e_test.go, identities.yaml, golden), e2e/recorders/tenantshop.sh, Makefile (e2e) | Jira KAN-74 (4 ACs) | passed after fix (F1 seed/openapi tests, F3 symlink removed) — reviews/KAN-74.md |

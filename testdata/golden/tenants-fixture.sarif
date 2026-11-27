@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "authzcov",
+          "version": "dev",
+          "rules": [
+            {
+              "id": "authzcov/gap",
+              "name": "AuthorizationGap",
+              "shortDescription": {
+                "text": "Required authorization check was never exercised"
+              },
+              "fullDescription": {
+                "text": "An endpoint requires an authorization check for a relationship (for example another user's object) that no recorded request exercised. Coverage counts the call itself, whatever the response status."
+              },
+              "help": {
+                "text": "Record a test where a caller with that relationship calls the endpoint and assert the expected outcome (success for the owner; 401, 403 or 404 for other users, other tenants, lower roles and anonymous callers), then re-run authzcov."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "high",
+                "security-severity": "7.5"
+              }
+            },
+            {
+              "id": "authzcov/suspicious_allow",
+              "name": "SuspiciousAllow",
+              "shortDescription": {
+                "text": "Request succeeded where authorization should have denied it"
+              },
+              "fullDescription": {
+                "text": "A recorded request succeeded although the caller's relationship to the object suggests it should have been denied."
+              },
+              "help": {
+                "text": "Check the endpoint's authorization logic for the caller and object in question, fix it so the request is denied, and keep a test that expects the denial."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "medium",
+                "security-severity": "6.5"
+              }
+            },
+            {
+              "id": "authzcov/unmatched_request",
+              "name": "UnmatchedRequest",
+              "shortDescription": {
+                "text": "Recorded requests match no operation in the spec"
+              },
+              "fullDescription": {
+                "text": "Requests in the recording match no operation in the OpenAPI spec, so their authorization cannot be assessed."
+              },
+              "help": {
+                "text": "Add the missing operation to the spec or correct the base path, then re-run authzcov."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "authzcov/ambiguous_match",
+              "name": "AmbiguousMatch",
+              "shortDescription": {
+                "text": "Recorded requests fit more than one operation"
+              },
+              "fullDescription": {
+                "text": "Requests fit more than one spec operation, so coverage may be attributed to the wrong endpoint."
+              },
+              "help": {
+                "text": "Make the spec paths unambiguous (for example distinct literal segments) and re-run authzcov."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "authzcov/undocumented_method",
+              "name": "UndocumentedMethod",
+              "shortDescription": {
+                "text": "Recorded requests use a method the spec does not document"
+              },
+              "fullDescription": {
+                "text": "Requests use an HTTP method that the spec does not document for an existing path."
+              },
+              "help": {
+                "text": "Document the method in the spec, or remove the call if it should not exist."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "medium"
+              }
+            }
+          ]
+        }
+      },
+      "automationDetails": {
+        "id": "authzcov/"
+      },
+      "results": [
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /orgs/{orgId}/projects was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "9d5b268ae7bed87a"
+          },
+          "properties": {
+            "endpoint": "GET /orgs/{orgId}/projects",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /orgs/{orgId}/projects was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "8b1f7f65e9f0c155"
+          },
+          "properties": {
+            "endpoint": "GET /orgs/{orgId}/projects",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /orgs/{orgId}/projects was never called as same_role_other_user"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "5a5b4c7d73e9b98c"
+          },
+          "properties": {
+            "endpoint": "GET /orgs/{orgId}/projects",
+            "relationship": "same_role_other_user"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /orgs/{orgId}/projects was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "48f10f9738026d87"
+          },
+          "properties": {
+            "endpoint": "POST /orgs/{orgId}/projects",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /orgs/{orgId}/projects was never called as other_tenant"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "69847ddf00525a11"
+          },
+          "properties": {
+            "endpoint": "POST /orgs/{orgId}/projects",
+            "relationship": "other_tenant"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /orgs/{orgId}/projects was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "d9bc52e8f22e8488"
+          },
+          "properties": {
+            "endpoint": "POST /orgs/{orgId}/projects",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /orgs/{orgId}/projects was never called as same_role_other_user"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "5aaab88e32f0840c"
+          },
+          "properties": {
+            "endpoint": "POST /orgs/{orgId}/projects",
+            "relationship": "same_role_other_user"
+          }
+        }
+      ]
+    }
+  ]
+}

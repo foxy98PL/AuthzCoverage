@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "authzcov coverage (VAmPI)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/authzcov",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "coverage",
+        "--spec", "testdata/specs/vampi.yml",
+        "--har", "testdata/raw/vampi.har",
+        "--identities", "testdata/identities/vampi.yaml"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+AuthzCoverage
+Copyright 2026 The AuthzCoverage Authors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This repository bundles third-party material used only as test data:
+
+- testdata/specs/vampi.yml
+  OpenAPI specification from VAmPI (https://github.com/erev0s/VAmPI)
+  Copyright (c) 2020 erev0s
+  Copied verbatim from openapi_specs/openapi3.yml (master, fetched 2026-11-27).
+  Licensed under the MIT License.

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://authzcov.invalid/schema/waivers.v1.json",
+  "title": "authzcov waivers.yaml (schema authzcov.waivers/v1)",
+  "description": "Editor and documentation schema for .authzcov/waivers.yaml (as JSON). authzcov validates the file itself in Go; this schema is informational. A bare top-level list (no schema key) is also accepted. A past expires date loads fine and is reported as an expired waiver; a date more than 365 days ahead is rejected.",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["schema", "waivers"],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {"const": "authzcov.waivers/v1"},
+        "waivers": {"$ref": "#/$defs/list"}
+      }
+    },
+    {"$ref": "#/$defs/list"}
+  ],
+  "$defs": {
+    "list": {"type": "array", "items": {"$ref": "#/$defs/waiver"}},
+    "waiver": {
+      "type": "object",
+      "required": ["endpoint", "relationship", "reason", "expires"],
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {"type": "string", "minLength": 1, "description": "Exact endpoint ID, or a pattern where * matches any run of characters (e.g. \"GET /admin/*\", \"* /health\"). Must be non-empty after trimming whitespace; the Go parser is authoritative."},
+        "relationship": {"enum": ["owner", "same_role_other_user", "lower_role", "other_tenant", "anonymous"]},
+        "reason": {"type": "string", "minLength": 10, "maxLength": 500, "description": "10–500 characters (Unicode code points) after trimming surrounding whitespace; the Go parser is authoritative."},
+        "expires": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "YYYY-MM-DD, at most 365 days after today."}
+      }
+    }
+  }
+}

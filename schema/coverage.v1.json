@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://authzcov.invalid/schema/coverage.v1.json",
+  "title": "authzcov coverage.json (schema authzcov.coverage/v1)",
+  "description": "Editor and documentation schema for coverage.json. authzcov validates the file itself in Go (schema field, JSON shape); this schema is informational. Unknown extra fields are allowed: v1 may gain fields.",
+  "type": "object",
+  "required": ["schema", "tool", "generated_at", "inputs", "identities", "endpoints", "cells", "objects", "findings", "warnings", "summary"],
+  "properties": {
+    "schema": {"const": "authzcov.coverage/v1"},
+    "tool": {
+      "type": "object",
+      "required": ["name", "version", "commit"],
+      "properties": {
+        "name": {"const": "authzcov"},
+        "version": {"type": "string"},
+        "commit": {"type": "string", "description": "Empty when unknown."}
+      }
+    },
+    "generated_at": {"type": "string", "format": "date-time", "description": "UTC, second precision. SOURCE_DATE_EPOCH overrides the clock."},
+    "inputs": {
+      "type": "object",
+      "required": ["spec", "har", "identities", "base_path", "strict", "evidence"],
+      "properties": {
+        "spec": {"$ref": "#/$defs/fileRef"},
+        "har": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "sha256", "entries"],
+            "properties": {
+              "path": {"type": "string", "description": "As given on the command line."},
+              "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "entries": {"type": "integer", "minimum": 0, "description": "Entries kept after filtering."}
+            }
+          }
+        },
+        "identities": {"$ref": "#/$defs/fileRef"},
+        "base_path": {
+          "type": "object",
+          "required": ["value", "mode", "matched_ratio", "hosts"],
+          "properties": {
+            "value": {"type": "string", "description": "Prefix of the host with the most matched requests (ties: smaller host name)."},
+            "mode": {"enum": ["auto", "none", "explicit"]},
+            "matched_ratio": {"type": "number", "minimum": 0, "maximum": 1, "description": "Matched / total over all hosts, 2 decimals; 0 when nothing was read."},
+            "hosts": {
+              "type": "array",
+              "description": "Sorted by host.",
+              "items": {
+                "type": "object",
+                "required": ["host", "prefix", "matched", "total"],
+                "properties": {
+                  "host": {"type": "string"},
+                  "prefix": {"type": "string"},
+                  "matched": {"type": "integer", "minimum": 0},
+                  "total": {"type": "integer", "minimum": 0}
+                }
+              }
+            }
+          }
+        },
+        "strict": {"type": "boolean"},
+        "evidence": {"const": "refs", "description": "Evidence is file#index references only; no request data."}
+      }
+    },
+    "identities": {
+      "type": "array",
+      "description": "One per distinct (name, tenant) seen in matched requests; sorted by name, then tenant.",
+      "items": {
+        "type": "object",
+        "required": ["name", "role", "rank", "tenant", "requests", "fingerprints"],
+        "properties": {
+          "name": {"type": "string"},
+          "role": {"type": "string", "description": "\"unknown\" for unresolved callers (rank -1), \"anonymous\" for no credential (rank 0)."},
+          "rank": {"type": "integer"},
+          "tenant": {"type": "string"},
+          "requests": {"type": "integer", "minimum": 0},
+          "fingerprints": {"type": "array", "items": {"type": "string", "pattern": "^[0-9a-f]{12}$"}, "description": "Credential fingerprints, never raw credentials."}
+        }
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "description": "Sorted by id.",
+      "items": {
+        "type": "object",
+        "required": ["id", "method", "template", "kind", "resource", "object_param", "public", "spec_file", "spec_line", "requests"],
+        "properties": {
+          "id": {"type": "string"},
+          "method": {"type": "string"},
+          "template": {"type": "string"},
+          "kind": {"enum": ["object", "function"]},
+          "resource": {"type": "string"},
+          "object_param": {"type": "string"},
+          "public": {"type": "boolean"},
+          "spec_file": {"type": "string"},
+          "spec_line": {"type": "integer", "minimum": 0},
+          "requests": {"type": "integer", "minimum": 0, "description": "Matched requests."},
+          "min_allowed_role": {
+            "type": "object",
+            "description": "Function-level endpoints only: lowest role that got a 2xx.",
+            "required": ["role", "confidence"],
+            "properties": {"role": {"type": "string"}, "confidence": {"const": "inferred"}}
+          }
+        }
+      }
+    },
+    "cells": {
+      "type": "array",
+      "description": "Required or observed cells, ordered by endpoint id then relationship order.",
+      "items": {
+        "type": "object",
+        "required": ["endpoint", "relationship", "required", "covered"],
+        "properties": {
+          "endpoint": {"type": "string"},
+          "relationship": {"$ref": "#/$defs/relationship"},
+          "required": {"type": "boolean"},
+          "covered": {"type": "boolean"},
+          "statuses": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}, "propertyNames": {"pattern": "^[0-9]+$"}},
+          "identities": {"type": "array", "items": {"type": "string"}},
+          "min_confidence": {"enum": ["inferred", "learned", "declared"], "description": "Only when covered."},
+          "evidence": {"type": "array", "maxItems": 5, "items": {"type": "string"}}
+        }
+      }
+    },
+    "objects": {
+      "type": "array",
+      "description": "Learned owner claims. Raw object IDs are never written.",
+      "items": {
+        "type": "object",
+        "required": ["resource", "id_hash", "owner", "tenant", "confidence", "source"],
+        "properties": {
+          "resource": {"type": "string"},
+          "id_hash": {"type": "string", "pattern": "^[0-9a-f]{8}$", "description": "First 8 hex of SHA-256(resource + \"/\" + id)."},
+          "owner": {"type": "string"},
+          "tenant": {"type": "string"},
+          "confidence": {"enum": ["inferred", "learned", "declared"]},
+          "source": {"enum": ["self", "create", "list"]}
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "Sorted by kind (gap, suspicious_allow, unmatched_request, ambiguous_match, undocumented_method), endpoint, relationship.",
+      "items": {
+        "type": "object",
+        "required": ["fingerprint", "kind", "severity", "endpoint", "message"],
+        "properties": {
+          "fingerprint": {"type": "string", "pattern": "^[0-9a-f]{16}$", "description": "First 16 hex of SHA-256(kind|endpoint|relationship)."},
+          "kind": {"enum": ["gap", "suspicious_allow", "unmatched_request", "ambiguous_match", "undocumented_method"]},
+          "severity": {"enum": ["error", "note"]},
+          "endpoint": {"type": "string", "description": "Endpoint id, or \"METHOD shape\" for unmatched requests."},
+          "relationship": {"$ref": "#/$defs/relationship"},
+          "message": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "description": "Sorted by code, then message.",
+      "items": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {"enum": ["config", "single_identity_role", "base_path_low_match"]},
+          "message": {"type": "string"}
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["required", "covered", "waived", "percent", "gaps", "suspicious_allows", "unmatched_requests", "ambiguous_matches"],
+      "properties": {
+        "required": {"type": "integer", "minimum": 0},
+        "covered": {"type": "integer", "minimum": 0},
+        "waived": {"type": "integer", "minimum": 0},
+        "percent": {"type": "number", "minimum": 0, "maximum": 100, "description": "covered / (required - waived) * 100, one decimal; 0 when the denominator is 0."},
+        "gaps": {"type": "integer", "minimum": 0},
+        "suspicious_allows": {"type": "integer", "minimum": 0},
+        "unmatched_requests": {"type": "integer", "minimum": 0, "description": "Requests that matched no operation (not counting undocumented methods)."},
+        "ambiguous_matches": {"type": "integer", "minimum": 0, "description": "Requests that matched more than one operation."}
+      }
+    }
+  },
+  "$defs": {
+    "fileRef": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "description": "As given on the command line."},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "relationship": {"enum": ["owner", "same_role_other_user", "lower_role", "higher_role", "other_tenant", "anonymous", "unknown"]}
+  }
+}

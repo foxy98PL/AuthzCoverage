@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info: {title: t, version: "1"}
+paths:
+  /a/{x}:
+    get:
+      parameters: [{name: x, in: path, required: true, schema: {type: string}}]
+      responses: {"200": {description: ok}}
+  /a/{y}:
+    get:
+      parameters: [{name: y, in: path, required: true, schema: {type: string}}]
+      responses: {"200": {description: ok}}

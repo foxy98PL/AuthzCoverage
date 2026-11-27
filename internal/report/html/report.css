@@ -1,0 +1,16 @@
+:root{color-scheme:light dark;--bg:#fff;--fg:#1b1f24;--mute:#59636e;--line:#d0d7de;--head:#f3f4f6;--ok:#dafbe1;--gap:#ffd8d3;--wv:#fff1c2;--obs:#e8eaed}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mute:#9198a1;--line:#30363d;--head:#161b22;--ok:#12361f;--gap:#5a1d1a;--wv:#4a3a0a;--obs:#21262d}}
+body{margin:0 auto;padding:16px;max-width:1200px;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:24px 0 8px}
+.sum,footer{color:var(--mute)}footer{margin-top:24px;font-size:12px}
+form{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:12px 0}
+input,select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:2px 6px}
+.wrap{overflow:auto;max-height:80vh}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:2px 6px;text-align:left;font-size:13px}
+td[data-rel]{text-align:center;white-space:nowrap}
+th{background:var(--head);position:sticky;top:0}
+td.ep,#findings td:nth-child(3){font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:nowrap}
+td[data-state=covered]{background:var(--ok)}td[data-state=gap]{background:var(--gap);font-weight:600}
+td[data-state=waived]{background:var(--wv)}td[data-state=observed]{background:var(--obs)}
+.hidden{display:none}

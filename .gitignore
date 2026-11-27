@@ -1,0 +1,27 @@
+# Build output
+/bin/
+/dist/
+/authzcov-out/
+
+# Real traffic recordings: never commit
+/testdata/raw/
+*.har
+*.har.zip
+# Code-generated or pseudonymised fixtures only
+!/testdata/har/*.har
+
+# Go
+*.test
+*.out
+coverage.txt
+/fuzz-cache/
+
+# Env / secrets
+.env
+.env.*
+
+# Editors / OS (shared .vscode files are committed)
+.idea/
+*.swp
+.DS_Store
+.claude/settings.local.json

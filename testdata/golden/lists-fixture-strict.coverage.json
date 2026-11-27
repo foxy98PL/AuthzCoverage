@@ -1,0 +1,922 @@
+{
+  "schema": "authzcov.coverage/v1",
+  "tool": {
+    "name": "authzcov",
+    "version": "dev",
+    "commit": ""
+  },
+  "generated_at": "2026-01-01T00:00:00Z",
+  "inputs": {
+    "spec": {
+      "path": "spec.yml",
+      "sha256": "35200f354f9c9968182fc19458295ed45bb4c368150348c46d5146a7e40a61c9"
+    },
+    "har": [
+      {
+        "path": "t.har",
+        "sha256": "fea8b12e7daff3a41582da0716f362f5829e248cc5cfa46529bd1c70f9094196",
+        "entries": 5
+      }
+    ],
+    "identities": {
+      "path": "ids.yaml",
+      "sha256": "49fb01ca48af7c2f400b55bee2abc2bc3ae8ccec8c71df073277a10d0a543ce1"
+    },
+    "base_path": {
+      "value": "",
+      "mode": "auto",
+      "matched_ratio": 1,
+      "hosts": [
+        {
+          "host": "localhost:5000",
+          "prefix": "",
+          "matched": 5,
+          "total": 5
+        }
+      ]
+    },
+    "strict": true,
+    "evidence": "refs"
+  },
+  "identities": [
+    {
+      "name": "alice",
+      "role": "user",
+      "rank": 10,
+      "tenant": "",
+      "requests": 2,
+      "fingerprints": [
+        "ef920b96f822"
+      ]
+    },
+    {
+      "name": "anonymous",
+      "role": "anonymous",
+      "rank": 0,
+      "tenant": "",
+      "requests": 1,
+      "fingerprints": []
+    },
+    {
+      "name": "bob",
+      "role": "user",
+      "rank": 10,
+      "tenant": "",
+      "requests": 2,
+      "fingerprints": [
+        "c1203f1541e9"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "DELETE /users/v1/{username}",
+      "method": "DELETE",
+      "template": "/users/v1/{username}",
+      "kind": "object",
+      "resource": "v1",
+      "object_param": "username",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 263,
+      "requests": 0
+    },
+    {
+      "id": "GET /",
+      "method": "GET",
+      "template": "/",
+      "kind": "function",
+      "resource": "",
+      "object_param": "",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 34,
+      "requests": 0
+    },
+    {
+      "id": "GET /books/v1",
+      "method": "GET",
+      "template": "/books/v1",
+      "kind": "function",
+      "resource": "",
+      "object_param": "",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 486,
+      "requests": 2,
+      "min_allowed_role": {
+        "role": "user",
+        "confidence": "inferred"
+      }
+    },
+    {
+      "id": "GET /books/v1/{book_title}",
+      "method": "GET",
+      "template": "/books/v1/{book_title}",
+      "kind": "object",
+      "resource": "v1",
+      "object_param": "book_title",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 585,
+      "requests": 3
+    },
+    {
+      "id": "GET /createdb",
+      "method": "GET",
+      "template": "/createdb",
+      "kind": "function",
+      "resource": "",
+      "object_param": "",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 16,
+      "requests": 0
+    },
+    {
+      "id": "GET /me",
+      "method": "GET",
+      "template": "/me",
+      "kind": "function",
+      "resource": "",
+      "object_param": "",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 215,
+      "requests": 0
+    },
+    {
+      "id": "GET /users/v1",
+      "method": "GET",
+      "template": "/users/v1",
+      "kind": "function",
+      "resource": "",
+      "object_param": "",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 62,
+      "requests": 0
+    },
+    {
+      "id": "GET /users/v1/_debug",
+      "method": "GET",
+      "template": "/users/v1/_debug",
+      "kind": "function",
+      "resource": "",
+      "object_param": "",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 88,
+      "requests": 0
+    },
+    {
+      "id": "GET /users/v1/{username}",
+      "method": "GET",
+      "template": "/users/v1/{username}",
+      "kind": "object",
+      "resource": "v1",
+      "object_param": "username",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 263,
+      "requests": 0
+    },
+    {
+      "id": "POST /books/v1",
+      "method": "POST",
+      "template": "/books/v1",
+      "kind": "function",
+      "resource": "",
+      "object_param": "",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 486,
+      "requests": 0
+    },
+    {
+      "id": "POST /users/v1/login",
+      "method": "POST",
+      "template": "/users/v1/login",
+      "kind": "function",
+      "resource": "",
+      "object_param": "",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 162,
+      "requests": 0
+    },
+    {
+      "id": "POST /users/v1/register",
+      "method": "POST",
+      "template": "/users/v1/register",
+      "kind": "function",
+      "resource": "",
+      "object_param": "",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 120,
+      "requests": 0
+    },
+    {
+      "id": "PUT /users/v1/{username}/email",
+      "method": "PUT",
+      "template": "/users/v1/{username}/email",
+      "kind": "object",
+      "resource": "v1",
+      "object_param": "username",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 366,
+      "requests": 0
+    },
+    {
+      "id": "PUT /users/v1/{username}/password",
+      "method": "PUT",
+      "template": "/users/v1/{username}/password",
+      "kind": "object",
+      "resource": "v1",
+      "object_param": "username",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 426,
+      "requests": 0
+    }
+  ],
+  "cells": [
+    {
+      "endpoint": "DELETE /users/v1/{username}",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "DELETE /users/v1/{username}",
+      "relationship": "same_role_other_user",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "DELETE /users/v1/{username}",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /",
+      "relationship": "lower_role",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /books/v1",
+      "relationship": "owner",
+      "required": true,
+      "covered": true,
+      "statuses": {
+        "200": 2
+      },
+      "identities": [
+        "alice",
+        "bob"
+      ],
+      "min_confidence": "declared",
+      "evidence": [
+        "t.har#0",
+        "t.har#1"
+      ]
+    },
+    {
+      "endpoint": "GET /books/v1",
+      "relationship": "lower_role",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /books/v1",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /books/v1/{book_title}",
+      "relationship": "owner",
+      "required": true,
+      "covered": false,
+      "statuses": {
+        "200": 1
+      },
+      "identities": [
+        "alice"
+      ],
+      "evidence": [
+        "t.har#2"
+      ]
+    },
+    {
+      "endpoint": "GET /books/v1/{book_title}",
+      "relationship": "same_role_other_user",
+      "required": true,
+      "covered": false,
+      "statuses": {
+        "200": 1
+      },
+      "identities": [
+        "bob"
+      ],
+      "evidence": [
+        "t.har#3"
+      ]
+    },
+    {
+      "endpoint": "GET /books/v1/{book_title}",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false,
+      "statuses": {
+        "401": 1
+      },
+      "identities": [
+        "anonymous"
+      ],
+      "evidence": [
+        "t.har#4"
+      ]
+    },
+    {
+      "endpoint": "GET /createdb",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /createdb",
+      "relationship": "lower_role",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /createdb",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /me",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /me",
+      "relationship": "lower_role",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /me",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /users/v1",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /users/v1",
+      "relationship": "lower_role",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /users/v1",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /users/v1/_debug",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /users/v1/_debug",
+      "relationship": "lower_role",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /users/v1/_debug",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /users/v1/{username}",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /users/v1/{username}",
+      "relationship": "same_role_other_user",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /users/v1/{username}",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /books/v1",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /books/v1",
+      "relationship": "lower_role",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /books/v1",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /users/v1/login",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /users/v1/login",
+      "relationship": "lower_role",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /users/v1/login",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /users/v1/register",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /users/v1/register",
+      "relationship": "lower_role",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /users/v1/register",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "PUT /users/v1/{username}/email",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "PUT /users/v1/{username}/email",
+      "relationship": "same_role_other_user",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "PUT /users/v1/{username}/email",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "PUT /users/v1/{username}/password",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "PUT /users/v1/{username}/password",
+      "relationship": "same_role_other_user",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "PUT /users/v1/{username}/password",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    }
+  ],
+  "objects": [
+    {
+      "resource": "books",
+      "id_hash": "8cb71221",
+      "owner": "alice",
+      "tenant": "",
+      "confidence": "inferred",
+      "source": "list"
+    },
+    {
+      "resource": "books",
+      "id_hash": "db259906",
+      "owner": "bob",
+      "tenant": "",
+      "confidence": "inferred",
+      "source": "list"
+    },
+    {
+      "resource": "subject",
+      "id_hash": "283076d4",
+      "owner": "alice",
+      "tenant": "",
+      "confidence": "learned",
+      "source": "self"
+    },
+    {
+      "resource": "subject",
+      "id_hash": "7821f31a",
+      "owner": "bob",
+      "tenant": "",
+      "confidence": "learned",
+      "source": "self"
+    }
+  ],
+  "findings": [
+    {
+      "fingerprint": "b607ea940226ceba",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "DELETE /users/v1/{username}",
+      "relationship": "anonymous",
+      "message": "DELETE /users/v1/{username} was never called as anonymous"
+    },
+    {
+      "fingerprint": "ff9ad9cca2e84293",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "DELETE /users/v1/{username}",
+      "relationship": "owner",
+      "message": "DELETE /users/v1/{username} was never called as owner"
+    },
+    {
+      "fingerprint": "e4dd882b97e3bf4b",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "DELETE /users/v1/{username}",
+      "relationship": "same_role_other_user",
+      "message": "DELETE /users/v1/{username} was never called as same_role_other_user"
+    },
+    {
+      "fingerprint": "2428974d01685696",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /",
+      "relationship": "anonymous",
+      "message": "GET / was never called as anonymous"
+    },
+    {
+      "fingerprint": "a1f5aad62b0a3bb7",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /",
+      "relationship": "lower_role",
+      "message": "GET / was never called as lower_role"
+    },
+    {
+      "fingerprint": "af96482650cfbce6",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /",
+      "relationship": "owner",
+      "message": "GET / was never called as owner"
+    },
+    {
+      "fingerprint": "d711d2d7500996da",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /books/v1",
+      "relationship": "anonymous",
+      "message": "GET /books/v1 was never called as anonymous"
+    },
+    {
+      "fingerprint": "444ef76c88021bdc",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /books/v1",
+      "relationship": "lower_role",
+      "message": "GET /books/v1 was never called as lower_role"
+    },
+    {
+      "fingerprint": "26ad38c29fe9132f",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /books/v1/{book_title}",
+      "relationship": "anonymous",
+      "message": "GET /books/v1/{book_title} was called as anonymous only with identity or owner evidence too weak to count",
+      "evidence": [
+        "t.har#4"
+      ]
+    },
+    {
+      "fingerprint": "3ad94025a8c7a9c5",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /books/v1/{book_title}",
+      "relationship": "owner",
+      "message": "GET /books/v1/{book_title} was called as owner only with identity or owner evidence too weak to count",
+      "evidence": [
+        "t.har#2"
+      ]
+    },
+    {
+      "fingerprint": "632d84cc0c61b490",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /books/v1/{book_title}",
+      "relationship": "same_role_other_user",
+      "message": "GET /books/v1/{book_title} was called as same_role_other_user only with identity or owner evidence too weak to count",
+      "evidence": [
+        "t.har#3"
+      ]
+    },
+    {
+      "fingerprint": "6770271282918f7d",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /createdb",
+      "relationship": "anonymous",
+      "message": "GET /createdb was never called as anonymous"
+    },
+    {
+      "fingerprint": "8851b0545231a227",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /createdb",
+      "relationship": "lower_role",
+      "message": "GET /createdb was never called as lower_role"
+    },
+    {
+      "fingerprint": "c5f41d4e7ebf1e19",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /createdb",
+      "relationship": "owner",
+      "message": "GET /createdb was never called as owner"
+    },
+    {
+      "fingerprint": "bfb344270e2aa242",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /me",
+      "relationship": "anonymous",
+      "message": "GET /me was never called as anonymous"
+    },
+    {
+      "fingerprint": "8914cfebcc2db875",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /me",
+      "relationship": "lower_role",
+      "message": "GET /me was never called as lower_role"
+    },
+    {
+      "fingerprint": "eca4db41b65f7e05",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /me",
+      "relationship": "owner",
+      "message": "GET /me was never called as owner"
+    },
+    {
+      "fingerprint": "f6ee72462e955dcc",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /users/v1",
+      "relationship": "anonymous",
+      "message": "GET /users/v1 was never called as anonymous"
+    },
+    {
+      "fingerprint": "6dc795cbdd84486a",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /users/v1",
+      "relationship": "lower_role",
+      "message": "GET /users/v1 was never called as lower_role"
+    },
+    {
+      "fingerprint": "f8add3b7a57ac44b",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /users/v1",
+      "relationship": "owner",
+      "message": "GET /users/v1 was never called as owner"
+    },
+    {
+      "fingerprint": "0c4df637d83b4637",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /users/v1/_debug",
+      "relationship": "anonymous",
+      "message": "GET /users/v1/_debug was never called as anonymous"
+    },
+    {
+      "fingerprint": "fa3ca2848420e4a2",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /users/v1/_debug",
+      "relationship": "lower_role",
+      "message": "GET /users/v1/_debug was never called as lower_role"
+    },
+    {
+      "fingerprint": "d0d3255928e3b47f",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /users/v1/_debug",
+      "relationship": "owner",
+      "message": "GET /users/v1/_debug was never called as owner"
+    },
+    {
+      "fingerprint": "0f9f00afe422209b",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /users/v1/{username}",
+      "relationship": "anonymous",
+      "message": "GET /users/v1/{username} was never called as anonymous"
+    },
+    {
+      "fingerprint": "e8bfccd6dbed4357",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /users/v1/{username}",
+      "relationship": "owner",
+      "message": "GET /users/v1/{username} was never called as owner"
+    },
+    {
+      "fingerprint": "148a926e9d4bf01e",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /users/v1/{username}",
+      "relationship": "same_role_other_user",
+      "message": "GET /users/v1/{username} was never called as same_role_other_user"
+    },
+    {
+      "fingerprint": "0918958d87ef200e",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /books/v1",
+      "relationship": "anonymous",
+      "message": "POST /books/v1 was never called as anonymous"
+    },
+    {
+      "fingerprint": "2d812e6a1b73fe39",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /books/v1",
+      "relationship": "lower_role",
+      "message": "POST /books/v1 was never called as lower_role"
+    },
+    {
+      "fingerprint": "6ad6eaec0ed45179",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /books/v1",
+      "relationship": "owner",
+      "message": "POST /books/v1 was never called as owner"
+    },
+    {
+      "fingerprint": "ebbfe69721c29457",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /users/v1/login",
+      "relationship": "anonymous",
+      "message": "POST /users/v1/login was never called as anonymous"
+    },
+    {
+      "fingerprint": "fd18104d99d80259",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /users/v1/login",
+      "relationship": "lower_role",
+      "message": "POST /users/v1/login was never called as lower_role"
+    },
+    {
+      "fingerprint": "8096c4e8861f2aa6",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /users/v1/login",
+      "relationship": "owner",
+      "message": "POST /users/v1/login was never called as owner"
+    },
+    {
+      "fingerprint": "7b7d5a3415909638",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /users/v1/register",
+      "relationship": "anonymous",
+      "message": "POST /users/v1/register was never called as anonymous"
+    },
+    {
+      "fingerprint": "02f1d32ccfe0f248",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /users/v1/register",
+      "relationship": "lower_role",
+      "message": "POST /users/v1/register was never called as lower_role"
+    },
+    {
+      "fingerprint": "ea2fd565cca727a9",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /users/v1/register",
+      "relationship": "owner",
+      "message": "POST /users/v1/register was never called as owner"
+    },
+    {
+      "fingerprint": "572d7362e3b9d5dd",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "PUT /users/v1/{username}/email",
+      "relationship": "anonymous",
+      "message": "PUT /users/v1/{username}/email was never called as anonymous"
+    },
+    {
+      "fingerprint": "7004c580465c40c9",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "PUT /users/v1/{username}/email",
+      "relationship": "owner",
+      "message": "PUT /users/v1/{username}/email was never called as owner"
+    },
+    {
+      "fingerprint": "87d3ab7aec00bbb3",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "PUT /users/v1/{username}/email",
+      "relationship": "same_role_other_user",
+      "message": "PUT /users/v1/{username}/email was never called as same_role_other_user"
+    },
+    {
+      "fingerprint": "23278e3fd94d6e6c",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "PUT /users/v1/{username}/password",
+      "relationship": "anonymous",
+      "message": "PUT /users/v1/{username}/password was never called as anonymous"
+    },
+    {
+      "fingerprint": "bccd4dc64bb9d31d",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "PUT /users/v1/{username}/password",
+      "relationship": "owner",
+      "message": "PUT /users/v1/{username}/password was never called as owner"
+    },
+    {
+      "fingerprint": "c2bb10cc53270386",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "PUT /users/v1/{username}/password",
+      "relationship": "same_role_other_user",
+      "message": "PUT /users/v1/{username}/password was never called as same_role_other_user"
+    }
+  ],
+  "warnings": [],
+  "summary": {
+    "required": 42,
+    "covered": 1,
+    "waived": 0,
+    "percent": 2.4,
+    "gaps": 41,
+    "suspicious_allows": 0,
+    "unmatched_requests": 0,
+    "ambiguous_matches": 0
+  }
+}

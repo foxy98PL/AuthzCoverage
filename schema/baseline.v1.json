@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://authzcov.invalid/schema/baseline.v1.json",
+  "title": "authzcov baseline.json (schema authzcov.baseline/v1)",
+  "description": "Editor and documentation schema for .authzcov/baseline.json. authzcov validates the file itself in Go; this schema is informational. The file has no timestamps and no tool version, so rewriting it from an unchanged result is byte-identical.",
+  "type": "object",
+  "required": ["schema", "spec_sha256", "summary", "cells"],
+  "properties": {
+    "schema": {"const": "authzcov.baseline/v1"},
+    "spec_sha256": {"type": "string", "description": "Informational: a mismatch with the current spec is not an error."},
+    "summary": {
+      "type": "object",
+      "required": ["required", "covered"],
+      "properties": {
+        "required": {"type": "integer", "minimum": 0},
+        "covered": {"type": "integer", "minimum": 0}
+      }
+    },
+    "cells": {
+      "type": "object",
+      "description": "Endpoint ID -> relationship -> state. Only required cells.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {"enum": ["covered", "missing", "waived"]}
+      }
+    }
+  }
+}

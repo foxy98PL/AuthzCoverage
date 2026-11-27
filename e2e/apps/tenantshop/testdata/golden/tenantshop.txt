@@ -1,0 +1,13 @@
+ENDPOINT                                OWNER  SAME_ROLE  LOWER  OTHER_TENANT  ANON
+DELETE  /orgs/{orgId}/orders/{orderId}  ok     GAP        -      ok 403        GAP
+GET     /me                             ok     -          GAP    -             GAP
+GET     /openapi.yaml                   GAP    -          GAP    -             GAP
+GET     /orgs/{orgId}/customers         GAP    GAP        -      ok 403        GAP
+GET     /orgs/{orgId}/orders            GAP    GAP        -      ok 403        GAP
+GET     /orgs/{orgId}/orders/{orderId}  ok     ok 403     -      ok 200,403    ok 401
+POST    /login                          GAP    -          GAP    -             ok
+POST    /orgs/{orgId}/orders            GAP    GAP        -      GAP           GAP
+PUT     /orgs/{orgId}/orders/{orderId}  ok     GAP        -      ok 403        GAP
+
+required 33  covered 12 (36.4%)  gaps 21
+! 1 suspicious allow(s): run "authzcov report --format markdown" for details

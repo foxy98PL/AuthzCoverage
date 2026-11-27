@@ -1,0 +1,18 @@
+ENDPOINT                               OWNER  SAME_ROLE  LOWER  ANON
+DELETE  /users/v1/{username}           GAP    GAP        -      GAP
+GET     /                              GAP    -          GAP    GAP
+GET     /books/v1                      ok     -          GAP    GAP
+GET     /books/v1/{book_title}         ok~    ok~        -      ok~ 401
+GET     /createdb                      GAP    -          GAP    GAP
+GET     /me                            GAP    -          GAP    GAP
+GET     /users/v1                      GAP    -          GAP    GAP
+GET     /users/v1/_debug               GAP    -          GAP    GAP
+GET     /users/v1/{username}           GAP    GAP        -      GAP
+POST    /books/v1                      GAP    -          GAP    GAP
+POST    /users/v1/login                GAP    -          GAP    GAP
+POST    /users/v1/register             GAP    -          GAP    GAP
+PUT     /users/v1/{username}/email     GAP    GAP        -      GAP
+PUT     /users/v1/{username}/password  GAP    GAP        -      GAP
+
+required 42  covered 4 (9.5%)  gaps 38
+~ covered only by inferred ownership evidence

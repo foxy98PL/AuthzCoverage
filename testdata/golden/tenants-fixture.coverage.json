@@ -1,0 +1,366 @@
+{
+  "schema": "authzcov.coverage/v1",
+  "tool": {
+    "name": "authzcov",
+    "version": "dev",
+    "commit": ""
+  },
+  "generated_at": "2026-01-01T00:00:00Z",
+  "inputs": {
+    "spec": {
+      "path": "spec.yml",
+      "sha256": "e297355f6f70fa86fb1ddc9a7161f2c8d2ec42c7c3d3802fcceaf812d0251992"
+    },
+    "har": [
+      {
+        "path": "t.har",
+        "sha256": "a8b0cb41dd3d780c9b3535536c56fefa910f019d0c7767581d8c46673f60c83d",
+        "entries": 6
+      }
+    ],
+    "identities": {
+      "path": "ids.yaml",
+      "sha256": "beee58b44d76c6a082d4074271d8779095d2819023c0b02df11a3f5065737a66"
+    },
+    "base_path": {
+      "value": "",
+      "mode": "auto",
+      "matched_ratio": 1,
+      "hosts": [
+        {
+          "host": "localhost:5000",
+          "prefix": "",
+          "matched": 6,
+          "total": 6
+        }
+      ]
+    },
+    "strict": false,
+    "evidence": "refs"
+  },
+  "identities": [
+    {
+      "name": "alice",
+      "role": "user",
+      "rank": 10,
+      "tenant": "OrgA",
+      "requests": 2,
+      "fingerprints": [
+        "ef920b96f822"
+      ]
+    },
+    {
+      "name": "anonymous",
+      "role": "anonymous",
+      "rank": 0,
+      "tenant": "",
+      "requests": 1,
+      "fingerprints": []
+    },
+    {
+      "name": "bob",
+      "role": "user",
+      "rank": 10,
+      "tenant": "OrgA",
+      "requests": 1,
+      "fingerprints": [
+        "c1203f1541e9"
+      ]
+    },
+    {
+      "name": "carol",
+      "role": "user",
+      "rank": 10,
+      "tenant": "OrgB",
+      "requests": 2,
+      "fingerprints": [
+        "5447d72d1efa"
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "GET /orgs/{orgId}/projects",
+      "method": "GET",
+      "template": "/orgs/{orgId}/projects",
+      "kind": "object",
+      "resource": "orgs",
+      "object_param": "orgId",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 4,
+      "requests": 1
+    },
+    {
+      "id": "GET /orgs/{orgId}/projects/{id}",
+      "method": "GET",
+      "template": "/orgs/{orgId}/projects/{id}",
+      "kind": "object",
+      "resource": "projects",
+      "object_param": "id",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 11,
+      "requests": 4
+    },
+    {
+      "id": "POST /orgs/{orgId}/projects",
+      "method": "POST",
+      "template": "/orgs/{orgId}/projects",
+      "kind": "object",
+      "resource": "orgs",
+      "object_param": "orgId",
+      "public": false,
+      "spec_file": "spec.yml",
+      "spec_line": 4,
+      "requests": 1
+    }
+  ],
+  "cells": [
+    {
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "relationship": "same_role_other_user",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "relationship": "other_tenant",
+      "required": true,
+      "covered": true,
+      "statuses": {
+        "403": 1
+      },
+      "identities": [
+        "carol"
+      ],
+      "min_confidence": "declared",
+      "evidence": [
+        "t.har#5"
+      ]
+    },
+    {
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "GET /orgs/{orgId}/projects/{id}",
+      "relationship": "owner",
+      "required": true,
+      "covered": true,
+      "statuses": {
+        "200": 1
+      },
+      "identities": [
+        "alice"
+      ],
+      "min_confidence": "learned",
+      "evidence": [
+        "t.har#1"
+      ]
+    },
+    {
+      "endpoint": "GET /orgs/{orgId}/projects/{id}",
+      "relationship": "same_role_other_user",
+      "required": true,
+      "covered": true,
+      "statuses": {
+        "200": 1
+      },
+      "identities": [
+        "bob"
+      ],
+      "min_confidence": "learned",
+      "evidence": [
+        "t.har#2"
+      ]
+    },
+    {
+      "endpoint": "GET /orgs/{orgId}/projects/{id}",
+      "relationship": "other_tenant",
+      "required": true,
+      "covered": true,
+      "statuses": {
+        "403": 1
+      },
+      "identities": [
+        "carol"
+      ],
+      "min_confidence": "declared",
+      "evidence": [
+        "t.har#3"
+      ]
+    },
+    {
+      "endpoint": "GET /orgs/{orgId}/projects/{id}",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": true,
+      "statuses": {
+        "401": 1
+      },
+      "identities": [
+        "anonymous"
+      ],
+      "min_confidence": "learned",
+      "evidence": [
+        "t.har#4"
+      ]
+    },
+    {
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "relationship": "owner",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "relationship": "same_role_other_user",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "relationship": "other_tenant",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "relationship": "anonymous",
+      "required": true,
+      "covered": false
+    },
+    {
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "relationship": "unknown",
+      "required": false,
+      "covered": false,
+      "statuses": {
+        "201": 1
+      },
+      "identities": [
+        "alice"
+      ],
+      "evidence": [
+        "t.har#0"
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "resource": "projects",
+      "id_hash": "f4338ec0",
+      "owner": "alice",
+      "tenant": "OrgA",
+      "confidence": "learned",
+      "source": "create"
+    },
+    {
+      "resource": "subject",
+      "id_hash": "283076d4",
+      "owner": "alice",
+      "tenant": "OrgA",
+      "confidence": "learned",
+      "source": "self"
+    },
+    {
+      "resource": "subject",
+      "id_hash": "7821f31a",
+      "owner": "bob",
+      "tenant": "OrgA",
+      "confidence": "learned",
+      "source": "self"
+    },
+    {
+      "resource": "subject",
+      "id_hash": "ae4fd202",
+      "owner": "carol",
+      "tenant": "OrgB",
+      "confidence": "learned",
+      "source": "self"
+    }
+  ],
+  "findings": [
+    {
+      "fingerprint": "9d5b268ae7bed87a",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "relationship": "anonymous",
+      "message": "GET /orgs/{orgId}/projects was never called as anonymous"
+    },
+    {
+      "fingerprint": "8b1f7f65e9f0c155",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "relationship": "owner",
+      "message": "GET /orgs/{orgId}/projects was never called as owner"
+    },
+    {
+      "fingerprint": "5a5b4c7d73e9b98c",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "relationship": "same_role_other_user",
+      "message": "GET /orgs/{orgId}/projects was never called as same_role_other_user"
+    },
+    {
+      "fingerprint": "48f10f9738026d87",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "relationship": "anonymous",
+      "message": "POST /orgs/{orgId}/projects was never called as anonymous"
+    },
+    {
+      "fingerprint": "69847ddf00525a11",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "relationship": "other_tenant",
+      "message": "POST /orgs/{orgId}/projects was never called as other_tenant"
+    },
+    {
+      "fingerprint": "d9bc52e8f22e8488",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "relationship": "owner",
+      "message": "POST /orgs/{orgId}/projects was never called as owner"
+    },
+    {
+      "fingerprint": "5aaab88e32f0840c",
+      "kind": "gap",
+      "severity": "error",
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "relationship": "same_role_other_user",
+      "message": "POST /orgs/{orgId}/projects was never called as same_role_other_user"
+    }
+  ],
+  "warnings": [
+    {
+      "code": "single_identity_role",
+      "message": "role \"user\" has exactly one identity in tenant \"OrgB\": same_role_other_user cannot be covered"
+    }
+  ],
+  "summary": {
+    "required": 12,
+    "covered": 5,
+    "waived": 0,
+    "percent": 41.7,
+    "gaps": 7,
+    "suspicious_allows": 0,
+    "unmatched_requests": 0,
+    "ambiguous_matches": 0
+  }
+}

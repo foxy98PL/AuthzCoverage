@@ -1,0 +1,21 @@
+{
+  "go.useLanguageServer": true,
+  "gopls": {
+    "formatting.gofumpt": false,
+    "ui.semanticTokens": true
+  },
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "golang.go",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": ["--fast-only"],
+  "go.testFlags": ["-race"],
+  "go.toolsManagement.autoUpdate": false,
+  "files.exclude": {
+    "bin": true
+  }
+}

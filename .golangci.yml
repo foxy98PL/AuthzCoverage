@@ -1,0 +1,40 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - depguard
+    - gosec
+    - revive
+    - misspell
+    - errorlint
+    - bodyclose
+    - unconvert
+  settings:
+    depguard:
+      rules:
+        no-network:
+          # Coverage path must be passive. Only a future internal/probe/exec may use net/http (ADR 0005).
+          # Tests are exempt (the no-network test swaps http.DefaultTransport).
+          files:
+            - "$all"
+            - "!$test"
+            - "!**/internal/probe/exec/**"
+          deny:
+            - pkg: net/http
+              desc: "no network in the coverage path; only internal/probe/exec may use net/http"
+    revive:
+      rules:
+        - name: exported
+          disabled: true # internal packages, no exported API promises before v1.0
+  exclusions:
+    presets:
+      - std-error-handling
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

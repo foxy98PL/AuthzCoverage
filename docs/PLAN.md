@@ -1,0 +1,115 @@
+# AuthzCoverage — Phase 0–1 implementation plan
+
+Source of truth: the implementation prompt (sections 0–9), cross-checked against Jira project KAN
+(epics KAN-4, KAN-5; stories KAN-10…16, 68–70, 75, 76; docs KAN-58, 60, 65, 66, 67) on 2026-11-27.
+Where Jira and the prompt differ, the prompt wins until the owner decides (see "Decisions needed").
+
+## Status
+
+| Task | Scope | Jira | Status |
+| --- | --- | --- | --- |
+| 0 | Environment check | KAN-75 | done (mitmproxy still missing, needed for task 6) |
+| 1 | Repo skeleton, CLI, Makefile, local gate, hook | KAN-10, KAN-11 (lite) | done |
+| 2 | Spec loader + SpecLine | KAN-68, KAN-70 | done (awaiting review) |
+| 3 | 🔒 Segment trie matcher | KAN-69 | done (awaiting review) |
+| 4 | 🔒 HAR ingest, redact, identity, identities.yaml v0 | KAN-15 | done (awaiting review) |
+| 5 | 🔒 Ownership, classifier, matrix, table, no-network test | KAN-16 | done (awaiting review) |
+| 6 | Real VAmPI recording and run | KAN-12 (VAmPI part), KAN-16 demo | scripts written; needs mitmproxy + run |
+
+Details of what was built: `docs/PROGRESS.md`. Working rules (orchestrator + subagents): `CLAUDE.md`.
+
+ITER-01 (2026-11-28 → 12-04) per KAN-65/KAN-67: ACV-0.1, 0.3 (VAmPI), 1.1a/b, 1.2, 1.3.
+KAN-70 (line numbers) may slip to ITER-02; it is cheap enough to include in task 2.
+
+## Target folder tree (end of task 6)
+
+```text
+authzcov/
+├── cmd/authzcov/main.go                 # T1  KAN-10
+├── internal/
+│   ├── cli/                             # T1  root, coverage, version, exit codes
+│   │   ├── coverage.go                  # T5  two-pass pipeline wiring
+│   │   └── nonet_test.go                # T5  failing http.DefaultTransport, end-to-end
+│   ├── model/model.go                   # T2  Endpoint, Confidence, ... (stdlib only)
+│   ├── spec/                            # T2  KAN-68, KAN-70
+│   │   ├── load.go                      #     kin-openapi loader, external refs off
+│   │   ├── lines.go                     #     yaml.Node pass -> SpecLine
+│   │   └── load_test.go
+│   ├── match/                           # T3  KAN-69 🔒 trie, Result, FuzzMatch
+│   ├── ingest/har/                      # T4  KAN-15 streaming reader + filters
+│   ├── redact/                          # T4  Fingerprint, header deny-list, StripControl
+│   ├── identity/                        # T4  🔒 Bearer extraction, DecodeClaims, resolver
+│   ├── config/                          # T4  identities.yaml v0, node validation
+│   ├── testutil/hartest/                # T4  HAR builder, JWTs with fixed test key
+│   ├── ownership/                       # T5  KAN-16 self_params, learn_from_create
+│   ├── relate/                          # T5  🔒 classifier (5.5)
+│   ├── matrix/                          # T5  🔒 requirements, cells, covered rule
+│   └── report/table/                    # T5  tabwriter output
+├── testdata/
+│   ├── specs/                           # T2  vampi.yml + tiny edge-case specs
+│   ├── har/                             # generated fixtures only
+│   ├── identities/vampi.yaml            # T6
+│   └── raw/                             # git-ignored real recordings
+├── e2e/recorders/vampi.sh               # T6  KAN-12
+├── docs/PLAN.md                         # this file
+├── scripts/pre-commit                   # T1
+├── .vscode/ .golangci.yml .gitignore Makefile LICENSE NOTICE SECURITY.md README.md
+```
+
+## Task details
+
+### Task 2 — Spec loader (KAN-68, KAN-70)
+- `model`: full section 5.1 structs (needed by later tasks; stdlib only).
+- `spec.Load(path) ([]*model.Endpoint, error)`: kin-openapi `openapi3.Loader` with
+  `IsExternalRefsAllowed=false`; `Validate`; one Endpoint per (path, method); sorted by ID.
+- Params from template order; `ObjectParam` = last param; `Resource` = literal segment before it;
+  `Kind` ObjectLevel iff ObjectParam != "".
+- Duplicate (method, normalised template) → `ErrDuplicate` (cli maps to exit 3). Normalised =
+  param names replaced (`/a/{x}` ≡ `/a/{y}`), trailing slash ignored.
+- `SpecLine`: separate `yaml.Node` decode (JSON parses too); line of the path key; 0 if missing.
+- Tests: VAmPI table (ID, params, kind, resource), duplicate spec, remote `$ref` rejected,
+  JSON spec lines, deterministic order, unreadable file.
+
+### Task 3 — Matcher 🔒 (KAN-69)
+Prompt 5.2 plus the required rows in task 3; tests first, then `FuzzMatch` 30 s.
+
+### Task 4 — HAR + identity 🔒 (KAN-15)
+Prompt task 4. Jira adds: entries decoded one at a time via `json.Decoder` (test asserts streaming
+with a reader that would fail on whole-buffer reads), example claim `sub: alice@shop.test`.
+
+### Task 5 — Ownership, classifier, matrix, table 🔒 (KAN-16)
+Prompt task 5. Jira adds: `GET /users/v1/alice` by alice with `self_params` → owner;
+bob reading alice's created book → same_role_other_user.
+
+### Task 6 — VAmPI run (KAN-12 VAmPI part)
+Prompt task 6. Requires mitmproxy ≥ 10.1 (not installed yet). Resolves blocker G5
+(what VAmPI puts in the JWT `sub`).
+
+## Jira vs prompt — differences found
+
+| # | Jira says | Prompt says | Handling |
+| --- | --- | --- | --- |
+| J1 | KAN-11: GitHub CI, SHA-pinned actions, Dependabot, branch protection | Local only; `make check` + hook | **Superseded 2026-11-27**: repo is on GitHub; KAN-11 GitHub parts now in scope |
+| J2 | KAN-10: SECURITY.md has a private reporting address | Stub, channel TBD | **Decision needed** (DOC-09 E2) |
+| J3 | ADR 0005 / D10: only `internal/probe/exec` may use net/http | `internal/probe/` | Tighten depguard to `internal/probe/exec` (harmless, stricter) |
+| J4 | D7: local `$ref` allowed within the spec directory | External refs disabled | **Decision needed**; task 2 implements the prompt (all external refs off) |
+| J5 | KAN-68: ObjectParam = last param *mapped to a resource* | Last path param | Equivalent in v0: every param maps to a resource by default (segment before it) |
+| J6 | DOC-03 VAmPI example uses `learn_tokens` + `match.login` (schema v1, ACV-1.5) | v0 uses `match.jwt.sub` | Prompt (v0) for now; depends on G5 |
+| J7 | KAN-65 DoD: PRs, gitleaks, fuzz smoke in CI | Local gate | **Superseded 2026-11-27**: CI on GitHub; local gate stays as pre-commit |
+| J8 | KAN-75: mitmproxy ≥ 10.1, Node, `docs/dev-setup.md` | Task 0 tool list | mitmproxy needed before task 6; dev-setup doc deferred |
+| J9 | KAN-76: name collision check, `THIRD_PARTY.md` | NOTICE only | NOTICE covers VAmPI now; name check is a manual web task for the owner |
+| J10 | KAN-58: ingest returns `iter.Seq2`, `model.Result`, `Finding`, `internal/pipeline` interfaces | Not in prompt | Use `iter.Seq2` in task 4 (stdlib); `Result`/`Finding`/pipeline later (Phase 2) |
+
+## Hosting (decided 2026-11-27)
+
+Owner moved the project from local-only to GitHub: `origin` = https://github.com/foxy98PL/AuthzCoverage
+(public), branch `main` (local history based on the remote "Initial commit"). Owner commits and pushes.
+Unblocked: KAN-11 GitHub parts (CI, Dependabot, branch protection), KAN-26 GitHub Action, KAN-27 release
+(KAN-71/72), KAN-23 AC3 SARIF upload. Still owner-only before wide publicity: G1, E2.
+
+## Decisions needed (owner)
+
+1. **J2 / E2** security contact for SECURITY.md — now urgent: the repo is public (GitHub private vulnerability reporting is an option).
+2. **J4 / D7** local `$ref` within spec dir: allow (Jira) or reject all (prompt, implemented).
+3. **G5** VAmPI JWT `sub` = username? Verified during task 6; if it is an id, identities v0 needs `match.jwt.sub: <id>`.
+4. **G1** employment IP clause check — owner only, before anything is published.

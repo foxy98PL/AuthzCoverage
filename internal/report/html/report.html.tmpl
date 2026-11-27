@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="{{.CSP}}">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>authzcov report</title>
+<style>{{.CSS}}</style>
+</head>
+<body>
+<h1>authzcov report</h1>
+<p class="sum">Covered {{.Covered}}/{{.Required}} required ({{.Percent}}%), {{.Gaps}} gaps, {{.Waived}} waived. Generated {{.GeneratedAt}}.</p>
+<form id="filters">
+<label>Relationship <select id="rel"><option value="">All</option>{{range .Cols}}<option value="{{.}}">{{.}}</option>{{end}}</select></label>
+<label>Endpoint <input id="q" type="text" autocomplete="off"></label>
+<label><input id="gaps" type="checkbox"> Gaps only</label>
+</form>
+<div class="wrap">
+<table id="matrix">
+<thead><tr><th>Endpoint</th>{{range .Cols}}<th data-rel="{{.}}">{{.}}</th>{{end}}</tr></thead>
+<tbody>
+{{range .Rows}}<tr data-endpoint="{{.ID}}"><td class="ep">{{.Label}}{{range .Cells}}<td data-rel="{{.Rel}}" data-state="{{.State}}"{{if .Title}} title="{{.Title}}"{{end}}>{{.Text}}{{end}}{{end}}</tbody>
+</table>
+</div>
+<h2>Findings ({{len .Findings}})</h2>
+<table id="findings">
+<thead><tr><th>Kind</th><th>Severity</th><th>Endpoint</th><th>Relationship</th><th>Message</th></tr></thead>
+<tbody>
+{{range .Findings}}<tr data-kind="{{.Kind}}"><td>{{.Kind}}<td>{{.Severity}}<td>{{.Endpoint}}<td>{{.Relationship}}<td>{{.Message}}{{end}}</tbody>
+</table>
+<footer>authzcov {{.Version}} &middot; schema {{.Schema}}</footer>
+<script>{{.JS}}</script>
+</body>
+</html>

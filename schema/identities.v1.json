@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://authzcov.invalid/schema/identities.v1.json",
+  "title": "authzcov identities.yaml (version 1)",
+  "description": "Editor schema for identities.yaml v1 (use with yaml-language-server). authzcov itself validates with its own line-numbered validator, which is authoritative; this schema only helps editors with completion and basic checks.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "roles", "identities"],
+  "properties": {
+    "version": {"const": 1, "description": "Schema version; this build reads 1."},
+    "roles": {
+      "type": "object",
+      "description": "Role name to rank. A higher rank means more privilege.",
+      "minProperties": 1,
+      "additionalProperties": {"type": "integer"}
+    },
+    "credentials": {
+      "type": "array",
+      "description": "Where requests carry credentials. Default: bearer Authorization [Bearer]. First hit wins.",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object", "additionalProperties": false, "required": ["type"],
+            "properties": {
+              "type": {"const": "bearer"},
+              "header": {"type": "string", "minLength": 1, "default": "Authorization"},
+              "schemes": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}, "default": ["Bearer"]}
+            }
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["type", "name"],
+            "properties": {"type": {"const": "cookie"}, "name": {"type": "string", "minLength": 1}}
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["type", "header"],
+            "properties": {"type": {"const": "apikey"}, "header": {"type": "string", "minLength": 1}}
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["type"],
+            "properties": {"type": {"const": "basic"}}
+          }
+        ]
+      }
+    },
+    "jwt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject": {"type": "string", "pattern": "^[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+){0,4}$", "default": "sub", "description": "Dot path of the JWT claim holding the subject."},
+        "tenant": {"type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+){0,4}$", "description": "Dot path of the JWT claim holding the caller's tenant, used when the identity declares no tenant."}
+      }
+    },
+    "tenancy": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "tenant_params": {"type": "object", "additionalProperties": {"const": "name"}, "description": "Path parameter name to \"name\": the parameter's value is the tenant of the addressed object, e.g. orgId: name."}
+      }
+    },
+    "requirements": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "overrides": {
+          "type": "array", "maxItems": 200,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["endpoint", "object_param"],
+            "properties": {
+              "endpoint": {"type": "string", "pattern": "^(GET|POST|PUT|PATCH|DELETE) /\\S*$", "description": "Exact endpoint ID, e.g. \"GET /orgs/{orgId}/repos/{repo}\"."},
+              "object_param": {"type": "string", "minLength": 1, "description": "Path parameter of that endpoint that addresses the object."}
+            }
+          }
+        }
+      }
+    },
+    "learn_tokens": {
+      "type": "array",
+      "maxItems": 50,
+      "description": "Login exchanges that bind a token to the identity that logged in.",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["match", "identity_from", "token_from"],
+        "properties": {
+          "match": {
+            "type": "object", "additionalProperties": false, "required": ["method", "path"],
+            "properties": {
+              "method": {"enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]},
+              "path": {"type": "string", "pattern": "^/"}
+            }
+          },
+          "identity_from": {
+            "type": "object", "additionalProperties": false, "required": ["request_json"],
+            "properties": {"request_json": {"type": "string", "minLength": 1, "description": "Dot path in the request JSON body holding the login name."}}
+          },
+          "token_from": {
+            "type": "object", "additionalProperties": false, "required": ["response_json"],
+            "properties": {"response_json": {"type": "string", "minLength": 1, "description": "Dot path in the response JSON body holding the token."}}
+          }
+        }
+      }
+    },
+    "identities": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["name", "role", "match"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,62}$", "not": {"pattern": "^(anonymous|unknown-.*)$"}},
+          "role": {"type": "string", "description": "Must be a key of roles."},
+          "tenant": {"type": "string"},
+          "markers": {"type": "array", "maxItems": 50, "items": {"type": "string", "minLength": 6}},
+          "match": {
+            "type": "object", "additionalProperties": false, "minProperties": 1,
+            "properties": {
+              "jwt": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "minLength": 1}, "description": "Claim dot path to expected value; all must match."},
+              "token_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "apikey_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "token_env": {"type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$", "description": "Name of an environment variable holding the token."},
+              "basic_user": {"type": "string", "minLength": 1},
+              "login": {"type": "string", "minLength": 1, "description": "Login name, used with learn_tokens."}
+            }
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "description": "Path parameter name to resource name.",
+      "additionalProperties": {"type": "string"}
+    },
+    "ownership": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "self_params": {"type": "object", "additionalProperties": {"type": "string"}, "description": "Path parameter name to the caller attribute it must equal, e.g. username: subject."},
+        "learn_from_lists": {
+          "type": "array",
+          "description": "Every id found in a 2xx list response belongs to the caller (inferred evidence).",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["match", "resource", "ids_from"],
+            "properties": {
+              "match": {
+                "type": "object", "additionalProperties": false, "required": ["method", "path"],
+                "properties": {"method": {"enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, "path": {"type": "string", "pattern": "^/"}}
+              },
+              "resource": {"type": "string", "minLength": 1},
+              "ids_from": {
+                "type": "object", "additionalProperties": false, "required": ["response_json"],
+                "properties": {"response_json": {"type": "string", "minLength": 1, "description": "Dot path; [] means every element, e.g. items[].id or [].id."}}
+              }
+            }
+          }
+        },
+        "learn_from_create": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["match", "resource", "id_from"],
+            "properties": {
+              "match": {
+                "type": "object", "additionalProperties": false, "required": ["method", "path"],
+                "properties": {"method": {"enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}, "path": {"type": "string", "pattern": "^/"}}
+              },
+              "resource": {"type": "string"},
+              "id_from": {
+                "type": "object", "additionalProperties": false, "required": ["request_json"],
+                "properties": {"request_json": {"type": "string", "minLength": 1}}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# identities.yaml v1 for VAmPI using learn_tokens: tokens are opaque to authzcov,
+# so each login response binds its token to the identity that logged in.
+# No secrets here.
+version: 1
+roles: {user: 10, admin: 100}
+learn_tokens:
+  - match: {method: POST, path: /users/v1/login}
+    identity_from: {request_json: username}
+    token_from: {response_json: auth_token}
+identities:
+  - {name: alice, role: user, match: {login: alice}}
+  - {name: bob, role: user, match: {login: bob}}
+resources: {book_title: books, username: users}
+ownership:
+  self_params: {username: subject}
+  learn_from_create:
+    - match: {method: POST, path: /books/v1}
+      resource: books
+      id_from: {request_json: book_title}

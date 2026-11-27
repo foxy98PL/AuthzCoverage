@@ -1,0 +1,59 @@
+openapi: 3.0.3
+info: {title: tenantshop, version: "1.0"}
+components:
+  securitySchemes:
+    bearer: {type: http, scheme: bearer, bearerFormat: JWT}
+  parameters:
+    orgId: {name: orgId, in: path, required: true, schema: {type: string}}
+    orderId: {name: orderId, in: path, required: true, schema: {type: string}}
+security:
+  - bearer: []
+paths:
+  /openapi.yaml:
+    get:
+      security: []
+      responses: {"200": {description: this spec}}
+  /login:
+    post:
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {username: {type: string}, password: {type: string}}
+      responses: {"200": {description: token}, "401": {description: bad credentials}}
+  /me:
+    get:
+      responses: {"200": {description: caller}, "401": {description: unauthorized}}
+  /orgs/{orgId}/orders:
+    parameters: [{$ref: '#/components/parameters/orgId'}]
+    get:
+      responses: {"200": {description: orders}, "401": {description: unauthorized}, "403": {description: other tenant}}
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, properties: {item: {type: string}}}
+      responses: {"201": {description: created}, "401": {description: unauthorized}, "403": {description: other tenant}}
+  /orgs/{orgId}/orders/{orderId}:
+    parameters:
+      - {$ref: '#/components/parameters/orgId'}
+      - {$ref: '#/components/parameters/orderId'}
+    get:
+      responses: {"200": {description: order}, "401": {description: unauthorized}, "403": {description: forbidden}, "404": {description: not found}}
+    put:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, properties: {item: {type: string}}}
+      responses: {"200": {description: updated}, "401": {description: unauthorized}, "403": {description: forbidden}, "404": {description: not found}}
+    delete:
+      responses: {"204": {description: deleted}, "401": {description: unauthorized}, "403": {description: forbidden}, "404": {description: not found}}
+  /orgs/{orgId}/customers:
+    parameters: [{$ref: '#/components/parameters/orgId'}]
+    get:
+      responses: {"200": {description: customers}, "401": {description: unauthorized}, "403": {description: forbidden}}

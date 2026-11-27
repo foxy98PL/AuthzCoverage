@@ -1,0 +1,6 @@
+ENDPOINT                             OWNER  SAME_ROLE  OTHER_TENANT  ANON
+GET     /orgs/{orgId}/projects       GAP    GAP        ok 403        GAP
+GET     /orgs/{orgId}/projects/{id}  ok     ok         ok 403        ok 401
+POST    /orgs/{orgId}/projects       GAP    GAP        GAP           GAP
+
+required 12  covered 5 (41.7%)  gaps 7

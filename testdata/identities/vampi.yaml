@@ -1,0 +1,15 @@
+# identities.yaml v0 for the VAmPI recording (e2e/recorders/vampi.sh).
+# VAmPI puts the username in the JWT "sub" claim (blocker G5: verify on first real run).
+# No secrets here: identities are matched by decoded JWT claims only.
+version: 1
+roles: {user: 10, admin: 100}
+identities:
+  - {name: alice, role: user, match: {jwt: {sub: alice}}}
+  - {name: bob, role: user, match: {jwt: {sub: bob}}}
+resources: {book_title: books, username: users}
+ownership:
+  self_params: {username: subject}
+  learn_from_create:
+    - match: {method: POST, path: /books/v1}
+      resource: books
+      id_from: {request_json: book_title}

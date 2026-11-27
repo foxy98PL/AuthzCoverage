@@ -1,0 +1,1174 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "authzcov",
+          "version": "dev",
+          "rules": [
+            {
+              "id": "authzcov/gap",
+              "name": "AuthorizationGap",
+              "shortDescription": {
+                "text": "Required authorization check was never exercised"
+              },
+              "fullDescription": {
+                "text": "An endpoint requires an authorization check for a relationship (for example another user's object) that no recorded request exercised. Coverage counts the call itself, whatever the response status."
+              },
+              "help": {
+                "text": "Record a test where a caller with that relationship calls the endpoint and assert the expected outcome (success for the owner; 401, 403 or 404 for other users, other tenants, lower roles and anonymous callers), then re-run authzcov."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "high",
+                "security-severity": "7.5"
+              }
+            },
+            {
+              "id": "authzcov/suspicious_allow",
+              "name": "SuspiciousAllow",
+              "shortDescription": {
+                "text": "Request succeeded where authorization should have denied it"
+              },
+              "fullDescription": {
+                "text": "A recorded request succeeded although the caller's relationship to the object suggests it should have been denied."
+              },
+              "help": {
+                "text": "Check the endpoint's authorization logic for the caller and object in question, fix it so the request is denied, and keep a test that expects the denial."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "medium",
+                "security-severity": "6.5"
+              }
+            },
+            {
+              "id": "authzcov/unmatched_request",
+              "name": "UnmatchedRequest",
+              "shortDescription": {
+                "text": "Recorded requests match no operation in the spec"
+              },
+              "fullDescription": {
+                "text": "Requests in the recording match no operation in the OpenAPI spec, so their authorization cannot be assessed."
+              },
+              "help": {
+                "text": "Add the missing operation to the spec or correct the base path, then re-run authzcov."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "authzcov/ambiguous_match",
+              "name": "AmbiguousMatch",
+              "shortDescription": {
+                "text": "Recorded requests fit more than one operation"
+              },
+              "fullDescription": {
+                "text": "Requests fit more than one spec operation, so coverage may be attributed to the wrong endpoint."
+              },
+              "help": {
+                "text": "Make the spec paths unambiguous (for example distinct literal segments) and re-run authzcov."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "medium"
+              }
+            },
+            {
+              "id": "authzcov/undocumented_method",
+              "name": "UndocumentedMethod",
+              "shortDescription": {
+                "text": "Recorded requests use a method the spec does not document"
+              },
+              "fullDescription": {
+                "text": "Requests use an HTTP method that the spec does not document for an existing path."
+              },
+              "help": {
+                "text": "Document the method in the spec, or remove the call if it should not exist."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "authorization"
+                ],
+                "precision": "medium"
+              }
+            }
+          ]
+        }
+      },
+      "automationDetails": {
+        "id": "authzcov/"
+      },
+      "results": [
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "DELETE /users/v1/{username} was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 263
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "b607ea940226ceba"
+          },
+          "properties": {
+            "endpoint": "DELETE /users/v1/{username}",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "DELETE /users/v1/{username} was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 263
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "ff9ad9cca2e84293"
+          },
+          "properties": {
+            "endpoint": "DELETE /users/v1/{username}",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "DELETE /users/v1/{username} was never called as same_role_other_user"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 263
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "e4dd882b97e3bf4b"
+          },
+          "properties": {
+            "endpoint": "DELETE /users/v1/{username}",
+            "relationship": "same_role_other_user"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET / was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 34
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "2428974d01685696"
+          },
+          "properties": {
+            "endpoint": "GET /",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET / was never called as lower_role"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 34
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "a1f5aad62b0a3bb7"
+          },
+          "properties": {
+            "endpoint": "GET /",
+            "relationship": "lower_role"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET / was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 34
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "af96482650cfbce6"
+          },
+          "properties": {
+            "endpoint": "GET /",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /books/v1 was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 486
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "d711d2d7500996da"
+          },
+          "properties": {
+            "endpoint": "GET /books/v1",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /books/v1 was never called as lower_role"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 486
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "444ef76c88021bdc"
+          },
+          "properties": {
+            "endpoint": "GET /books/v1",
+            "relationship": "lower_role"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /books/v1 was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 486
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "4ffe1b556b60ea11"
+          },
+          "properties": {
+            "endpoint": "GET /books/v1",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /books/v1/{book_title} was never called as same_role_other_user"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 585
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "632d84cc0c61b490"
+          },
+          "properties": {
+            "endpoint": "GET /books/v1/{book_title}",
+            "relationship": "same_role_other_user"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /createdb was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 16
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "6770271282918f7d"
+          },
+          "properties": {
+            "endpoint": "GET /createdb",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /createdb was never called as lower_role"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 16
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "8851b0545231a227"
+          },
+          "properties": {
+            "endpoint": "GET /createdb",
+            "relationship": "lower_role"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /createdb was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 16
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "c5f41d4e7ebf1e19"
+          },
+          "properties": {
+            "endpoint": "GET /createdb",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /me was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 215
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "bfb344270e2aa242"
+          },
+          "properties": {
+            "endpoint": "GET /me",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /me was never called as lower_role"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 215
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "8914cfebcc2db875"
+          },
+          "properties": {
+            "endpoint": "GET /me",
+            "relationship": "lower_role"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /users/v1 was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 62
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "f6ee72462e955dcc"
+          },
+          "properties": {
+            "endpoint": "GET /users/v1",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /users/v1 was never called as lower_role"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 62
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "6dc795cbdd84486a"
+          },
+          "properties": {
+            "endpoint": "GET /users/v1",
+            "relationship": "lower_role"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /users/v1 was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 62
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "f8add3b7a57ac44b"
+          },
+          "properties": {
+            "endpoint": "GET /users/v1",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /users/v1/_debug was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 88
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "0c4df637d83b4637"
+          },
+          "properties": {
+            "endpoint": "GET /users/v1/_debug",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /users/v1/_debug was never called as lower_role"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 88
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "fa3ca2848420e4a2"
+          },
+          "properties": {
+            "endpoint": "GET /users/v1/_debug",
+            "relationship": "lower_role"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /users/v1/_debug was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 88
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "d0d3255928e3b47f"
+          },
+          "properties": {
+            "endpoint": "GET /users/v1/_debug",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /users/v1/{username} was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 263
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "0f9f00afe422209b"
+          },
+          "properties": {
+            "endpoint": "GET /users/v1/{username}",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "GET /users/v1/{username} was never called as same_role_other_user"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 263
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "148a926e9d4bf01e"
+          },
+          "properties": {
+            "endpoint": "GET /users/v1/{username}",
+            "relationship": "same_role_other_user"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /books/v1 was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 486
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "0918958d87ef200e"
+          },
+          "properties": {
+            "endpoint": "POST /books/v1",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /books/v1 was never called as lower_role"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 486
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "2d812e6a1b73fe39"
+          },
+          "properties": {
+            "endpoint": "POST /books/v1",
+            "relationship": "lower_role"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /users/v1/login was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 162
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "ebbfe69721c29457"
+          },
+          "properties": {
+            "endpoint": "POST /users/v1/login",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /users/v1/login was never called as lower_role"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 162
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "fd18104d99d80259"
+          },
+          "properties": {
+            "endpoint": "POST /users/v1/login",
+            "relationship": "lower_role"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /users/v1/login was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 162
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "8096c4e8861f2aa6"
+          },
+          "properties": {
+            "endpoint": "POST /users/v1/login",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /users/v1/register was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 120
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "7b7d5a3415909638"
+          },
+          "properties": {
+            "endpoint": "POST /users/v1/register",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /users/v1/register was never called as lower_role"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 120
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "02f1d32ccfe0f248"
+          },
+          "properties": {
+            "endpoint": "POST /users/v1/register",
+            "relationship": "lower_role"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "POST /users/v1/register was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 120
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "ea2fd565cca727a9"
+          },
+          "properties": {
+            "endpoint": "POST /users/v1/register",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "PUT /users/v1/{username}/email was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 366
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "572d7362e3b9d5dd"
+          },
+          "properties": {
+            "endpoint": "PUT /users/v1/{username}/email",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "PUT /users/v1/{username}/email was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 366
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "7004c580465c40c9"
+          },
+          "properties": {
+            "endpoint": "PUT /users/v1/{username}/email",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "PUT /users/v1/{username}/email was never called as same_role_other_user"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 366
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "87d3ab7aec00bbb3"
+          },
+          "properties": {
+            "endpoint": "PUT /users/v1/{username}/email",
+            "relationship": "same_role_other_user"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "PUT /users/v1/{username}/password was never called as anonymous"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 426
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "23278e3fd94d6e6c"
+          },
+          "properties": {
+            "endpoint": "PUT /users/v1/{username}/password",
+            "relationship": "anonymous"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "PUT /users/v1/{username}/password was never called as owner"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 426
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "bccd4dc64bb9d31d"
+          },
+          "properties": {
+            "endpoint": "PUT /users/v1/{username}/password",
+            "relationship": "owner"
+          }
+        },
+        {
+          "ruleId": "authzcov/gap",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "PUT /users/v1/{username}/password was never called as same_role_other_user"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "spec.yml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 426
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "authzcovFinding/v1": "c2bb10cc53270386"
+          },
+          "properties": {
+            "endpoint": "PUT /users/v1/{username}/password",
+            "relationship": "same_role_other_user"
+          }
+        }
+      ]
+    }
+  ]
+}

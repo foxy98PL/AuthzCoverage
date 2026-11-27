@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Installed by `make hooks`. Blocks commits of real traffic and runs the offline gate.
+set -euo pipefail
+
+bad=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(\.har(\.zip)?$|^testdata/raw/)' || true)
+if [[ -n "$bad" ]]; then
+	echo "pre-commit: refusing to commit HAR files or testdata/raw/ contents:" >&2
+	echo "$bad" | sed 's/^/  /' >&2
+	echo "fixtures must be generated in Go test helpers" >&2
+	exit 1
+fi
+
+if ! make check-offline; then
+	echo "pre-commit: make check-offline failed; commit blocked" >&2
+	exit 1
+fi

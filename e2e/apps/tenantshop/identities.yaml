@@ -1,0 +1,20 @@
+# identities.yaml v1 for tenantshop. No secrets: callers are matched by decoded JWT claims;
+# the caller's tenant comes from the org_id claim (no per-identity tenant).
+version: 1
+roles: {customer: 10, admin: 100}
+jwt: {subject: sub, tenant: org_id}
+tenancy:
+  tenant_params: {orgId: name}
+resources: {orderId: orders}
+ownership:
+  learn_from_create:
+    - match: {method: POST, path: "/orgs/{orgId}/orders"}
+      resource: orders
+      id_from: {request_json: id}
+identities:
+  - {name: ann, role: customer, match: {jwt: {sub: ann}}}
+  - {name: amy, role: customer, match: {jwt: {sub: amy}}}
+  - {name: admina, role: admin, match: {jwt: {sub: adminA}}}
+  - {name: ben, role: customer, match: {jwt: {sub: ben}}}
+  - {name: bob, role: customer, match: {jwt: {sub: bob}}}
+  - {name: adminb, role: admin, match: {jwt: {sub: adminB}}}
