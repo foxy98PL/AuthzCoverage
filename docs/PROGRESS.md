@@ -15,7 +15,7 @@ Plan and open decisions: `docs/PLAN.md`.
 - KAN-88 suspicious_allow (new story) → In Review (passed after fix). KAN-73 benchmark → In Review (passed after fix; 138 ms/op, 31.7 MiB RSS on 10k entries).
 - All agent reviews passed (docs/reviews/, REVIEW_QUEUE.md). Owner manual checks: KAN-23 AC3 SARIF upload; KAN-22 AC1/AC4 browser.
 - KAN-74 tenantshop demo → In Review (agent review passed after fix). `make e2e` green; seeded bug → 1 suspicious_allow other_tenant.
-- Round 4 (2026-11-27 evening): KAN-34 export --plan committed (db3ddcc) → In Review. KAN-90 validation benchmark in progress (VAmPI part ran; mutants/ablation/`make eval` next).
+- Round 4 (2026-11-27 evening): KAN-34 review fixes (1cabee0) and KAN-90 benchmark (0631611..2c12a79) committed, both In Review; push pending (owner). KAN-91 (bounded memory) created. Owner decisions from the benchmark: tenant-only endpoints' owner/same_role cells, KAN-19 F1 anonymous, function-level suspicious_allow.
 - Product gap found by KAN-74: `learn_from_create.id_from` only supports `request_json`; server-generated IDs (`response_json`) cannot be learned. Follow-up ticket proposed.
 - 2026-11-27: project moved to GitHub (`origin` https://github.com/foxy98PL/AuthzCoverage, branch `main`). First push 2026-11-27: fcda7ad (all Phase 1–2 work + KAN-74), via a repo-scoped SSH deploy key.
 - Remaining Phase 2 now unblocked: KAN-11 GitHub parts (CI, Dependabot), KAN-26 GitHub Action, KAN-27 release (KAN-71/72), KAN-23 AC3.
@@ -206,7 +206,9 @@ waiting for mitmproxy and a real run.
 - Agent review → fixed: build binary removed + .gitignore whitelist for eval/cmd and e2e/thirdparty; create/customers use the path org (real cross-tenant mutants, golden unchanged); `TestMutantsRemoveExactlyOneCheck`; ablation reports attacker_steps 16 / ablatable 12; vampi cleanup registry (temp HARs + containers removed on fatal), per-run summaries in extra.runs[].summary; README limits. Owner: confirm image digest ↔ VAmPI f16052d.
 - Scaling (`make eval-scaling`, `eval/cmd/scaling`, `eval/results/scaling.json`): bench fixture parametrised (`benchHARN`, streamed writer, 10k bytes pinned by `TestBenchFixtureStable`). 1k/10k/100k/1M: 25 ms / 136 ms / 1.2 s / 15.0 s, slope 0.93; peak RSS 20 / 34 / 175 / 1636 MiB → memory linear in entries (pipeline keeps all exchanges; follow-up ticket). `make bench` 132 ms (no regression).
 - VAmPI image digest ↔ f16052d confirmed: image created 2026-04-07T20:03:18Z, 39 s after the f16052d merge, by VAmPI's Docker Image CI run on f16052d (latest master commit). Migrated harness re-run reproduces tp16 fp3 fn2 tn11 oos12.
-- Open: fresh `make eval-vampi` after the migration (docker not reachable in WSL now; enable Docker Desktop WSL integration). Result files say `-dirty` until regenerated after commit. Later ACs (crAPI, Juice Shop, scaling, article) not started.
+- Flaky VAmPI setup fixed (7245139, bb5b4fb): VAmPI register_user gives each user a book "bookTitle"+randrange(100) with unique title → occasional lost user/failed login; sessions retried from a fresh /createdb (failed entries discarded; `recorder_test.go` with fake VAmPI); readiness probe requires /createdb + admin login. 8cafdba: dirty flag ignores eval/results.
+- `make eval` green on a clean tree; results regenerated at bb5b4fb (2c12a79). KAN-91 created: bounded pipeline memory.
+- Later ACs open: crAPI, Juice Shop, validation article.
 
 ## Decisions made during implementation (review these)
 1. Non-bearer credentials (Basic, cookie, API key) → identity unknown, never anonymous.
