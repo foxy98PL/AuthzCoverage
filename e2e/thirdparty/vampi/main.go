@@ -88,12 +88,7 @@ func main() {
 		addCleanup(stop)
 		for _, suite := range []string{"honest", "attack"} {
 			name := fmt.Sprintf("v%d/%s", vuln, suite)
-			r := newRecorder(base)
-			if suite == "honest" {
-				r.honest()
-			} else {
-				r.attack()
-			}
+			r := recordSession(base, suite, 5)
 			dir := filepath.Join(tmp, strings.ReplaceAll(name, "/", "-"))
 			check(os.MkdirAll(dir, 0o700))
 			har := filepath.Join(dir, "rec.har")

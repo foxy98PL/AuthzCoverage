@@ -126,12 +126,54 @@ func (r *recorder) login(name, password string) {
 	}
 	_ = json.Unmarshal(b, &out)
 	if out.Token == "" {
-		panic("login failed for " + name + ": " + strings.TrimSpace(string(b)))
+		panic(setupError("login failed for " + name + ": " + strings.TrimSpace(string(b))))
 	}
 	r.tokens[name] = out.Token
 }
 
 // honest: every caller touches only their own objects; admin does admin work.
+// setupError is a failed login during a recorded session. VAmPI gives every
+// new user a book titled "bookTitle"+randrange(100) with a unique title
+// (models/user_model.py register_user, models/books_model.py), so about one
+// session in eight loses a user to a title collision. recordSession retries
+// such sessions from a fresh /createdb.
+type setupError string
+
+// recordSession runs one suite, retrying up to attempts times on setupError.
+// Entries of a failed attempt are discarded, so the HAR is one clean session.
+func recordSession(base, suite string, attempts int) *recorder {
+	var last setupError
+	for i := 0; i < attempts; i++ {
+		r := newRecorder(base)
+		if tryRecord(r, suite, &last) {
+			if i > 0 {
+				fmt.Printf("%s: recorded on attempt %d (retried: %s)\n", suite, i+1, last)
+			}
+			return r
+		}
+	}
+	fatal(fmt.Sprintf("%s: setup failed %d times, last: %s", suite, attempts, last))
+	return nil
+}
+
+func tryRecord(r *recorder, suite string, last *setupError) (ok bool) {
+	defer func() {
+		if e := recover(); e != nil {
+			se, isSetup := e.(setupError)
+			if !isSetup {
+				panic(e)
+			}
+			*last, ok = se, false
+		}
+	}()
+	if suite == "honest" {
+		r.honest()
+	} else {
+		r.attack()
+	}
+	return true
+}
+
 func (r *recorder) honest() {
 	r.call("", "", "GET", "/createdb", nil)
 	r.call("", "", "GET", "/", nil)
