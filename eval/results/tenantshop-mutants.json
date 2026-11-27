@@ -4,8 +4,8 @@
     "version": "in-tree"
   },
   "authzcov": {
-    "commit": "db3ddcc",
-    "version": "v0.1.0-rc.1-dirty"
+    "commit": "bb5b4fb",
+    "version": "v0.1.0-rc.1-5-gbb5b4fb"
   },
   "cases": [
     {
@@ -361,7 +361,7 @@
       }
     ]
   },
-  "generated_at": "2026-11-27T20:48:00Z",
+  "generated_at": "2026-11-27T21:06:57Z",
   "machine": {
     "arch": "amd64",
     "cpus": 20,

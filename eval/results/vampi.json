@@ -5,8 +5,8 @@
     "version": "master@f16052d"
   },
   "authzcov": {
-    "commit": "db3ddcc",
-    "version": "v0.1.0-rc.1"
+    "commit": "bb5b4fb",
+    "version": "v0.1.0-rc.1-5-gbb5b4fb"
   },
   "cases": [
     {
@@ -561,7 +561,16 @@
         "suspicious_allow": null,
         "warnings": [
           "map[code:single_identity_role message:role \"admin\" has exactly one identity in tenant \"\": same_role_other_user cannot be covered]"
-        ]
+        ],
+        "summary": {
+          "fn": 0,
+          "fp": 0,
+          "out_of_scope": 0,
+          "precision": 1,
+          "recall": 1,
+          "tn": 0,
+          "tp": 5
+        }
       },
       {
         "name": "v1/attack",
@@ -730,7 +739,16 @@
             "path": "/users/v1/bob/password",
             "status": 204
           }
-        ]
+        ],
+        "summary": {
+          "fn": 1,
+          "fp": 1,
+          "out_of_scope": 6,
+          "precision": 0.8,
+          "recall": 0.8,
+          "tn": 5,
+          "tp": 4
+        }
       },
       {
         "name": "v0/honest",
@@ -743,7 +761,16 @@
         "suspicious_allow": null,
         "warnings": [
           "map[code:single_identity_role message:role \"admin\" has exactly one identity in tenant \"\": same_role_other_user cannot be covered]"
-        ]
+        ],
+        "summary": {
+          "fn": 0,
+          "fp": 0,
+          "out_of_scope": 0,
+          "precision": 1,
+          "recall": 1,
+          "tn": 0,
+          "tp": 5
+        }
       },
       {
         "name": "v0/attack",
@@ -908,11 +935,20 @@
             "path": "/users/v1/bob/password",
             "status": 204
           }
-        ]
+        ],
+        "summary": {
+          "fn": 1,
+          "fp": 2,
+          "out_of_scope": 6,
+          "precision": 0.5,
+          "recall": 0.667,
+          "tn": 6,
+          "tp": 2
+        }
       }
     ]
   },
-  "generated_at": "2026-11-27T14:25:36Z",
+  "generated_at": "2026-11-27T21:07:02Z",
   "machine": {
     "arch": "amd64",
     "cpus": 20,
