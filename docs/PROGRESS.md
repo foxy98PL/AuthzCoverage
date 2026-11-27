@@ -146,6 +146,12 @@ waiting for mitmproxy and a real run.
 - `go test -tags e2e` (via `make e2e`): golden table, exactly one suspicious_allow (other_tenant on the seeded GET), determinism. Docker compose build verified.
 - POST orders accepts a client-chosen `id` because learn_from_create cannot read response bodies (see gap above).
 
+## KAN-11 — GitHub CI (In Review)
+- `.github/workflows/ci.yml`: jobs vet, lint (golangci-lint v2.15.0), test (-race), govulncheck v1.10.0, e2e, fuzz (10 s) on push/PR to main; `permissions: contents: read`, persist-credentials false, concurrency cancel.
+- Pins: actions/checkout v7.0.1 3d3c42e, actions/setup-go v7.1.0 d8cbb80, golangci-lint-action v9.3.0 ba0d7d2 (verified vs tags).
+- `.github/dependabot.yml`: weekly gomod + github-actions, grouped minor/patch.
+- First run 46007918706 on 3c291d8: all 6 jobs green (~35 s each, fuzz 100 s). Branch protection (AC3) = owner.
+
 ## Decisions made during implementation (review these)
 1. Non-bearer credentials (Basic, cookie, API key) → identity unknown, never anonymous.
 2. Request/response JSON bodies are scrubbed of password/token/secret fields at ingest.
