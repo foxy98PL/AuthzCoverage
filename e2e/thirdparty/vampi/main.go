@@ -12,6 +12,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -352,16 +354,53 @@ func startVampi(vuln int) (base string, stop func()) {
 	port := strings.TrimSpace(shOut("", "docker", "port", name, "5000/tcp"))
 	port = port[strings.LastIndex(port, ":")+1:]
 	base = "http://127.0.0.1:" + port
-	r := newRecorder(base)
-	for i := 0; i < 60; i++ {
-		if resp, err := r.client.Get(base + "/"); err == nil {
-			resp.Body.Close()
-			break
-		}
-		time.Sleep(time.Second)
+	if err := waitReady(newRecorder(base).client, base, 60*time.Second); err != nil {
+		fatal(fmt.Sprintf("VAmPI vulnerable=%d not ready: %v", vuln, err))
 	}
 	fmt.Printf("VAmPI vulnerable=%d up on %s\n", vuln, base)
 	return base, stop
+}
+
+// waitReady polls until VAmPI answers, /createdb succeeds and the seeded admin
+// (models/user_model.py:init_db_users) can log in. None of these requests are
+// recorded; the recorder's own /createdb then starts from a warm app. Without
+// this, a fresh container sometimes answered "/" before /createdb took effect
+// and the recorded admin login failed.
+func waitReady(c *http.Client, base string, limit time.Duration) error {
+	deadline := time.Now().Add(limit)
+	var last string
+	for time.Now().Before(deadline) {
+		if ok, why := probeReady(c, base); ok {
+			return nil
+		} else {
+			last = why
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return fmt.Errorf("gave up after %v: %s", limit, last)
+}
+
+func probeReady(c *http.Client, base string) (bool, string) {
+	resp, err := c.Get(base + "/createdb")
+	if err != nil {
+		return false, err.Error()
+	}
+	_, _ = io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Sprintf("/createdb: status %d", resp.StatusCode)
+	}
+	resp, err = c.Post(base+"/users/v1/login", "application/json",
+		strings.NewReader(`{"username":"admin","password":"pass1"}`))
+	if err != nil {
+		return false, err.Error()
+	}
+	b, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(b), "auth_token") {
+		return false, "admin login: " + strings.TrimSpace(string(b))
+	}
+	return true, ""
 }
 
 func repoRoot() string {
