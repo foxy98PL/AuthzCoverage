@@ -10,7 +10,7 @@ ownership:
   learn_from_create:
     - match: {method: POST, path: "/orgs/{orgId}/orders"}
       resource: orders
-      id_from: {request_json: id}
+      id_from: {response_json: id}
 identities:
   - {name: ann, role: customer, match: {jwt: {sub: ann}}}
   - {name: amy, role: customer, match: {jwt: {sub: amy}}}

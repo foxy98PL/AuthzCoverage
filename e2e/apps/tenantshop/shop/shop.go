@@ -136,22 +136,12 @@ func (s *server) createOrder(w http.ResponseWriter, r *http.Request, c Claims) {
 		fail(w, http.StatusForbidden, "forbidden")
 		return
 	}
-	var in struct{ Item, ID string }
+	var in struct{ Item string }
 	if json.NewDecoder(r.Body).Decode(&in) != nil || in.Item == "" {
 		fail(w, http.StatusBadRequest, "item required")
 		return
 	}
 	o := s.create(s.users[c.Sub], in.Item)
-	// Optional client-chosen id: authzcov's learn_from_create reads ids from the request body only.
-	if in.ID != "" {
-		if _, taken := s.orders[in.ID]; taken {
-			fail(w, http.StatusConflict, "id taken")
-			return
-		}
-		delete(s.orders, o.ID)
-		o.ID = in.ID
-		s.orders[o.ID] = o
-	}
 	writeJSON(w, http.StatusCreated, o)
 }
 

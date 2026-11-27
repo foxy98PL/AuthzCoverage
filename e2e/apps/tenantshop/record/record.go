@@ -77,7 +77,7 @@ func script() []step {
 			continue
 		}
 		s = append(s,
-			step{who: u, method: "POST", path: "/orgs/" + org + "/orders", body: fmt.Sprintf(`{"item":"gadget","id":"ord-%s"}`, u), save: u},
+			step{who: u, method: "POST", path: "/orgs/" + org + "/orders", body: `{"item":"gadget"}`, save: u},
 			step{who: u, method: "GET", path: "/orgs/" + org + "/orders/{" + u + "}"},
 			step{who: u, method: "PUT", path: "/orgs/" + org + "/orders/{" + u + "}", body: fmt.Sprintf(item, "gadget-2")})
 	}

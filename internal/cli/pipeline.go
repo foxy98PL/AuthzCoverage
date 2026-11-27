@@ -509,7 +509,7 @@ func matchExchanges(xs []*model.Exchange, trie *match.Trie, byID map[string]*mod
 func classify(cfg *config.File, obs []*model.Observation) []ownership.Object {
 	create := make([]ownership.CreateRule, 0, len(cfg.Ownership.LearnFromCreate))
 	for _, c := range cfg.Ownership.LearnFromCreate {
-		create = append(create, ownership.CreateRule{Method: c.Method, Path: c.Path, Resource: c.Resource, IDField: c.IDFromRequestJSON})
+		create = append(create, ownership.CreateRule{Method: c.Method, Path: c.Path, Resource: c.Resource, IDField: c.IDFromRequestJSON, IDFromResponse: c.IDFromResponseJSON})
 	}
 	lists := make([]ownership.ListRule, 0, len(cfg.Ownership.LearnFromLists))
 	for _, l := range cfg.Ownership.LearnFromLists {

@@ -99,6 +99,10 @@ func TestParseErrors(t *testing.T) {
 		{"bad path", []string{"path: /books/v1}", "path: books}"}, 10, "ownership.learn_from_create[0].match.path", `start with "/"`},
 		{"missing resource", []string{"      resource: books\n", ""}, 10, "ownership.learn_from_create[0].resource", "required"},
 		{"empty id_from", []string{"request_json: book_title", "request_json: ''"}, 12, "ownership.learn_from_create[0].id_from.request_json", "empty"},
+		{"id_from both", []string{"request_json: book_title", "request_json: book_title, response_json: id"}, 12, "ownership.learn_from_create[0].id_from", "exactly one"},
+		{"id_from neither", []string{"{request_json: book_title}", "{}"}, 12, "ownership.learn_from_create[0].id_from", "exactly one"},
+		{"empty id_from response", []string{"request_json: book_title", "response_json: ''"}, 12, "ownership.learn_from_create[0].id_from.response_json", "empty"},
+		{"id_from response array path", []string{"request_json: book_title", `response_json: "items[].id"`}, 12, "ownership.learn_from_create[0].id_from.response_json", "[]"},
 		{"anchor", []string{"name: alice", "name: &a alice"}, 4, "", "anchors and aliases"},
 		{"alias", []string{"name: alice", "name: &a alice", "tenant: acme", "tenant: *a"}, 4, "", "anchors and aliases"},
 		{"secret key", []string{"sub: bob", "token: abc123"}, 5, "identities[1].match.jwt", "raw credentials"},
@@ -179,5 +183,17 @@ func TestLoad(t *testing.T) {
 	}
 	if _, err := Load(big); err == nil || !strings.Contains(err.Error(), "larger than") {
 		t.Errorf("oversized err = %v", err)
+	}
+}
+
+func TestParseCreateIDFromResponseJSON(t *testing.T) {
+	y := "version: 1\nroles: {user: 10}\nownership:\n  learn_from_create:\n    - match: {method: POST, path: /orders}\n      resource: orders\n      id_from: {response_json: data.id}\nidentities:\n  - {name: a, role: user, match: {jwt: {sub: a}}}\n"
+	f, err := Parse([]byte(y), "ids.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := f.Ownership.LearnFromCreate[0]
+	if r.IDFromResponseJSON != "data.id" || r.IDFromRequestJSON != "" {
+		t.Fatalf("got %+v", r)
 	}
 }

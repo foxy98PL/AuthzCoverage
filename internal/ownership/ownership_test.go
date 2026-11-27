@@ -350,3 +350,103 @@ func TestObjects(t *testing.T) {
 		t.Error("empty registry should list no objects")
 	}
 }
+
+func respCreate(who *model.Identity, conf model.Confidence, status int, body string) *model.Observation {
+	return &model.Observation{Endpoint: postEP, Identity: who, IDConf: conf,
+		X: &model.Exchange{Method: "POST", Path: "/books", Status: status, RespJSON: []byte(body)}}
+}
+
+func books(r *Registry) []Object {
+	var out []Object
+	for _, o := range r.Objects() {
+		if o.Resource == "books" {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+func respCfg() Config {
+	return Config{Create: []CreateRule{{Method: "POST", Path: "/books", Resource: "books", IDFromResponse: "id"}}}
+}
+
+// Rule 1.
+func TestCreateResponseLearned(t *testing.T) {
+	r := New(respCfg())
+	r.Learn(respCreate(alice, model.ConfLearned, 201, `{"id":"b1"}`))
+	r.Learn(respCreate(alice, model.ConfLearned, 201, `{"id":42}`))
+	expect(t, r, read(bob, getEP, "id", "b1"), alice, model.ConfLearned)
+	expect(t, r, read(bob, getEP, "id", "42"), alice, model.ConfLearned)
+	r2 := New(respCfg())
+	r2.Learn(respCreate(alice, model.ConfInferred, 201, `{"id":"b1"}`))
+	expect(t, r2, read(bob, getEP, "id", "b1"), nil, model.ConfUnknown)
+}
+
+// Rules 2 and 3.
+func TestCreateResponseNotLearned(t *testing.T) {
+	bodies := map[string]struct {
+		st   int
+		body string
+	}{
+		"non2xx":      {400, `{"id":"b1"}`},
+		"nonjson":     {201, `not json`},
+		"empty":       {201, ``},
+		"missing":     {201, `{"x":"b1"}`},
+		"object":      {201, `{"id":{"a":1}}`},
+		"array":       {201, `{"id":["b1"]}`},
+		"bool":        {201, `{"id":true}`},
+		"null":        {201, `{"id":null}`},
+		"emptystring": {201, `{"id":""}`},
+		"redacted":    {201, `{"id":"[redacted:0123456789ab]"}`},
+		"redacted2":   {201, `{"id":"[redacted]"}`},
+	}
+	for name, b := range bodies {
+		t.Run(name, func(t *testing.T) {
+			r := New(respCfg())
+			r.Learn(respCreate(alice, model.ConfLearned, b.st, b.body))
+			if n := len(books(r)); n != 0 {
+				t.Fatalf("learned %d objects: %v", n, books(r))
+			}
+		})
+	}
+}
+
+// Rule 4.
+func TestCreateResponseOrderIndependence(t *testing.T) {
+	obs := []*model.Observation{
+		respCreate(alice, model.ConfLearned, 201, `{"id":"b1"}`),
+		respCreate(bob, model.ConfLearned, 201, `{"id":"b2"}`),
+		respCreate(bob, model.ConfLearned, 201, `{"id":"b1"}`),
+		respCreate(alice, model.ConfLearned, 201, `{"id":"b3"}`),
+	}
+	var first []Object
+	for i := 0; i < 4; i++ {
+		r := New(respCfg())
+		for j := range obs {
+			r.Learn(obs[(i+j)%len(obs)])
+		}
+		got := books(r)
+		if i == 0 {
+			first = got
+		} else if !slices.EqualFunc(first, got, func(a, b Object) bool { return a == b }) {
+			t.Fatalf("rotation %d differs: %v vs %v", i, got, first)
+		}
+	}
+	if len(first) != 2 { // b1 conflicted
+		t.Fatalf("objects = %v", first)
+	}
+}
+
+// Rule 5.
+func TestCreateResponseConflict(t *testing.T) {
+	r := New(respCfg())
+	r.Learn(respCreate(alice, model.ConfLearned, 201, `{"id":"b1"}`))
+	r.Learn(respCreate(bob, model.ConfLearned, 201, `{"id":"b1"}`))
+	expect(t, r, read(alice, getEP, "id", "b1"), nil, model.ConfUnknown)
+}
+
+func TestCreateResponseNestedPath(t *testing.T) {
+	r := New(Config{Create: []CreateRule{{Method: "POST", Path: "/books", Resource: "books", IDFromResponse: "data.id"}}})
+	r.Learn(respCreate(alice, model.ConfLearned, 201, `{"data":{"id":"n1"}}`))
+	expect(t, r, read(bob, getEP, "id", "n1"), alice, model.ConfLearned)
+}

@@ -163,8 +163,12 @@
               },
               "resource": {"type": "string"},
               "id_from": {
-                "type": "object", "additionalProperties": false, "required": ["request_json"],
-                "properties": {"request_json": {"type": "string", "minLength": 1}}
+                "type": "object", "additionalProperties": false,
+                "oneOf": [{"required": ["request_json"]}, {"required": ["response_json"]}],
+                "properties": {
+                  "request_json": {"type": "string", "minLength": 1},
+                  "response_json": {"type": "string", "minLength": 1, "pattern": "^((?!\\[\\]).)*$", "description": "Dot path to one scalar id in the 2xx response, e.g. id or data.id; [] is not allowed."}
+                }
               }
             }
           }

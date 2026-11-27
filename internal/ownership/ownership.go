@@ -14,9 +14,11 @@ import (
 )
 
 // CreateRule says that a successful request matching Method+Path creates an
-// object of Resource whose id is found at IDField in the request JSON.
+// object of Resource whose id is found at IDField in the request JSON, or at
+// IDFromResponse in the response JSON (exactly one is set). Both are dot paths
+// without "[]" and must resolve to one non-empty string or number.
 type CreateRule struct {
-	Method, Path, Resource, IDField string // IDField: dot path into request JSON
+	Method, Path, Resource, IDField, IDFromResponse string
 }
 
 // ListRule says that every id found by IDsPath in the JSON response of a
@@ -141,7 +143,10 @@ func (r *Registry) Learn(o *model.Observation) {
 			continue
 		}
 		id, ok := jsonField(o.X.ReqJSON, rule.IDField)
-		if !ok {
+		if rule.IDFromResponse != "" {
+			id, ok = jsonField(o.X.RespJSON, rule.IDFromResponse)
+		}
+		if !ok || redactedPlaceholder(id) {
 			continue
 		}
 		r.mergeOwner(key{rule.Resource, id}, claim{id: o.Identity, conf: model.ConfLearned, source: SourceCreate})
@@ -209,6 +214,12 @@ func jsonValues(body []byte, path string) []string {
 		}
 	}
 	return out
+}
+
+// redactedPlaceholder reports whether id is an ingest redaction marker, which
+// must never be learned as an object id.
+func redactedPlaceholder(id string) bool {
+	return id == "[redacted]" || strings.HasPrefix(id, "[redacted:")
 }
 
 func jsonField(body []byte, path string) (string, bool) {

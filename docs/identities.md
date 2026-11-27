@@ -76,6 +76,21 @@ ownership:
       id_from: {request_json: book_title}
 ```
 
+`id_from` takes exactly one of `request_json` (a dot path into the request body)
+or `response_json` (a dot path into the 2xx response body), for servers that
+generate the id:
+
+```yaml
+    - match: {method: POST, path: "/orgs/{orgId}/orders"}
+      resource: orders
+      id_from: {response_json: id}   # or data.id
+```
+
+The path must resolve to one non-empty string or number; `[]` is rejected. A
+non-2xx response, a body that is not JSON, a missing or non-scalar field, or a
+body redacted or dropped at ingest (over 64 KiB) teaches nothing. A redacted
+placeholder is never learned as an id. Conflict rules are the same for both.
+
 ### learn_from_lists (inferred ownership)
 
 ```yaml

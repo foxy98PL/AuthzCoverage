@@ -88,8 +88,8 @@ type ListRule struct {
 
 // CreateRule learns object ownership from a create request.
 type CreateRule struct {
-	Method, Path, Resource, IDFromRequestJSON string
-	Line                                      int
+	Method, Path, Resource, IDFromRequestJSON, IDFromResponseJSON string
+	Line                                                          int
 }
 
 // Error is a validation error with location.
@@ -701,15 +701,25 @@ func (p *parser) createRule(n *yaml.Node, path string) (CreateRule, *Error) {
 	if r.Resource, e = p.nonEmptyString(m["resource"], path+".resource"); e != nil {
 		return r, e
 	}
-	im, e := p.fields(m["id_from"], path+".id_from", "request_json")
+	im, e := p.fields(m["id_from"], path+".id_from", "request_json", "response_json")
 	if e != nil {
 		return r, e
 	}
-	if im["request_json"] == nil {
-		return r, p.err(m["id_from"], path+".id_from.request_json", "request_json is required")
+	if (im["request_json"] == nil) == (im["response_json"] == nil) {
+		return r, p.err(m["id_from"], path+".id_from", "id_from needs exactly one of request_json or response_json")
 	}
-	if r.IDFromRequestJSON, e = p.nonEmptyString(im["request_json"], path+".id_from.request_json"); e != nil {
+	if im["request_json"] != nil {
+		if r.IDFromRequestJSON, e = p.nonEmptyString(im["request_json"], path+".id_from.request_json"); e != nil {
+			return r, e
+		}
+		return r, nil
+	}
+	rp := path + ".id_from.response_json"
+	if r.IDFromResponseJSON, e = p.nonEmptyString(im["response_json"], rp); e != nil {
 		return r, e
+	}
+	if strings.Contains(r.IDFromResponseJSON, "[]") {
+		return r, p.err(im["response_json"], rp, "[] is not allowed: a create rule needs exactly one id")
 	}
 	return r, nil
 }
