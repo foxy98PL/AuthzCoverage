@@ -1,0 +1,205 @@
+name: AuthzCoverage
+description: Measure endpoint x relationship authorization test coverage from recorded HAR traffic, publish a summary and gate on regressions.
+author: foxy98PL
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  spec:
+    description: Path to the OpenAPI 3.x spec.
+    required: true
+  identities:
+    description: Path to identities.yaml.
+    required: true
+  har:
+    description: HAR file(s) recorded from tests. Newline- or space-separated list; each becomes a --har flag.
+    required: true
+  version:
+    description: "authzcov release: `latest`, a tag such as `v0.1.0`, or `source` (build from the action's own checkout with Go; for development)."
+    default: latest
+  baseline:
+    description: Path to baseline.json. When set, `authzcov gate` runs last and fails the step on regressions.
+    default: ""
+  waivers:
+    description: Path to waivers.yaml (optional).
+    default: ""
+  fail-on:
+    description: Comma-separated gate rules (passed to `gate --fail-on`). Empty uses the CLI default.
+    default: ""
+  max-drop:
+    description: Largest allowed fall in coverage percentage points (passed to `gate --max-drop`).
+    default: ""
+  sarif:
+    description: "Upload SARIF to GitHub code scanning. The caller needs `security-events: write`."
+    default: "false"
+  out-dir:
+    description: Directory for coverage.json and the SARIF file.
+    default: authzcov-out
+  github-token:
+    description: Token used only to resolve `latest` through the releases API (avoids rate limits).
+    default: ${{ github.token }}
+
+outputs:
+  coverage-percent:
+    description: Required-cell coverage in percent.
+    value: ${{ steps.summary.outputs.coverage-percent }}
+  gaps:
+    description: Number of uncovered required cells.
+    value: ${{ steps.summary.outputs.gaps }}
+  report-dir:
+    description: Directory holding coverage.json (and authzcov.sarif when requested).
+    value: ${{ steps.summary.outputs.report-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Download and verify authzcov
+      id: install
+      if: inputs.version != 'source'
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        ACTION_REPO: ${{ github.action_repository }}
+      run: |
+        set -euo pipefail
+        repo="${ACTION_REPO:-foxy98PL/AuthzCoverage}"
+        case "$RUNNER_OS" in
+          Linux) os=linux ;;
+          macOS) os=darwin ;;
+          Windows) os=windows ;;
+          *) echo "::error::unsupported runner OS: $RUNNER_OS"; exit 1 ;;
+        esac
+        case "$RUNNER_ARCH" in
+          X64) arch=amd64 ;;
+          ARM64) arch=arm64 ;;
+          *) echo "::error::unsupported runner architecture: $RUNNER_ARCH"; exit 1 ;;
+        esac
+        tag="$VERSION"
+        if [ "$tag" = latest ]; then
+          tag=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$repo/releases/latest" | jq -r .tag_name)
+        fi
+        case "$tag" in
+          v[0-9]*) ;;
+          *) echo "::error::cannot resolve authzcov version from '$VERSION' (got '$tag')"; exit 1 ;;
+        esac
+        ver="${tag#v}"
+        ext=tar.gz; [ "$os" = windows ] && ext=zip
+        archive="authzcov_${ver}_${os}_${arch}.${ext}"
+        dir="$RUNNER_TEMP/authzcov-dl"
+        rm -rf "$dir"; mkdir -p "$dir"
+        base="https://github.com/$repo/releases/download/$tag"
+        for f in "$archive" checksums.txt checksums.txt.sigstore.json; do
+          curl -fsSL -o "$dir/$f" "$base/$f"
+        done
+        cd "$dir"
+
+        # 1. Checksum, before anything is extracted or executed. The archive's line must exist.
+        if ! grep -F -q "  $archive" checksums.txt; then
+          echo "::error::$archive is not listed in checksums.txt"; exit 1
+        fi
+        if command -v sha256sum >/dev/null 2>&1; then
+          grep -F "  $archive" checksums.txt | sha256sum -c -
+        else
+          grep -F "  $archive" checksums.txt | shasum -a 256 -c -
+        fi
+
+        # 2. Signature over checksums.txt, when cosign is available.
+        if command -v cosign >/dev/null 2>&1; then
+          cosign verify-blob --bundle checksums.txt.sigstore.json \
+            --certificate-identity-regexp '^https://github.com/foxy98PL/AuthzCoverage/\.github/workflows/release\.yml@refs/tags/v' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            checksums.txt
+        else
+          echo "::notice::cosign not found on PATH; the checksums.txt signature was not verified (checksum was)."
+        fi
+
+        # 3. Only now extract.
+        mkdir bin
+        if [ "$ext" = zip ]; then unzip -q "$archive" -d bin; else tar -xzf "$archive" -C bin; fi
+        bin="$dir/bin/authzcov"; [ "$os" = windows ] && bin="$bin.exe"
+        "$bin" version
+        echo "bin=$bin" >> "$GITHUB_OUTPUT"
+
+    - name: Build authzcov from source
+      id: build
+      if: inputs.version == 'source'
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        out="$RUNNER_TEMP/authzcov"
+        [ "$RUNNER_OS" = Windows ] && out="$out.exe"
+        go build -trimpath -o "$out" ./cmd/authzcov
+        echo "bin=$out" >> "$GITHUB_OUTPUT"
+
+    - name: Compute coverage
+      id: coverage
+      shell: bash
+      env:
+        BIN: ${{ steps.install.outputs.bin || steps.build.outputs.bin }}
+        SPEC: ${{ inputs.spec }}
+        IDENTITIES: ${{ inputs.identities }}
+        HAR: ${{ inputs.har }}
+        WAIVERS: ${{ inputs.waivers }}
+        OUT_DIR: ${{ inputs.out-dir }}
+      run: |
+        set -euo pipefail
+        read -r -a hars <<< "$HAR"
+        args=(coverage --spec "$SPEC" --identities "$IDENTITIES" --out "$OUT_DIR")
+        for h in "${hars[@]}"; do args+=(--har "$h"); done
+        if [ -n "$WAIVERS" ]; then args+=(--waivers "$WAIVERS"); fi
+        # coverage exits 0 when gaps are found (gating is `gate`); any non-zero code is a real error.
+        "$BIN" "${args[@]}"
+
+    - name: Summary
+      id: summary
+      shell: bash
+      env:
+        BIN: ${{ steps.install.outputs.bin || steps.build.outputs.bin }}
+        OUT_DIR: ${{ inputs.out-dir }}
+      run: |
+        set -euo pipefail
+        "$BIN" report --format markdown --in "$OUT_DIR/coverage.json" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "coverage-percent=$(jq -r '.summary.percent' "$OUT_DIR/coverage.json")"
+          echo "gaps=$(jq -r '.summary.gaps' "$OUT_DIR/coverage.json")"
+          echo "report-dir=$OUT_DIR"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Render SARIF
+      if: inputs.sarif == 'true'
+      shell: bash
+      env:
+        BIN: ${{ steps.install.outputs.bin || steps.build.outputs.bin }}
+        OUT_DIR: ${{ inputs.out-dir }}
+      run: |
+        set -euo pipefail
+        "$BIN" report --format sarif --in "$OUT_DIR/coverage.json" > "$OUT_DIR/authzcov.sarif"
+
+    - name: Upload SARIF
+      if: inputs.sarif == 'true'
+      uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+      with:
+        sarif_file: ${{ inputs.out-dir }}/authzcov.sarif
+        category: authzcov
+
+    - name: Gate against baseline
+      if: inputs.baseline != ''
+      shell: bash
+      env:
+        BIN: ${{ steps.install.outputs.bin || steps.build.outputs.bin }}
+        OUT_DIR: ${{ inputs.out-dir }}
+        BASELINE: ${{ inputs.baseline }}
+        WAIVERS: ${{ inputs.waivers }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        MAX_DROP: ${{ inputs.max-drop }}
+      run: |
+        set -euo pipefail
+        args=(gate --in "$OUT_DIR/coverage.json" --baseline "$BASELINE")
+        if [ -n "$WAIVERS" ]; then args+=(--waivers "$WAIVERS"); fi
+        if [ -n "$FAIL_ON" ]; then args+=(--fail-on "$FAIL_ON"); fi
+        if [ -n "$MAX_DROP" ]; then args+=(--max-drop "$MAX_DROP"); fi
+        "$BIN" "${args[@]}"

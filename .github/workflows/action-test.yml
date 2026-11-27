@@ -1,0 +1,100 @@
+name: Action self-test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: action-test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Start tenantshop and record a HAR
+        run: |
+          (cd e2e/apps/tenantshop && go run . -addr :8090 > "$RUNNER_TEMP/tenantshop.log" 2>&1 &)
+          curl -fsS --retry 30 --retry-delay 2 --retry-connrefused -o /dev/null http://localhost:8090/openapi.yaml
+          BASE=http://localhost:8090 e2e/recorders/tenantshop.sh
+
+      - name: Coverage (source build)
+        id: cov
+        uses: ./
+        with:
+          version: source
+          spec: e2e/apps/tenantshop/shop/openapi.yaml
+          identities: e2e/apps/tenantshop/identities.yaml
+          har: testdata/raw/tenantshop.har
+          out-dir: authzcov-out
+
+      - name: Assert golden numbers
+        env:
+          PERCENT: ${{ steps.cov.outputs.coverage-percent }}
+          GAPS: ${{ steps.cov.outputs.gaps }}
+          REPORT_DIR: ${{ steps.cov.outputs.report-dir }}
+        run: |
+          test "$PERCENT" = "36.4" || { echo "coverage-percent=$PERCENT, want 36.4"; exit 1; }
+          test "$GAPS" = "21" || { echo "gaps=$GAPS, want 21"; exit 1; }
+          test -f "$REPORT_DIR/coverage.json"
+
+      - name: Write baseline from this run
+        run: |
+          go run ./cmd/authzcov baseline write --in authzcov-out/coverage.json
+          test -f .authzcov/baseline.json
+
+      - name: Gate passes against its own baseline
+        uses: ./
+        with:
+          version: source
+          spec: e2e/apps/tenantshop/shop/openapi.yaml
+          identities: e2e/apps/tenantshop/identities.yaml
+          har: testdata/raw/tenantshop.har
+          out-dir: authzcov-out-gate
+          baseline: .authzcov/baseline.json
+
+      - name: Raise the baseline above reality
+        run: |
+          python3 - <<'PY'
+          import json
+          b = json.load(open(".authzcov/baseline.json"))
+          done = False
+          for cells in b["cells"].values():
+              for k, v in cells.items():
+                  if v == "missing" and not done:
+                      cells[k] = "covered"
+                      done = True
+          b["summary"]["covered"] += 1
+          json.dump(b, open(".authzcov/baseline-higher.json", "w"), indent=2)
+          PY
+
+      - name: Gate fails when coverage drops
+        id: failing
+        continue-on-error: true
+        uses: ./
+        with:
+          version: source
+          spec: e2e/apps/tenantshop/shop/openapi.yaml
+          identities: e2e/apps/tenantshop/identities.yaml
+          har: testdata/raw/tenantshop.har
+          out-dir: authzcov-out-fail
+          baseline: .authzcov/baseline-higher.json
+
+      - name: Assert the gate failed
+        env:
+          OUTCOME: ${{ steps.failing.outcome }}
+        run: test "$OUTCOME" = failure

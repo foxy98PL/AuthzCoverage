@@ -80,7 +80,21 @@ authzcov report --format sarif --in authzcov-out/coverage.json > authzcov.sarif
 
 `gate` fails on new gaps, regressions, a coverage drop, or expired waivers (`--fail-on` and
 `--max-drop` tune this). Accepted gaps go in `.authzcov/waivers.yaml`. Upload the SARIF file with
-GitHub code scanning. A ready-made GitHub Action is planned; for now call the binary directly.
+GitHub code scanning.
+
+Or use the GitHub Action, which verifies the release checksum (and the cosign signature when
+`cosign` is installed), writes the report to the job summary and runs the gate:
+
+```yaml
+- uses: foxy98PL/AuthzCoverage@v0
+  with:
+    spec: openapi.yaml
+    identities: identities.yaml
+    har: tests.har
+    baseline: .authzcov/baseline.json
+```
+
+Inputs, outputs and permissions: [docs/action.md](docs/action.md).
 
 Other commands: `authzcov explain` shows how one request is matched to the spec
 ([docs/explain.md](docs/explain.md)). Speed numbers: [docs/benchmarks.md](docs/benchmarks.md).
