@@ -79,10 +79,75 @@ func TestHAR(t *testing.T) {
 	}
 }
 
-func TestBinarySkipped(t *testing.T) {
-	data := append([]byte{0, 1, 2}, []byte(mint(`{"sub":"x"}`))...)
-	if got := scanContent("img.png", data, allowlist{}); len(got) != 0 {
-		t.Fatalf("binary must be skipped, got %v", got)
+func TestBinaryJWTScanned(t *testing.T) {
+	bad := append([]byte{0, 1, 2}, []byte(mint(`{"iss":"evil"}`))...)
+	got := scanContent("img.png", bad, allowlist{})
+	if len(got) != 1 || !strings.Contains(got[0].String(), "img.png:offset 3:") {
+		t.Fatalf("JWT in binary must fail with offset, got %v", got)
+	}
+	good := append([]byte{0, 1, 2}, []byte(mint(`{"iss":"authzcov-test"}`))...)
+	if got := scanContent("img.png", good, allowlist{}); len(got) != 0 {
+		t.Fatalf("test JWT in binary must pass, got %v", got)
+	}
+	if got := scanContent("img.png", []byte{0, 1, 2, 3}, allowlist{}); len(got) != 0 {
+		t.Fatalf("plain binary must pass, got %v", got)
+	}
+}
+
+func TestHARSniffedByContent(t *testing.T) {
+	if got := scanContent("renamed.json", har("api.real-company.com"), allowlist{}); len(got) != 1 {
+		t.Fatalf("HAR-shaped JSON under any name must fail, got %v", got)
+	}
+	bom := append([]byte("\xef\xbb\xbf  \n"), har("api.real-company.com")...)
+	if got := scanContent("x.txt", bom, allowlist{}); len(got) != 1 {
+		t.Fatalf("BOM-prefixed HAR must fail, got %v", got)
+	}
+	if got := scanContent("x.json", har("localhost"), allowlist{}); len(got) != 0 {
+		t.Fatalf("demo HAR must pass, got %v", got)
+	}
+	for _, other := range []string{`{"log":{"entries":"no"}}`, `{"entries":[{"request":{"url":"https://real.io"}}]}`, `["entries"]`, `plain "entries" text`} {
+		if got := scanContent("o.json", []byte(other), allowlist{}); len(got) != 0 {
+			t.Fatalf("non-HAR %q must pass, got %v", other, got)
+		}
+	}
+}
+
+func TestZipMembersSniffed(t *testing.T) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, _ := zw.Create("data/session.json")
+	_, _ = w.Write(har("api.real-company.com"))
+	_ = zw.Close()
+	for _, name := range []string{"bundle.zip", "bundle.har.zip"} {
+		got := scanContent(name, buf.Bytes(), allowlist{})
+		if len(got) != 1 || !strings.HasPrefix(got[0].path, name+"!") {
+			t.Fatalf("%s: want host failure from sniffed member, got %v", name, got)
+		}
+	}
+	// A .zip that is not a zip falls back to the raw scan.
+	if got := scanContent("fake.zip", []byte("hello"), allowlist{}); len(got) != 0 {
+		t.Fatalf("got %v", got)
+	}
+}
+
+func TestOversizeFile(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "big.bin")
+	f, err := os.Create(p) //nolint:gosec // test path
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Truncate(maxFileSize + 1); err != nil {
+		t.Fatal(err)
+	}
+	_ = f.Close()
+	got := scanFile(dir, "big.bin", allowlist{})
+	if len(got) != 1 || !strings.Contains(got[0].reason, "50 MiB") {
+		t.Fatalf("oversize must fail clearly, got %v", got)
+	}
+	al := allowlist{"big.bin": {"000000000000": "large asset"}}
+	if got := scanFile(dir, "big.bin", al); len(got) != 0 {
+		t.Fatalf("path-allowlisted oversize file must pass, got %v", got)
 	}
 }
 

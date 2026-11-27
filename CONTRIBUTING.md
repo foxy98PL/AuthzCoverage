@@ -35,7 +35,7 @@ make test
 | `make e2e` | Vet and test the `tenantshop` demo app plus the end-to-end tests. | no |
 | `make golden` | Rewrites `testdata/golden/*.txt`. Review the diff by hand. | no |
 | `make fuzz FUZZTIME=5s` | Runs every `Fuzz*` target for 5 seconds each (default 30s). | no |
-| `make check-offline` | `vet`, `lint` and `go test -race ./...`. | no |
+| `make check-offline` | `vet`, `lint`, `fixturecheck` and `go test -race ./...`. | no |
 | `make vuln` | `govulncheck ./...` | yes (vulnerability DB) |
 | `make check` | `check-offline` plus `vuln`. | yes |
 
@@ -43,7 +43,7 @@ make test
 
 The pre-commit hook (`make hooks`) refuses to commit `*.har` files and anything under `testdata/raw/`, then runs `make check-offline`.
 
-CI runs on every pull request: `go vet`, `golangci-lint`, `go test -race`, `govulncheck`, `make e2e` and a fuzz smoke run (`make fuzz FUZZTIME=10s`). A pull request needs all of them green.
+CI runs on every pull request: `go vet`, `golangci-lint`, `go test -race`, `govulncheck`, the `tenantshop` end-to-end tests (`make e2e`), a fuzz smoke run (`make fuzz FUZZTIME=10s`) and `fixturecheck`. The separate `Action self-test` workflow (`.github/workflows/action-test.yml`) exercises the composite GitHub Action end to end. A pull request needs all of them green.
 
 ## Code layout
 
@@ -82,7 +82,7 @@ Format docs: [docs/identities.md](docs/identities.md), [docs/quickstart.md](docs
 
 ## Test fixtures
 
-Fixtures are generated in Go tests with `internal/testutil/hartest`. Do not check in recorded traffic. Real recordings must never be committed. The pre-commit hook rejects `*.har` files and `testdata/raw/`. `make fixturecheck` (part of `make check-offline` and a CI job) fails on any JWT in the repo whose `iss` is not `authzcov-test`, and on any HAR request host outside the demo allowlist (`localhost`, `127.0.0.1`, `::1`, `*.test`, `example.com`). The few existing exceptions are listed, one token each, in `tools/fixturecheck/allow.txt` with a reason. Test tokens use the issuer `authzcov-test` and a key that is not a secret.
+Fixtures are generated in Go tests with `internal/testutil/hartest`. Do not check in recorded traffic. Real recordings must never be committed. The pre-commit hook rejects `*.har` files and `testdata/raw/`. `make fixturecheck` (part of `make check-offline` and a CI job) fails on any JWT-shaped string in any file (binary files and zip members included) whose `iss` is not `authzcov-test`, and on any HAR request host outside the demo allowlist (`localhost`, `127.0.0.1`, `::1`, `example.com`, `example.test`, `*.example.com`, `*.test`). It treats any JSON with a top-level `log.entries` array as a HAR whatever its file name, and looks inside `.zip` files the same way. Files over 50 MiB fail unless their path is in the allow list. The few existing exceptions are listed, one token each, in `tools/fixturecheck/allow.txt` with a reason. Test tokens use the issuer `authzcov-test` and a key that is not a secret.
 
 If you need to share a reproduction, build it with `hartest`. When `authzcov redact --pseudonymize` is available, it can help turn a recording you own into a shareable one, but check the result by hand before you share it.
 

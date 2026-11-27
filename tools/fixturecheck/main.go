@@ -30,7 +30,10 @@ const testIssuer = "authzcov-test"
 const allowFile = "tools/fixturecheck/allow.txt"
 
 // maxFileSize bounds what is read into memory per file or zip member.
-const maxFileSize = 64 << 20
+const maxFileSize = 50 << 20
+
+// sniffWindow is how much of a file is searched for "entries" before a HAR parse is tried.
+const sniffWindow = 64 << 10
 
 var jwtRe = regexp.MustCompile(`eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*`)
 
@@ -43,7 +46,12 @@ type failure struct {
 	reason string
 }
 
-func (f failure) String() string { return fmt.Sprintf("%s:%d: %s", f.path, f.line, f.reason) }
+func (f failure) String() string {
+	if f.line == 0 {
+		return fmt.Sprintf("%s:%s", f.path, f.reason)
+	}
+	return fmt.Sprintf("%s:%d: %s", f.path, f.line, f.reason)
+}
 
 // allowlist maps path -> set of sha256 hex prefixes (12 chars) of allowed tokens.
 type allowlist map[string]map[string]string
@@ -120,20 +128,50 @@ func isBinary(b []byte) bool {
 	return bytes.IndexByte(head, 0) >= 0
 }
 
-// scanJWTs checks every JWT-shaped string in a text blob.
+// scanJWTs checks every JWT-shaped byte sequence in a blob. Text files report
+// line numbers; binary files report "offset N" in the reason and line 0.
 func scanJWTs(path string, data []byte, al allowlist) []failure {
 	var out []failure
-	for i, line := range strings.Split(string(data), "\n") {
-		for _, tok := range jwtRe.FindAllString(line, -1) {
-			if al.allows(path, tok) {
-				continue
-			}
-			if reason := checkToken(tok); reason != "" {
-				out = append(out, failure{path, i + 1, reason})
-			}
+	binary := isBinary(data)
+	for _, loc := range jwtRe.FindAllIndex(data, -1) {
+		tok := string(data[loc[0]:loc[1]])
+		if al.allows(path, tok) {
+			continue
+		}
+		reason := checkToken(tok)
+		if reason == "" {
+			continue
+		}
+		if binary {
+			out = append(out, failure{path, 0, fmt.Sprintf("offset %d: %s", loc[0], reason)})
+		} else {
+			out = append(out, failure{path, bytes.Count(data[:loc[0]], []byte("\n")) + 1, reason})
 		}
 	}
 	return out
+}
+
+// looksLikeHAR reports whether data is JSON whose top level has log.entries as an array.
+// It only parses files that start with "{" and mention "entries" in the first 64 KiB.
+func looksLikeHAR(data []byte) bool {
+	t := bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
+	t = bytes.TrimLeft(t, " \t\r\n")
+	if len(t) == 0 || t[0] != '{' {
+		return false
+	}
+	head := t
+	if len(head) > sniffWindow {
+		head = head[:sniffWindow]
+	}
+	if !bytes.Contains(head, []byte(`"entries"`)) {
+		return false
+	}
+	var doc struct {
+		Log struct {
+			Entries []json.RawMessage `json:"entries"`
+		} `json:"log"`
+	}
+	return json.Unmarshal(t, &doc) == nil && doc.Log.Entries != nil
 }
 
 func hostAllowed(host string) bool {
@@ -169,7 +207,7 @@ func scanHAR(path string, data []byte) []failure {
 			} `json:"entries"`
 		} `json:"log"`
 	}
-	if err := json.Unmarshal(data, &doc); err != nil {
+	if err := json.Unmarshal(bytes.TrimPrefix(data, []byte("\xef\xbb\xbf")), &doc); err != nil {
 		return []failure{{path, 1, "HAR is not valid JSON: " + err.Error()}}
 	}
 	var out []failure
@@ -205,10 +243,14 @@ func scanZip(path string, data []byte, al allowlist) []failure {
 			out = append(out, failure{name, 1, "cannot open zip member: " + err.Error()})
 			continue
 		}
-		b, err := io.ReadAll(io.LimitReader(rc, maxFileSize))
+		b, err := io.ReadAll(io.LimitReader(rc, maxFileSize+1))
 		_ = rc.Close()
 		if err != nil {
 			out = append(out, failure{name, 1, "cannot read zip member: " + err.Error()})
+			continue
+		}
+		if len(b) > maxFileSize {
+			out = append(out, failure{name, 1, "zip member larger than 50 MiB, not scanned"})
 			continue
 		}
 		out = append(out, scanContent(name, b, al)...)
@@ -216,18 +258,22 @@ func scanZip(path string, data []byte, al allowlist) []failure {
 	return out
 }
 
-// scanContent dispatches on the (possibly "zip!member") name.
+// scanContent dispatches on the (possibly "zip!member") name and the content.
+// Every file is JWT-scanned; HAR host checks apply to *.har names and to any
+// JSON with log.entries; zip members are scanned the same way.
 func scanContent(path string, data []byte, al allowlist) []failure {
 	var out []failure
 	lower := strings.ToLower(path)
 	switch {
 	case strings.HasSuffix(lower, ".har.zip"):
 		return scanZip(path, data, al)
-	case strings.HasSuffix(lower, ".har"):
-		out = append(out, scanHAR(path, data)...)
+	case strings.HasSuffix(lower, ".zip") && bytes.HasPrefix(data, []byte("PK")):
+		if zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data))); err == nil && zr != nil {
+			return scanZip(path, data, al)
+		}
 	}
-	if isBinary(data) {
-		return out
+	if strings.HasSuffix(lower, ".har") || looksLikeHAR(data) {
+		out = append(out, scanHAR(path, data)...)
 	}
 	return append(out, scanJWTs(path, data, al)...)
 }
@@ -238,14 +284,20 @@ func scanFile(root, rel string, al allowlist) []failure {
 	if err != nil || !st.Mode().IsRegular() {
 		return nil // deleted from the worktree, or a symlink/submodule
 	}
-	if st.Size() > maxFileSize {
-		return []failure{{rel, 1, "file larger than 64 MiB, not scanned"}}
+	slash := filepath.ToSlash(rel)
+	if st.Size() > maxFileSize && len(al[slash]) == 0 {
+		return []failure{{slash, 1, "file larger than 50 MiB, not scanned (allowlist the path in " + allowFile + " to accept it)"}}
 	}
-	data, err := os.ReadFile(full) //nolint:gosec // paths come from git ls-files
+	fh, err := os.Open(full) //nolint:gosec // paths come from git ls-files
 	if err != nil {
 		return []failure{{rel, 1, "cannot read: " + err.Error()}}
 	}
-	return scanContent(filepath.ToSlash(rel), data, al)
+	defer func() { _ = fh.Close() }()
+	data, err := io.ReadAll(io.LimitReader(fh, maxFileSize))
+	if err != nil {
+		return []failure{{rel, 1, "cannot read: " + err.Error()}}
+	}
+	return scanContent(slash, data, al)
 }
 
 func scanFiles(root string, files []string, al allowlist) []failure {
