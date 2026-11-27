@@ -411,6 +411,22 @@ func TestCreateResponseNotLearned(t *testing.T) {
 	}
 }
 
+// Request-side IDField ids that are redaction placeholders are never learned.
+func TestCreateRequestRedactedNotLearned(t *testing.T) {
+	for name, body := range map[string]string{
+		"redacted_hash": `{"title":"[redacted:abc123def456]"}`,
+		"redacted":      `{"title":"[redacted]"}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			r := New(cfg())
+			r.Learn(create(alice, model.ConfLearned, 201, body))
+			if n := len(books(r)); n != 0 {
+				t.Fatalf("learned %d objects: %v", n, books(r))
+			}
+		})
+	}
+}
+
 // Rule 4.
 func TestCreateResponseOrderIndependence(t *testing.T) {
 	obs := []*model.Observation{

@@ -152,6 +152,16 @@ waiting for mitmproxy and a real run.
 - `.github/dependabot.yml`: weekly gomod + github-actions, grouped minor/patch.
 - First run 46007918706 on 3c291d8: all 6 jobs green (~35 s each, fuzz 100 s). Branch protection (AC3) = owner.
 
+## KAN-89 — learn_from_create response_json (In Review)
+- `id_from: {response_json: <dot path>}` (exactly one of request_json/response_json; no `[]`); learned from 2xx response, one scalar.
+- Redaction placeholders (`[redacted]`, `[redacted:…]`) never learned as ids, for request and response sources.
+- tenantshop uses server-generated ids now; golden unchanged. Optional Location-header source skipped.
+
+## KAN-28 — README + quickstart (In Review)
+- README rewritten (pitch, why, quickstart, how it works, identities, CI, recording HARs, security, privacy/telemetry, signatures-planned, roadmap). GIF placeholder for owner.
+- `docs/quickstart.md` on tenantshop (no mitmproxy/Docker); verified end to end on the working tree: table == golden, HTML 9.8 KB; ~2 s warm.
+- SECURITY.md: GitHub private vulnerability reporting (owner must enable it in repo settings).
+
 ## Decisions made during implementation (review these)
 1. Non-bearer credentials (Basic, cookie, API key) → identity unknown, never anonymous.
 2. Request/response JSON bodies are scrubbed of password/token/secret fields at ingest.
