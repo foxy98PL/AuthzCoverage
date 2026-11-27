@@ -20,7 +20,7 @@ func newRootCmd(stdout, stderr io.Writer) *cobra.Command {
 	root.SetErr(stderr)
 	// Flag parse errors are usage errors (exit 2).
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return usageErr(err) })
-	root.AddCommand(newBaselineCmd(), newCoverageCmd(), newDiscoverCmd(), newExplainCmd(), newGateCmd(), newReportCmd(), newVersionCmd())
+	root.AddCommand(newBaselineCmd(), newCoverageCmd(), newDiscoverCmd(), newExplainCmd(), newGateCmd(), newRedactCmd(), newReportCmd(), newVersionCmd())
 	return root
 }
 

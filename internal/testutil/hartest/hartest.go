@@ -9,13 +9,15 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"authzcov/internal/testkey"
 )
 
 // Issuer is the iss claim of fixture JWTs.
-const Issuer = "authzcov-test"
+const Issuer = testkey.Issuer
 
 // TestKey signs fixture JWTs. It protects nothing; fixtures are generated at test time.
-var TestKey = []byte("authzcov-test-signing-key-not-a-secret") //nolint:gosec // test-only fixture key
+var TestKey = testkey.Key
 
 // JWT returns an HS256 token signed with TestKey with claims iss=Issuer, sub=sub, plus extra.
 func JWT(t testing.TB, sub string, extra map[string]any) string {

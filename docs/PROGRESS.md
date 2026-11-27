@@ -181,6 +181,13 @@ waiting for mitmproxy and a real run.
 ## KAN-64 — CONTRIBUTING.md (In Review)
 - DOC-08 adapted: real commands (all verified), package map, fixture rules incl. fixturecheck; deps discussed in an issue (no ADR dir); DCO sign-off kept.
 
+## KAN-29 — redact --pseudonymize (command part, In Review)
+- `authzcov redact --pseudonymize --in --out [--keep-claims] [--key-file] [--force]`: atomic 0600 write, streaming per entry.
+- JWTs re-signed with the test key (iss authzcov-test), only kept claims, e-mails in kept claims pseudonymised; opaque tokens → tok_<HMAC8> (random per-run key unless --key-file); Basic → user_<hash8>, password dropped.
+- Headers default-deny (benign allowlist keeps scrubbed values; everything else masked); e-mails → user_<hash8>@example.test; hosts → h<N>.test; query values → x; whitelist rebuild of entries.
+- Coverage invariance tested on hartest fixtures + real tenantshop recording; no-secret-survives tests; FuzzPseudonymize 30 s.
+- Shared test key moved to `internal/testkey`. Examples (crAPI, RealWorld) still blocked on recordings.
+
 ## Decisions made during implementation (review these)
 1. Non-bearer credentials (Basic, cookie, API key) → identity unknown, never anonymous.
 2. Request/response JSON bodies are scrubbed of password/token/secret fields at ingest.
