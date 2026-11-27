@@ -34,7 +34,8 @@ Semantic versioning with a leading `v`: `v0.1.0`, `v0.1.1`. Pre-releases carry a
 - Changelog lists the expected commits (docs, ci and test commits are excluded).
 - `cosign verify-blob`, `sha256sum --ignore-missing -c checksums.txt` and
   `gh attestation verify` all succeed (commands in README, "Releases and signatures").
-- `authzcov version` from a downloaded archive prints the tag without the leading `v`.
+- `authzcov version` from a downloaded archive prints `authzcov <tag without v> (commit <short sha>)`,
+  e.g. `authzcov 0.1.0-rc.1 (commit 8fa2fbb)`.
 - Actions tab: the attestation step succeeded; the repo's Attestations page lists the new entry.
 
 ## Notes

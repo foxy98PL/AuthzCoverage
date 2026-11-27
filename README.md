@@ -118,7 +118,7 @@ This applies from the first tagged release onward; no release has been published
 [GitHub Releases](https://github.com/foxy98PL/AuthzCoverage/releases) contains archives for linux,
 darwin and windows (amd64 and arm64), a per-archive SBOM (SPDX, from syft), `checksums.txt`, and a
 keyless [Sigstore](https://www.sigstore.dev/) signature bundle `checksums.txt.sigstore.json`. Build
-provenance is attested by GitHub for the same files.
+provenance is attested by GitHub for the archives.
 
 To verify a download, put the archive, `checksums.txt` and `checksums.txt.sigstore.json` in one
 directory, then:
@@ -140,7 +140,8 @@ gh attestation verify authzcov_<version>_linux_amd64.tar.gz --repo foxy98PL/Auth
 ```
 
 Do not use a release whose signature or checksum check fails. Release builds use `-trimpath` and
-commit timestamps so that a rebuild from the tag should produce the same binaries.
+commit timestamps; they are designed so that a rebuild from the tag gives the same binaries (not yet
+checked independently).
 
 ## Roadmap
 
