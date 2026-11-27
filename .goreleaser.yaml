@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+project_name: authzcov
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: authzcov
+    main: ./cmd/authzcov
+    binary: authzcov
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X authzcov/internal/cli.version={{.Version}} -X authzcov/internal/cli.commit={{.ShortCommit}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - NOTICE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+# One SBOM per archive (requires syft on PATH).
+sboms:
+  - id: archive
+    artifacts: archive
+
+# Keyless cosign signature over checksums.txt, written as a Sigstore bundle.
+# Needs cosign v2.4+ and an OIDC token (id-token: write in Actions).
+signs:
+  - id: checksums
+    cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+release:
+  prerelease: auto
+  draft: false
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^docs\\("
+      - "^ci:"
+      - "^ci\\("
+      - "^test:"
+      - "^test\\("

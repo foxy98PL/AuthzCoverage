@@ -10,6 +10,7 @@ requests and runs offline, so it fits in CI.
 from source.
 
 <!-- GIF: owner to record -->
+_A short demo recording is coming. Until then, the [quickstart](docs/quickstart.md) shows the real output._
 
 ## Why
 
@@ -27,12 +28,14 @@ git clone https://github.com/foxy98PL/AuthzCoverage
 cd AuthzCoverage
 make build
 (cd e2e/apps/tenantshop && go run . -addr :8090) &     # demo API with one planted bug
+until curl -fs localhost:8090/openapi.yaml >/dev/null; do sleep 1; done   # wait until it is up
 BASE=http://localhost:8090 e2e/recorders/tenantshop.sh  # record a test session to a HAR
 ./bin/authzcov coverage \
   --spec e2e/apps/tenantshop/shop/openapi.yaml \
   --identities e2e/apps/tenantshop/identities.yaml \
   --har testdata/raw/tenantshop.har
 ./bin/authzcov report --format html --in authzcov-out/coverage.json > report.html
+lsof -ti :8090 | xargs kill                             # stop the demo API
 ```
 
 ## How it works
@@ -111,9 +114,33 @@ request.
 
 ### Releases and signatures
 
-There are no releases yet, so there is nothing to verify. Releases are planned to be signed, and
-verification instructions will be added here when they exist. Until then, build from source and
-review the code.
+This applies from the first tagged release onward; no release has been published yet. Each release on
+[GitHub Releases](https://github.com/foxy98PL/AuthzCoverage/releases) contains archives for linux,
+darwin and windows (amd64 and arm64), a per-archive SBOM (SPDX, from syft), `checksums.txt`, and a
+keyless [Sigstore](https://www.sigstore.dev/) signature bundle `checksums.txt.sigstore.json`. Build
+provenance is attested by GitHub for the same files.
+
+To verify a download, put the archive, `checksums.txt` and `checksums.txt.sigstore.json` in one
+directory, then:
+
+```sh
+# 1. The checksums file was signed by this repository's release workflow
+#    (needs cosign v3 or newer; releases are signed with cosign v3).
+cosign verify-blob \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/foxy98PL/AuthzCoverage/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  checksums.txt
+
+# 2. The archive matches the signed checksums.
+sha256sum --ignore-missing -c checksums.txt
+
+# 3. GitHub build provenance for the archive (needs the gh CLI).
+gh attestation verify authzcov_<version>_linux_amd64.tar.gz --repo foxy98PL/AuthzCoverage
+```
+
+Do not use a release whose signature or checksum check fails. Release builds use `-trimpath` and
+commit timestamps so that a rebuild from the tag should produce the same binaries.
 
 ## Roadmap
 

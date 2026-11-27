@@ -162,6 +162,12 @@ waiting for mitmproxy and a real run.
 - `docs/quickstart.md` on tenantshop (no mitmproxy/Docker); verified end to end on the working tree: table == golden, HTML 9.8 KB; ~2 s warm.
 - SECURITY.md: GitHub private vulnerability reporting (owner must enable it in repo settings).
 
+## KAN-71/72 — release pipeline (In Review; needs a tag run)
+- `.goreleaser.yaml` (goreleaser v2.20.3): linux/darwin/windows × amd64/arm64, trimpath, ldflags version+commit, CommitTimestamp, tar.gz/zip, checksums.txt, syft SBOM per archive, cosign keyless bundle `checksums.txt.sigstore.json`.
+- `release.yml` on `v*` tags: permissions {} + job contents/id-token/attestations write; check-offline; cosign v3.1.6, syft v1.57.2; attest-build-provenance on checksums; no Go cache.
+- `authzcov version` prints `authzcov <v> (commit <c>)`. README verify commands; `docs/releasing.md` (rc tag first).
+- Verified locally: goreleaser check, snapshot → 6 archives, actionlint. Signing/SBOM/attestation only verifiable on a real tag (owner approval).
+
 ## Decisions made during implementation (review these)
 1. Non-bearer credentials (Basic, cookie, API key) → identity unknown, never anonymous.
 2. Request/response JSON bodies are scrubbed of password/token/secret fields at ingest.
