@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://authzcov.invalid/schema/plan.v1.json",
+  "title": "authzcov probe plan (plan_version 1)",
+  "description": "Probe plan written by `authzcov export --plan`: the required-but-missing endpoint x relationship cells of a coverage.json, each with a suggested attacker identity NAME (never a credential) and the object to address. contains_raw_ids is true only when the plan was built with --har; such a file must never be committed. Informational schema: authzcov builds the document in Go.",
+  "type": "object",
+  "required": ["plan_version", "tool", "generated_at", "source", "contains_raw_ids", "probes"],
+  "additionalProperties": false,
+  "properties": {
+    "plan_version": {"const": 1},
+    "tool": {
+      "type": "object",
+      "required": ["name", "version", "commit"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "version": {"type": "string"},
+        "commit": {"type": "string"}
+      }
+    },
+    "generated_at": {"type": "string", "format": "date-time", "description": "When the plan was written (SOURCE_DATE_EPOCH honoured)."},
+    "source": {
+      "type": "object",
+      "required": ["coverage_sha256", "generated_at"],
+      "additionalProperties": false,
+      "properties": {
+        "coverage_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the coverage.json file the plan was derived from."},
+        "generated_at": {"type": "string", "format": "date-time", "description": "generated_at of that coverage.json."}
+      }
+    },
+    "contains_raw_ids": {"type": "boolean", "description": "true when any probe may carry a raw object.id. Never commit such a plan."},
+    "probes": {"type": "array", "items": {"$ref": "#/$defs/probe"}, "description": "Sorted by endpoint, relationship, attacker identity."}
+  },
+  "$defs": {
+    "probe": {
+      "type": "object",
+      "required": ["id", "endpoint", "method", "path_template", "relationship", "attacker", "expect"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[0-9a-f]{16}$", "description": "Stable fingerprint of (endpoint, relationship)."},
+        "endpoint": {"type": "string", "description": "Endpoint ID, \"METHOD /template\"."},
+        "method": {"type": "string"},
+        "path_template": {"type": "string"},
+        "relationship": {"enum": ["owner", "same_role_other_user", "lower_role", "higher_role", "other_tenant", "anonymous"]},
+        "attacker": {
+          "oneOf": [
+            {"type": "null", "description": "No identity with this relationship was seen; see note."},
+            {"$ref": "#/$defs/attacker"}
+          ]
+        },
+        "object": {"$ref": "#/$defs/object", "description": "Present for object-level endpoints."},
+        "expect": {"enum": ["deny", "allow", "policy"], "description": "deny: the request must be refused. allow: the request must succeed. policy: the application's policy decides; record the outcome."},
+        "path_params": {"type": "object", "additionalProperties": {"type": "string"}, "description": "Values for path parameters other than the object's, currently the tenant parameters (only with --har)."},
+        "waived": {"type": "boolean", "description": "The gap is waived; present only with --include waived."},
+        "note": {"type": "string"}
+      }
+    },
+    "attacker": {
+      "type": "object",
+      "required": ["identity", "role"],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {"type": "string", "description": "Identity name from identities.yaml, or \"anonymous\"."},
+        "role": {"type": "string"},
+        "tenant": {"type": "string"}
+      }
+    },
+    "object": {
+      "type": "object",
+      "required": ["resource", "param"],
+      "additionalProperties": false,
+      "properties": {
+        "resource": {"type": "string"},
+        "param": {"type": "string", "description": "Path parameter that carries the object ID."},
+        "id_hash": {"type": "string", "pattern": "^[0-9a-f]{8}$", "description": "First 8 hex of SHA-256 of \"resource/id\", as in coverage.json."},
+        "id": {"type": "string", "description": "Raw example ID. Only with --har."},
+        "owner": {"type": "string", "description": "Identity name that owns the object."},
+        "tenant": {"type": "string"}
+      }
+    }
+  }
+}

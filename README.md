@@ -76,6 +76,7 @@ authzcov baseline write                  # once; commit .authzcov/baseline.json
 authzcov gate                            # later runs: exit 1 if coverage got worse
 authzcov report --format markdown --in authzcov-out/coverage.json   # for a PR comment
 authzcov report --format sarif --in authzcov-out/coverage.json > authzcov.sarif
+authzcov export --plan --in authzcov-out/coverage.json --out plan.json   # gaps as a probe plan (docs/plan.md)
 ```
 
 `gate` fails on new gaps, regressions, a coverage drop, or expired waivers (`--fail-on` and

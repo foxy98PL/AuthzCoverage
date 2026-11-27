@@ -40,35 +40,50 @@ type matchStats struct {
 	ambiguousBy                               map[string]int    // endpoint ID -> ambiguous matches
 }
 
-// runCoverage executes the whole offline pipeline, writes the table to stdout
-// and (unless --out is empty) coverage.json to the output directory.
-func runCoverage(o *coverageOpts, stdout, stderr io.Writer) error {
+// analysis is the result of the offline pipeline before any output is written.
+type analysis struct {
+	cfg       *config.File
+	ws        []waivers.Waiver
+	endpoints []*model.Endpoint
+	obs       []*model.Observation
+	objects   []ownership.Object
+	allows    []suspicious.Allow
+	m         *matrix.Matrix
+	ms        matchStats
+	choices   []basepath.Choice
+	perFile   []har.Stats
+}
+
+// analyze runs the whole offline pipeline (config, spec, HARs, ownership,
+// matrix) and writes only diagnostics to stderr. runCoverage and
+// `export --plan --har` both use it.
+func analyze(o *coverageOpts, stderr io.Writer) (*analysis, error) {
 	cfg, err := config.Load(o.identities)
 	if err != nil {
-		return usageErr(err)
+		return nil, usageErr(err)
 	}
 	ws, err := loadWaivers(o.waivers, o.waiversExplicit)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	endpoints, err := spec.Load(o.spec)
 	if err != nil {
-		return inputErr(err)
+		return nil, inputErr(err)
 	}
 	endpoints, err = applyOverrides(cfg, endpoints)
 	if err != nil {
-		return usageErr(err)
+		return nil, usageErr(err)
 	}
 	trie, byID, err := buildTrie(endpoints, o.spec)
 	if err != nil {
-		return inputErr(err)
+		return nil, inputErr(err)
 	}
 	resolver := newResolver(cfg)
 	extract := identity.NewExtractor(credSpecs(cfg))
 
 	exchanges, perFile, err := readHARsByFile(o.hars, extract)
 	if err != nil {
-		return inputErr(err)
+		return nil, inputErr(err)
 	}
 	hs := sumStats(perFile)
 	for _, w := range cfg.Warnings() {
@@ -83,12 +98,24 @@ func runCoverage(o *coverageOpts, stdout, stderr io.Writer) error {
 	writeSummary(stderr, len(o.hars), &hs, ms)
 	writeUnmatched(stderr, ms.unmatchedX)
 	if len(obs) == 0 {
-		return inputErr(errors.New("no recorded request matched the spec (check --base-path and --spec)"))
+		return nil, inputErr(errors.New("no recorded request matched the spec (check --base-path and --spec)"))
 	}
 
 	objects := classify(cfg, obs)
 	allows := suspicious.Find(obs)
 	m := matrix.BuildWith(endpoints, obs, cfg.HasTenants(), matrix.Options{Strict: o.strict})
+	return &analysis{cfg: cfg, ws: ws, endpoints: endpoints, obs: obs, objects: objects, allows: allows,
+		m: m, ms: ms, choices: choices, perFile: perFile}, nil
+}
+
+// runCoverage executes the whole offline pipeline, writes the table to stdout
+// and (unless --out is empty) coverage.json to the output directory.
+func runCoverage(o *coverageOpts, stdout, stderr io.Writer) error {
+	a, err := analyze(o, stderr)
+	if err != nil {
+		return err
+	}
+	cfg, m, obs, objects, allows, ms, choices, perFile, ws := a.cfg, a.m, a.obs, a.objects, a.allows, a.ms, a.choices, a.perFile, a.ws
 	if o.out != "" {
 		in, err := reportInput(o, cfg, m, obs, objects, allows, ms, choices, perFile)
 		if err != nil {

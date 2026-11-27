@@ -1,0 +1,118 @@
+{
+  "plan_version": 1,
+  "tool": {
+    "name": "authzcov",
+    "version": "dev",
+    "commit": ""
+  },
+  "generated_at": "2026-01-01T00:00:00Z",
+  "source": {
+    "coverage_sha256": "204a681d25a2c10d01a40f15ed1ea0ff33d2289eaa25fd35cea1eea07ab1bdf9",
+    "generated_at": "2026-01-01T00:00:00Z"
+  },
+  "contains_raw_ids": false,
+  "probes": [
+    {
+      "id": "949976a912350361",
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "method": "GET",
+      "path_template": "/orgs/{orgId}/projects",
+      "relationship": "owner",
+      "attacker": null,
+      "object": {
+        "resource": "orgs",
+        "param": "orgId"
+      },
+      "expect": "allow",
+      "note": "no object with a known owner was seen for this resource"
+    },
+    {
+      "id": "b7f5ee44b288bc5d",
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "method": "GET",
+      "path_template": "/orgs/{orgId}/projects",
+      "relationship": "same_role_other_user",
+      "attacker": null,
+      "object": {
+        "resource": "orgs",
+        "param": "orgId"
+      },
+      "expect": "deny",
+      "note": "no object with a known owner was seen for this resource"
+    },
+    {
+      "id": "3a55bf8ef2d16c21",
+      "endpoint": "GET /orgs/{orgId}/projects",
+      "method": "GET",
+      "path_template": "/orgs/{orgId}/projects",
+      "relationship": "anonymous",
+      "attacker": {
+        "identity": "anonymous",
+        "role": "anonymous"
+      },
+      "object": {
+        "resource": "orgs",
+        "param": "orgId"
+      },
+      "expect": "deny"
+    },
+    {
+      "id": "1f8407c39c72ff64",
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "method": "POST",
+      "path_template": "/orgs/{orgId}/projects",
+      "relationship": "owner",
+      "attacker": null,
+      "object": {
+        "resource": "orgs",
+        "param": "orgId"
+      },
+      "expect": "allow",
+      "note": "no object with a known owner was seen for this resource"
+    },
+    {
+      "id": "15f552b86c4d338a",
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "method": "POST",
+      "path_template": "/orgs/{orgId}/projects",
+      "relationship": "same_role_other_user",
+      "attacker": null,
+      "object": {
+        "resource": "orgs",
+        "param": "orgId"
+      },
+      "expect": "deny",
+      "note": "no object with a known owner was seen for this resource"
+    },
+    {
+      "id": "dc134b8514f5934f",
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "method": "POST",
+      "path_template": "/orgs/{orgId}/projects",
+      "relationship": "other_tenant",
+      "attacker": null,
+      "object": {
+        "resource": "orgs",
+        "param": "orgId"
+      },
+      "expect": "deny",
+      "note": "no object with a known owner was seen for this resource"
+    },
+    {
+      "id": "ef8670e69631a96e",
+      "endpoint": "POST /orgs/{orgId}/projects",
+      "method": "POST",
+      "path_template": "/orgs/{orgId}/projects",
+      "relationship": "anonymous",
+      "attacker": {
+        "identity": "anonymous",
+        "role": "anonymous"
+      },
+      "object": {
+        "resource": "orgs",
+        "param": "orgId"
+      },
+      "expect": "deny"
+    }
+  ]
+}

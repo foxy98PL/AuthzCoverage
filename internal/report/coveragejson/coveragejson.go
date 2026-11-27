@@ -545,3 +545,8 @@ func summary(m *matrix.Matrix, in Input) Summary {
 	}
 	return s
 }
+
+// ObjectHash is the id_hash of an object: the first 8 hex of SHA-256 of
+// "resource/id". Callers that hold a raw ID (an opt-in re-run of the pipeline)
+// use it to match coverage.json objects; the raw ID itself is never written.
+func ObjectHash(resource, id string) string { return hashHex(resource+"/"+id, objectHashHex) }
