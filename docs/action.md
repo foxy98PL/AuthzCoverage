@@ -8,6 +8,7 @@ permissions:
 steps:
   - uses: actions/checkout@<sha>
   # ... run your tests and record a HAR (never commit it) ...
+  - uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
   - uses: foxy98PL/AuthzCoverage@v0
     with:
       spec: openapi.yaml
@@ -18,10 +19,15 @@ steps:
 ```
 
 The action downloads the release archive, checks it against `checksums.txt` before extracting
-anything, verifies the cosign signature of `checksums.txt` when `cosign` is on `PATH` (otherwise it
-prints a notice; install it with `sigstore/cosign-installer`), runs `coverage`, writes the Markdown
+anything, verifies the cosign signature of `checksums.txt` when `cosign` is on `PATH`, runs `coverage`, writes the Markdown
 report to the job summary, optionally uploads SARIF, and runs `gate` last so a failing gate does not
 hide the report. Pin the action to a commit SHA for the strongest guarantee.
+
+With cosign installed (the `sigstore/cosign-installer` step above), the signature of the checksum
+file is verified. Without it, only the checksum is checked: that protects against corruption, not
+against a tampered release, and the action prints a notice. Signature verification pins the
+identity to `foxy98PL/AuthzCoverage`'s release workflow, so a fork that publishes its own releases
+must change it (until then verification fails closed).
 
 ## Inputs
 
@@ -46,6 +52,7 @@ hide the report. Pin the action to a commit SHA for the strongest guarantee.
 | `coverage-percent` | required-cell coverage, e.g. `36.4` |
 | `gaps` | number of uncovered required cells |
 | `report-dir` | directory holding `coverage.json` |
+| `gate-result` | `pass`, `fail` (regression found) or `error` (gate could not run); empty when no `baseline` is set. Written before the step exits non-zero, so it is usable with `continue-on-error` |
 
 ## Permissions
 
@@ -56,3 +63,8 @@ themselves stay offline. Inputs reach scripts only through environment variables
 interpolation into shell code.
 
 Runners need `bash`, `curl`, `jq` and `tar` (`unzip` on Windows); GitHub-hosted runners have them.
+
+## Not yet tested
+
+The self-test workflow exercises the action in `version: source` mode only. The download, checksum
+and cosign path is covered only after the first release is published.

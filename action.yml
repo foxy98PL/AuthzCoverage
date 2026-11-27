@@ -41,6 +41,9 @@ inputs:
     default: ${{ github.token }}
 
 outputs:
+  gate-result:
+    description: "Gate outcome: pass, fail (regression found) or error (gate could not run). Empty when no baseline is set."
+    value: ${{ steps.gate.outputs.gate-result }}
   coverage-percent:
     description: Required-cell coverage in percent.
     value: ${{ steps.summary.outputs.coverage-percent }}
@@ -81,10 +84,12 @@ runs:
           tag=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$repo/releases/latest" | jq -r .tag_name)
         fi
-        case "$tag" in
-          v[0-9]*) ;;
-          *) echo "::error::cannot resolve authzcov version from '$VERSION' (got '$tag')"; exit 1 ;;
-        esac
+        # Strict semver tag, for a user-given version and for one resolved from the API alike.
+        # The value is never echoed (it could carry workflow commands).
+        re='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+        if ! [[ "$tag" =~ $re ]]; then
+          echo "::error::invalid version/tag: expected latest, source or a tag like v1.2.3"; exit 1
+        fi
         ver="${tag#v}"
         ext=tar.gz; [ "$os" = windows ] && ext=zip
         archive="authzcov_${ver}_${os}_${arch}.${ext}"
@@ -113,7 +118,7 @@ runs:
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             checksums.txt
         else
-          echo "::notice::cosign not found on PATH; the checksums.txt signature was not verified (checksum was)."
+          echo "::notice::cosign not found on PATH: only the checksum was verified (protects against corruption, not a tampered release). Add sigstore/cosign-installer before this step to verify the signature."
         fi
 
         # 3. Only now extract.
@@ -164,8 +169,8 @@ runs:
         set -euo pipefail
         "$BIN" report --format markdown --in "$OUT_DIR/coverage.json" >> "$GITHUB_STEP_SUMMARY"
         {
-          echo "coverage-percent=$(jq -r '.summary.percent' "$OUT_DIR/coverage.json")"
-          echo "gaps=$(jq -r '.summary.gaps' "$OUT_DIR/coverage.json")"
+          echo "coverage-percent=$(jq -er '.summary.percent' "$OUT_DIR/coverage.json")"
+          echo "gaps=$(jq -er '.summary.gaps' "$OUT_DIR/coverage.json")"
           echo "report-dir=$OUT_DIR"
         } >> "$GITHUB_OUTPUT"
 
@@ -187,6 +192,7 @@ runs:
         category: authzcov
 
     - name: Gate against baseline
+      id: gate
       if: inputs.baseline != ''
       shell: bash
       env:
@@ -202,4 +208,11 @@ runs:
         if [ -n "$WAIVERS" ]; then args+=(--waivers "$WAIVERS"); fi
         if [ -n "$FAIL_ON" ]; then args+=(--fail-on "$FAIL_ON"); fi
         if [ -n "$MAX_DROP" ]; then args+=(--max-drop "$MAX_DROP"); fi
-        "$BIN" "${args[@]}"
+        rc=0
+        "$BIN" "${args[@]}" || rc=$?
+        case "$rc" in
+          0) echo "gate-result=pass" >> "$GITHUB_OUTPUT" ;;
+          1) echo "gate-result=fail" >> "$GITHUB_OUTPUT" ;;
+          *) echo "gate-result=error" >> "$GITHUB_OUTPUT" ;;
+        esac
+        exit "$rc"

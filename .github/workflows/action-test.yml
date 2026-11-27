@@ -58,6 +58,7 @@ jobs:
           test -f .authzcov/baseline.json
 
       - name: Gate passes against its own baseline
+        id: passing
         uses: ./
         with:
           version: source
@@ -97,4 +98,9 @@ jobs:
       - name: Assert the gate failed
         env:
           OUTCOME: ${{ steps.failing.outcome }}
-        run: test "$OUTCOME" = failure
+          FAIL_RESULT: ${{ steps.failing.outputs.gate-result }}
+          PASS_RESULT: ${{ steps.passing.outputs.gate-result }}
+        run: |
+          test "$OUTCOME" = failure
+          test "$FAIL_RESULT" = fail || { echo "failing gate-result=$FAIL_RESULT, want fail"; exit 1; }
+          test "$PASS_RESULT" = pass || { echo "passing gate-result=$PASS_RESULT, want pass"; exit 1; }

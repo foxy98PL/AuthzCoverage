@@ -82,10 +82,13 @@ authzcov report --format sarif --in authzcov-out/coverage.json > authzcov.sarif
 `--max-drop` tune this). Accepted gaps go in `.authzcov/waivers.yaml`. Upload the SARIF file with
 GitHub code scanning.
 
-Or use the GitHub Action, which verifies the release checksum (and the cosign signature when
-`cosign` is installed), writes the report to the job summary and runs the gate:
+Or use the GitHub Action, which verifies the release checksum, writes the report to the job summary
+and runs the gate. With `sigstore/cosign-installer` before it, the checksum file's signature is
+verified too; without cosign only the checksum is checked (protects against corruption, not a
+tampered release):
 
 ```yaml
+- uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
 - uses: foxy98PL/AuthzCoverage@v0
   with:
     spec: openapi.yaml

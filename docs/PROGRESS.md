@@ -168,6 +168,11 @@ waiting for mitmproxy and a real run.
 - `authzcov version` prints `authzcov <v> (commit <c>)`. README verify commands; `docs/releasing.md` (rc tag first).
 - Verified locally: goreleaser check, snapshot → 6 archives, actionlint. Signing/SBOM/attestation only verifiable on a real tag (owner approval).
 
+## KAN-26 — composite GitHub Action (In Review)
+- Root `action.yml` (`uses: foxy98PL/AuthzCoverage@v0`): resolve release → download archive + checksums.txt + bundle → checksum verified before extraction → cosign verify-blob when cosign on PATH (else notice) → coverage → Markdown to job summary, outputs coverage-percent/gaps/report-dir → optional SARIF upload (codeql-action v4.39.5) → gate last.
+- `version: source` builds from the action checkout; `.github/workflows/action-test.yml` runs it on tenantshop: outputs 36.4 / 21, passing gate, deliberately failing gate (outcome failure).
+- All inputs via env (no `${{ }}` in run:). Download path + `v0` moving tag only testable after the first release.
+
 ## Decisions made during implementation (review these)
 1. Non-bearer credentials (Basic, cookie, API key) → identity unknown, never anonymous.
 2. Request/response JSON bodies are scrubbed of password/token/secret fields at ingest.
