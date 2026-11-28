@@ -22,7 +22,7 @@ Binding. Measurements behind each rule: `.claude/delegation-rationale.md` (grep 
 ## 1. Agent choice
 
 - Lean agents in `.claude/agents/`: `implementer`, `fixer` (Sonnet), `validator` (Sonnet), `reviewer` (Sonnet), `jira` (Haiku),
-  `advisor` (Opus, §0 questions only). Never `general-purpose` for work a lean agent covers.
+  `advisor` (Opus, §0 questions only), `planner` (Opus, via `/planner`: writes `docs/sessions/`). Never `general-purpose` for work a lean agent covers.
 - Run `make check` / `go test` **yourself** (the hook keeps output short). Use `validator` only for long or noisy
   runs: fuzz, eval, determinism diffs, multi-command scans.
 - `subagent_type: fork` only when the task needs the whole conversation. Never fork to implement, fix or review.

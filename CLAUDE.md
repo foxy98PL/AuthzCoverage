@@ -2,7 +2,9 @@
 
 ## Main session (orchestrator) only — subagents skip this section
 Start by reading the newest progress shard (`ls docs/progress/2*.md | tail -1`) and `.claude/delegation-rules.md`
-(binding: models, agents, prompts, Jira, restarts). Grep `docs/PLAN.md` for decisions on demand; don't read it whole.
+(binding: models, agents, prompts, Jira, restarts), then pick up the next planned session: the first
+`docs/sessions/session*.md` in `sort -V` order whose Status isn't `done` (rules: `docs/sessions/README.md`).
+Grep `docs/PLAN.md` for decisions on demand; don't read it whole. `/planner` (Opus) writes the session plans.
 The orchestrator plans, writes contracts, updates Jira and docs; lean agents in `.claude/agents/` implement,
 review and validate.
 
