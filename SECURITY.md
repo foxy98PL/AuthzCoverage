@@ -1,7 +1,7 @@
 # Security Policy
 
-AuthzCoverage is pre-release (v0.1.0-rc.2 is the latest tag). Only the latest
-release and the `main` branch are supported.
+AuthzCoverage is pre-release. Only the latest release (see the GitHub releases page) and the `main` branch
+are supported.
 
 ## Reporting a vulnerability
 
