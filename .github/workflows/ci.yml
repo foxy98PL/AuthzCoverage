@@ -87,7 +87,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - run: make fuzz FUZZTIME=10s
+      - run: make fuzz FUZZTIME=30s
   fixturecheck:
     runs-on: ubuntu-latest
     timeout-minutes: 5
