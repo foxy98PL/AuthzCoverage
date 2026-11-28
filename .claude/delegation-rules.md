@@ -15,9 +15,8 @@ Binding. Measurements behind each rule: `.claude/delegation-rationale.md` (grep 
 - **Review:** when a ticket goes In Review, append a row to `docs/REVIEW_QUEUE.md` and start a background
   `reviewer` (Sonnet, owner change 2026-11-28); the next ticket continues meanwhile. One reviewer pass, then one
   `fixer` for all findings F1…Fn; no second round. Leftover lows go to the Jira comment.
-- **Skip the reviewer** for trivial tickets: config, docs, CI or message-text changes under ~30 changed lines
-  outside 🔒 packages. Green `make check` + the orchestrator's own `git diff` look closes them; note "no agent
-  review (trivial)" in the Jira comment.
+- **Review every code change**, however small (owner 2026-11-29). Only docs-only commits skip the reviewer; note
+  "no agent review (docs)" in the Jira comment.
 
 ## 1. Agent choice
 

@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"go.yaml.in/yaml/v3"
 )
 
 const recipeOK = `
@@ -213,5 +215,77 @@ func TestProbeTokenEnvs(t *testing.T) {
 	}
 	if strings.Contains(fmt.Sprintf("%+v", *f), val) {
 		t.Fatal("value leaked")
+	}
+}
+
+// KAN-39b F1: the ambiguity error wins even when the env var is unset.
+func TestLoginRecipeWithTokenEnvUnsetStillAmbiguous(t *testing.T) {
+	t.Setenv("RCP_USER", "bob")
+	t.Setenv("RCP_PASS", "x")
+	y := strings.Replace(withRecipe(recipeOK), "match: {jwt: {sub: bob}}", "match: {token_env: RCP_TOK_UNSET_F1}", 1)
+	_, err := Parse([]byte(y), "x.yaml")
+	if err == nil || !strings.Contains(err.Error(), "login_recipe and match.token_env") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// KAN-39b F2: alias and merge-key forms of match must not bypass the check.
+func TestLoginRecipeWithTokenEnvViaAliasOrMerge(t *testing.T) {
+	t.Setenv("RCP_USER", "bob")
+	t.Setenv("RCP_PASS", "x")
+	t.Setenv("RCP_TOK", "tok")
+	for name, bobMatch := range map[string]string{
+		"alias":      "match: *m",
+		"merge":      "match: {<<: *m}",
+		"merge-list": "match: {<<: [*m]}",
+	} {
+		y := strings.Replace(withRecipe(recipeOK), "match: {jwt: {sub: bob}}", bobMatch, 1)
+		y = strings.Replace(y, "match: {jwt: {sub: alice}}", "match: &m {token_env: RCP_TOK}", 1)
+		// Parse rejects anchors/aliases outright, so this must fail either way
+		// (defence in depth: hasKey is also tested directly below).
+		if _, err := Parse([]byte(y), "x.yaml"); err == nil {
+			t.Errorf("%s: parsed without error", name)
+		}
+	}
+}
+
+func TestHasKeyFollowsAliasAndMerge(t *testing.T) {
+	var doc yaml.Node
+	src := "a: &m {token_env: X}\nb: *m\nc: {<<: *m}\nd: {<<: [*m]}\ne: {jwt: 1}\n"
+	if err := yaml.Unmarshal([]byte(src), &doc); err != nil {
+		t.Fatal(err)
+	}
+	m := doc.Content[0]
+	get := func(k string) *yaml.Node {
+		for i := 0; i+1 < len(m.Content); i += 2 {
+			if m.Content[i].Value == k {
+				return m.Content[i+1]
+			}
+		}
+		return nil
+	}
+	for k, want := range map[string]bool{"a": true, "b": true, "c": true, "d": true, "e": false} {
+		if got := hasKey(get(k), "token_env"); got != want {
+			t.Errorf("%s: hasKey = %v want %v", k, got, want)
+		}
+	}
+}
+
+// KAN-39b F3: a canary env value must appear in no exposed field.
+func TestProbeTokenEnvsCanaryNotExposed(t *testing.T) {
+	const val = "canary-env-value-9f3a"
+	t.Setenv("AUTHZCOV_TEST_TOK", val)
+	y := strings.Replace(base, "match: {jwt: {sub: bob}}", "match: {token_env: AUTHZCOV_TEST_TOK}", 1)
+	f, err := Parse([]byte(y), "x.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{fmt.Sprintf("%+v", *f), fmt.Sprintf("%#v", *f), fmt.Sprintf("%#v", f.ProbeTokenEnvs()), fmt.Sprintf("%#v", f.Identities)} {
+		if strings.Contains(s, val) {
+			t.Fatalf("env value leaked: %.80s", s)
+		}
+	}
+	if envs := f.ProbeTokenEnvs(); envs["bob"] != "AUTHZCOV_TEST_TOK" {
+		t.Fatalf("envs = %v", envs)
 	}
 }

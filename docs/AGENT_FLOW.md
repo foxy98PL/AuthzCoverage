@@ -16,7 +16,7 @@ The orchestrator (Sonnet) repeats this loop for each ticket.
 ```mermaid
 flowchart TD
     I["1. implementer (Sonnet)<br/>writes the code"] --> C["2. orchestrator<br/>runs make check"]
-    C --> T{"3. trivial ticket?<br/>under ~30 lines, outside 🔒 packages"}
+    C --> T{"3. docs-only change?"}
     T -- yes --> K
     T -- no --> R["reviewer (Sonnet, background)<br/>writes notes/KEY-review.md"]
     R --> F{findings?}
@@ -33,7 +33,7 @@ Dashed boxes are optional: they run only when their condition is met.
 ```mermaid
 flowchart TD
     I["1. implementer"] --> C["2. make check"]
-    C --> T{"3. trivial?"}
+    C --> T{"3. docs-only?"}
     T -- yes --> K
     T -- no --> R["reviewer"]
     R --> F{findings?}
@@ -64,7 +64,7 @@ sends the batched Jira updates and stops. You continue with `/resume`.
 
 ## Rules of thumb
 
-- Trivial work: do it inline, no agent.
+- Every code change gets a reviewer pass, however small.
 - Dependent steps: run in sequence. Parallel only for independent tickets in disjoint directories.
 - Prompts to agents: pointers only, at most ~1.5k tokens. Details go to `notes/`.
 - Agents never commit or push. Only the orchestrator does.

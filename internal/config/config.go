@@ -502,13 +502,13 @@ func (p *parser) identities(n *yaml.Node, roles map[string]int) ([]Identity, *Er
 				return nil, e
 			}
 		}
+		if lr := m["login_recipe"]; lr != nil && hasKey(m["match"], "token_env") {
+			return nil, p.err(lr, ip+".login_recipe", "give only one of login_recipe and match.token_env (ambiguous credential source)")
+		}
 		if e := p.match(m["match"], ip+".match", &id); e != nil {
 			return nil, e
 		}
 		if lr := m["login_recipe"]; lr != nil {
-			if hasKey(m["match"], "token_env") {
-				return nil, p.err(lr, ip+".login_recipe", "give only one of login_recipe and match.token_env (ambiguous credential source)")
-			}
 			if id.LoginRecipe, e = p.loginRecipe(lr, ip+".login_recipe"); e != nil {
 				return nil, e
 			}
@@ -1115,14 +1115,38 @@ func (f *File) Warnings() []string {
 	return out
 }
 
-// hasKey reports whether mapping node n has the given key.
+// hasKey reports whether mapping node n has the given key, following alias
+// nodes and merge keys (<<) so anchors cannot hide it.
 func hasKey(n *yaml.Node, key string) bool {
-	if n == nil || n.Kind != yaml.MappingNode {
+	return hasKeyDepth(n, key, 0)
+}
+
+func hasKeyDepth(n *yaml.Node, key string, depth int) bool {
+	if n == nil || depth > 8 {
+		return false
+	}
+	if n.Kind == yaml.AliasNode {
+		return hasKeyDepth(n.Alias, key, depth+1)
+	}
+	if n.Kind != yaml.MappingNode {
 		return false
 	}
 	for i := 0; i+1 < len(n.Content); i += 2 {
-		if n.Content[i].Value == key {
+		k := n.Content[i]
+		if k.Value == key {
 			return true
+		}
+		if k.Value == "<<" {
+			v := n.Content[i+1]
+			if v.Kind == yaml.SequenceNode {
+				for _, e := range v.Content {
+					if hasKeyDepth(e, key, depth+1) {
+						return true
+					}
+				}
+			} else if hasKeyDepth(v, key, depth+1) {
+				return true
+			}
 		}
 	}
 	return false
