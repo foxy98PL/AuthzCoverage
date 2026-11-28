@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -315,4 +316,31 @@ func FuzzExchanges(f *testing.F) {
 			_, _ = x, err
 		}
 	})
+}
+
+func TestQueryKeysKept(t *testing.T) {
+	const doc = `{"log":{"entries":[{"request":{"method":"GET","url":"https://h.example/items?uid=u1&access_token=SECRET&uid=u2&tag=a%2Cb","headers":[]},"response":{"status":200,"content":{}}}]}}`
+	o := opt()
+	o.QueryKeys = []string{"uid", "tag", "absent"}
+	var xs []*model.Exchange
+	for x, err := range har.Exchanges(strings.NewReader(doc), o, &har.Stats{}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		xs = append(xs, x)
+	}
+	if len(xs) != 1 {
+		t.Fatalf("got %d exchanges", len(xs))
+	}
+	want := map[string][]string{"uid": {"u1", "u2"}, "tag": {"a,b"}}
+	if !reflect.DeepEqual(xs[0].Query, want) {
+		t.Errorf("Query = %v, want %v", xs[0].Query, want)
+	}
+	if strings.Contains(fmt.Sprint(xs[0].Query), "SECRET") {
+		t.Error("undeclared query key retained")
+	}
+	xs2, _ := ingest(t, []byte(doc))
+	if xs2[0].Query != nil {
+		t.Errorf("no QueryKeys must keep nothing, got %v", xs2[0].Query)
+	}
 }

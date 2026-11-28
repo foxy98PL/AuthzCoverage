@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"authzcov/internal/basepath"
 	"authzcov/internal/config"
@@ -81,7 +82,7 @@ func analyze(o *coverageOpts, stderr io.Writer) (*analysis, error) {
 	resolver := newResolver(cfg)
 	extract := identity.NewExtractor(credSpecs(cfg))
 
-	exchanges, perFile, err := readHARsByFile(o.hars, extract)
+	exchanges, perFile, err := readHARsByFile(o.hars, extract, objectQueryKeys(endpoints)...)
 	if err != nil {
 		return nil, inputErr(err)
 	}
@@ -365,10 +366,17 @@ func applyOverrides(cfg *config.File, endpoints []*model.Endpoint) ([]*model.End
 		}
 		cp := *out[i]
 		if ov.ObjectParam != "" {
-			if !slices.Contains(cp.Params, ov.ObjectParam) {
-				return nil, fmt.Errorf("%s:%d: requirements.overrides: object_param %q is not a path parameter of %q (parameters: %s)",
-					cfg.Path, ov.Line, redact.StripControl(ov.ObjectParam), redact.StripControl(ov.Endpoint), strings.Join(cp.Params, ", "))
+			inPath := slices.Contains(cp.Params, ov.ObjectParam)
+			if !inPath && !slices.Contains(cp.QueryParams, ov.ObjectParam) {
+				return nil, fmt.Errorf("%s:%d: requirements.overrides: object_param %q is not a path parameter or a declared query parameter of %q (path parameters: %s; query parameters: %s)",
+					cfg.Path, ov.Line, redact.StripControl(ov.ObjectParam), redact.StripControl(ov.Endpoint),
+					redact.StripControl(strings.Join(cp.Params, ", ")), redact.StripControl(strings.Join(cp.QueryParams, ", ")))
 			}
+			if _, tenant := cfg.TenantParams[ov.ObjectParam]; tenant && !inPath {
+				return nil, fmt.Errorf("%s:%d: requirements.overrides: object_param %q is a query parameter and also listed in tenancy.tenant_params; tenant scoping applies only to path parameters",
+					cfg.Path, ov.Line, redact.StripControl(ov.ObjectParam))
+			}
+			cp.ObjectInQuery = !inPath
 			cp.ObjectParam = ov.ObjectParam
 			cp.Kind = model.ObjectLevel
 			cp.Resource = ""
@@ -389,7 +397,7 @@ func applyOverrides(cfg *config.File, endpoints []*model.Endpoint) ([]*model.End
 		out[i] = &cp
 	}
 	for i, e := range out {
-		if e.Kind != model.ObjectLevel || e.TenantScoped {
+		if e.Kind != model.ObjectLevel || e.TenantScoped || e.ObjectInQuery {
 			continue
 		}
 		if _, ok := cfg.TenantParams[e.ObjectParam]; ok {
@@ -422,6 +430,19 @@ func buildTrie(endpoints []*model.Endpoint, specPath string) (*match.Trie, map[s
 	return trie, byID, nil
 }
 
+// objectQueryKeys lists the query names that carry an object param, the only
+// query keys ingest keeps.
+func objectQueryKeys(eps []*model.Endpoint) []string {
+	var keys []string
+	for _, e := range eps {
+		if e.ObjectInQuery && !slices.Contains(keys, e.ObjectParam) {
+			keys = append(keys, e.ObjectParam)
+		}
+	}
+	slices.Sort(keys)
+	return keys
+}
+
 // readHARs reads every HAR file and accumulates one Stats.
 func readHARs(paths []string, extract har.Extractor, st *har.Stats) ([]*model.Exchange, error) {
 	xs, perFile, err := readHARsByFile(paths, extract)
@@ -433,10 +454,12 @@ func readHARs(paths []string, extract har.Extractor, st *har.Stats) ([]*model.Ex
 }
 
 // readHARsByFile reads every HAR file and returns one Stats per path.
-func readHARsByFile(paths []string, extract har.Extractor) ([]*model.Exchange, []har.Stats, error) {
+func readHARsByFile(paths []string, extract har.Extractor, queryKeys ...string) ([]*model.Exchange, []har.Stats, error) {
 	var all []*model.Exchange
 	perFile := make([]har.Stats, len(paths))
-	mk := func(label string) har.Options { return har.Options{Source: label, Extract: extract} }
+	mk := func(label string) har.Options {
+		return har.Options{Source: label, Extract: extract, QueryKeys: queryKeys}
+	}
 	for i, p := range paths {
 		for x, err := range har.ExchangesFromFile(p, mk, &perFile[i]) {
 			if err != nil {
@@ -558,9 +581,31 @@ func matchExchanges(xs []*model.Exchange, trie *match.Trie, byID map[string]*mod
 			}
 			ms.ambiguousBy[ep.ID]++
 		}
-		obs = append(obs, &model.Observation{X: x, Endpoint: ep, Params: res.Params})
+		params := res.Params
+		if ep.ObjectInQuery {
+			if v, ok := queryObjectValue(x, ep.ObjectParam); ok {
+				params[ep.ObjectParam] = v
+			}
+		}
+		obs = append(obs, &model.Observation{X: x, Endpoint: ep, Params: params})
 	}
 	return obs, ms
+}
+
+// queryObjectValue returns the object value of a query-bound object param.
+// It fails closed: the key must appear exactly once with a non-empty,
+// single plain value (no comma list, array syntax, whitespace or control chars); anything else is
+// unknown and never counts as covered.
+func queryObjectValue(x *model.Exchange, name string) (string, bool) {
+	vs := x.Query[name]
+	if len(vs) != 1 {
+		return "", false
+	}
+	v := vs[0]
+	if v == "" || strings.ContainsAny(v, ",[]") || strings.IndexFunc(v, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) >= 0 {
+		return "", false
+	}
+	return v, true
 }
 
 // classify runs ownership pass 1 (learn) and pass 2 (owner + relationship)

@@ -27,6 +27,9 @@ type Extractor func(lookup func(name string) []string) model.Credential
 type Options struct {
 	Source  string    // label used in Exchange.Source, normally the HAR file's base name
 	Extract Extractor // required
+	// QueryKeys are the only query parameter names kept in Exchange.Query;
+	// everything else in the query string is dropped (it may hold tokens).
+	QueryKeys []string
 }
 
 // Stats counts what ingest kept and dropped.
@@ -247,6 +250,7 @@ func (s *stream) convert(e *entry, idx int) *model.Exchange {
 	}
 	s.st.Kept++
 	return &model.Exchange{
+		Query:    pickQuery(u.RawQuery, s.opt.QueryKeys),
 		Source:   fmt.Sprintf("%s#%d", s.opt.Source, idx),
 		Method:   method,
 		Host:     u.Host,
@@ -302,6 +306,28 @@ func (s *stream) jsonBody(mime, text string, b64 bool) []byte {
 	out, err := redact.JSON(body)
 	if err != nil {
 		return nil
+	}
+	return out
+}
+
+// pickQuery decodes raw and returns the values of the wanted keys only. A
+// malformed query yields nothing (fail closed to unknown).
+func pickQuery(raw string, keys []string) map[string][]string {
+	if raw == "" || len(keys) == 0 {
+		return nil
+	}
+	q, err := url.ParseQuery(raw)
+	if err != nil {
+		return nil
+	}
+	var out map[string][]string
+	for _, k := range keys {
+		if v, ok := q[k]; ok {
+			if out == nil {
+				out = map[string][]string{}
+			}
+			out[k] = v
+		}
 	}
 	return out
 }

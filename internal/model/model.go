@@ -42,15 +42,22 @@ func (k EndpointKind) String() string {
 
 // Endpoint is one OpenAPI operation.
 type Endpoint struct {
-	ID          string // "GET /books/v1/{book_title}"
-	Method      string // upper-case
-	Template    string // path template as written in the spec
-	Params      []string
+	ID       string // "GET /books/v1/{book_title}"
+	Method   string // upper-case
+	Template string // path template as written in the spec
+	Params   []string
+	// QueryParams are the declared in:query parameter names (path item and
+	// operation level), sorted.
+	QueryParams []string
 	ObjectParam string // last path param; "" => FunctionLevel
 	Resource    string // literal segment before ObjectParam, as written
-	Kind        EndpointKind
-	SpecFile    string
-	SpecLine    int // line of the path key; 0 if unknown
+	// ObjectInQuery is true when ObjectParam is a declared query parameter
+	// (requirements.overrides) instead of a path parameter. Its value comes
+	// from the request query only when exactly one plain value is present.
+	ObjectInQuery bool
+	Kind          EndpointKind
+	SpecFile      string
+	SpecLine      int // line of the path key; 0 if unknown
 
 	// AuthRequired is true when the operation's effective OpenAPI security
 	// requires authentication (operation security overrides the global one;
@@ -95,6 +102,9 @@ type Exchange struct {
 	Status   int
 	ReqJSON  []byte
 	RespJSON []byte
+	// Query holds the decoded values of the query keys named in
+	// har.Options.QueryKeys only (every other key is dropped at ingest).
+	Query map[string][]string
 }
 
 // Relationship between caller and object owner (or minimum allowed role).

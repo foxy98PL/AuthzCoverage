@@ -9,8 +9,9 @@
 #   category: documented | undocumented | control | quirk | non_authz | query_param
 #     documented   a crAPI challenge (docs/challenges.md) that is a path-parameter authorization failure
 #     undocumented real authorization failure found by reading the source
-#     query_param  BOLA/BFLA where the object is addressed by a query parameter: authzcov only analyses path
-#                  parameters, so a miss is expected (counted as fn, honestly)
+#     query_param  BOLA/BFLA where the object is addressed by a query parameter. Since KAN-104 an operator can
+#                  name it with requirements.overrides[].object_param, but the miss stays expected (counted as fn)
+#                  until a crAPI run confirms detection; only then flip it to an expected true positive
 #     control      forbidden for the caller in crAPI (a flag here is a false positive)
 #     quirk        2xx that is not an authorization failure (a flag here is a false positive)
 #     non_authz    other crAPI challenge classes (injection, SSRF, JWT, mass assignment, rate limit, LLM): out of scope
@@ -73,7 +74,7 @@
   probe: users_all_user
   source: WS/user/views.py:AdminUserView.get (only @jwt_auth_required, no role check). Function-level: no object parameter; identities.yaml declares min_role admin for it (operator-declared policy, not learned), so alice's 2xx is a lower_role suspicious_allow (expected true positive).
 
-# ---- Query-parameter BOLA: expected misses -----------------------------------
+# ---- Query-parameter BOLA: expected misses (KAN-104 adds object_param on in:query; flip after a crAPI run) ----
 - id: CRAPI-C2-REPORT
   name: Challenge 2, BOLA - mechanic report of another user (report_id query parameter)
   category: query_param

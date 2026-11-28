@@ -99,6 +99,7 @@ func endpoints(doc *openapi3.T, data []byte, path string) ([]*model.Endpoint, er
 			}
 			seen[key] = tmpl
 			ep := newEndpoint(method, tmpl, params, path, lines[tmpl])
+			ep.QueryParams = queryParams(item, op)
 			ep.AuthRequired = authRequired(doc.Security, op.Security)
 			eps = append(eps, ep)
 		}
@@ -189,4 +190,27 @@ func authRequired(global openapi3.SecurityRequirements, op *openapi3.SecurityReq
 		}
 	}
 	return true
+}
+
+// queryParams returns the sorted names of the in:query parameters declared
+// on the path item or the operation (the operation wins on a name clash, but
+// only the name matters here).
+func queryParams(item *openapi3.PathItem, op *openapi3.Operation) []string {
+	set := map[string]bool{}
+	for _, ps := range []openapi3.Parameters{item.Parameters, op.Parameters} {
+		for _, p := range ps {
+			if p != nil && p.Value != nil && p.Value.In == openapi3.ParameterInQuery && p.Value.Name != "" {
+				set[p.Value.Name] = true
+			}
+		}
+	}
+	if len(set) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(set))
+	for n := range set {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
 }

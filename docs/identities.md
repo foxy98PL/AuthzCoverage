@@ -154,6 +154,30 @@ names the exact endpoint ID and the path parameter that addresses the object
 instead; its resource becomes the literal segment before that parameter. An
 unknown endpoint or parameter is an error (exit 2).
 
+`object_param` may also name an `in: query` parameter declared in the spec
+(path item or operation level), e.g. `GET /mechanic_report?report_id=...`:
+
+```yaml
+requirements:
+  overrides:
+    - {endpoint: "GET /workshop/api/mechanic/mechanic_report", object_param: report_id}
+```
+
+The endpoint becomes object-level and is treated exactly like a path object
+parameter (same owner learning, confidence rules, `resources` and
+`ownership.self_params`). It has no resource segment, so map the parameter in
+`resources` to give it one. A name that is neither a declared path nor a
+declared query parameter is an error listing both sets (exit 2). If a path and
+a query parameter share the name, the path parameter wins. A query object
+parameter is never tenant-scoped.
+
+The query value fails closed to unknown (it never counts as covered) unless
+the key appears exactly once with a single, non-empty plain value. A repeated
+key, an empty value, a comma list (`ids=1,2`, also `%2C`), array syntax
+(`ids[]=1`, `ids[0]=1`) or a missing key give no object value. Only the
+declared object keys are read from the query at ingest; every other query
+parameter (tokens included) is dropped, and the value is never printed.
+
 `min_role` declares the lowest role allowed to call an endpoint:
 
 ```yaml

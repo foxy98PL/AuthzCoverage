@@ -2,6 +2,7 @@ package spec
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -203,5 +204,45 @@ func TestAuthRequired(t *testing.T) {
 				t.Fatalf("AuthRequired = %v, want %v", eps[0].AuthRequired, tc.want)
 			}
 		})
+	}
+}
+
+func TestQueryParamsRecorded(t *testing.T) {
+	const doc = `openapi: 3.0.3
+info: {title: q, version: "1"}
+paths:
+  /items/{id}:
+    parameters:
+      - {name: shared, in: query, schema: {type: string}}
+      - {name: hdr, in: header, schema: {type: string}}
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      parameters:
+        - {name: uid, in: query, schema: {type: string}}
+      responses: {"200": {description: ok}}
+    delete:
+      responses: {"200": {description: ok}}
+`
+	p := filepath.Join(t.TempDir(), "s.yml")
+	if err := os.WriteFile(p, []byte(doc), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	eps, err := Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string][]string{}
+	for _, e := range eps {
+		got[e.ID] = e.QueryParams
+		if !reflect.DeepEqual(e.Params, []string{"id"}) || e.ObjectParam != "id" {
+			t.Errorf("%s: path params changed: %v %q", e.ID, e.Params, e.ObjectParam)
+		}
+	}
+	want := map[string][]string{
+		"GET /items/{id}":    {"shared", "uid"},
+		"DELETE /items/{id}": {"shared"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("QueryParams = %v, want %v", got, want)
 	}
 }
