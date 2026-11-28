@@ -18,7 +18,7 @@ MCP/agent listings); a "reply OK" agent costs 34.6k. Everything above the floor 
   Haiku reviewer flags a security finding it cannot settle. Write the question with options to
   `notes/<KEY>-opus.md`, then launch a fresh `general-purpose` agent with `model: opus` pointed at it
   (~35k + the note, never an Opus orchestrator), or hand it to the owner.
-- **Restart at ~100k** orchestrator tokens (the context hook warns you): write a new progress shard
+- **Restart at ~150k** orchestrator (warn at 120k; owner decision 2026-11-28, subagents keep 100k) tokens (the context hook warns you): write a new progress shard
   (`docs/progress/README.md`), do the batched Jira updates (§8), tell the owner, stop. Local-only details
   (agent IDs, scratch paths) go to `notes/orchestrator-state.md`. A reload costs ~45k; every call after it
   is cheaper.
@@ -114,5 +114,5 @@ the turns left in the session. Measured 2026-11-27: 4 Opus orchestrator sessions
 - `.claude/hooks/trim-output.py` (PreToolUse Bash): an unpiped `go test …` or `make check|test|e2e|fuzz|eval…`
   is rewritten to keep failures and the last 40 lines; the exit code is preserved. Pipe or redirect the
   command yourself to opt out.
-- `.claude/hooks/context-warn.py` (PostToolUse): warns once at 80k, then every 20k from 100k on, with the current
-  context size. At the 100k warning, follow §0 (restart).
+- `.claude/hooks/context-warn.py` (PostToolUse): warns the orchestrator at 120k, then every 15k from 150k on (subagents: 80k, then every 20k from 100k), with the current
+  context size. At the 150k warning, follow §0 (restart).

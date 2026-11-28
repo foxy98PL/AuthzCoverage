@@ -18,4 +18,4 @@ Args = optional focus (e.g. "KAN-102", "only step 4"). Empty = follow the shard.
 4. Conventional Commits with the Jira key, co-author line. Push after the secrets/HAR scan only with owner approval
    in this session (auto-mode may deny it; then ask).
 5. Jira in one batch at the end: comment + transition 31 (W trakcie weryfikacji); Gotowe only when the parent AC is fully met.
-6. At ~100k context: write a new shard (decisions, done, next, waiting-on-owner, gotchas; no URLs), commit it, tell the owner, stop.
+6. At ~150k context (warning at 120k): write a new shard (decisions, done, next, waiting-on-owner, gotchas; no URLs), commit it, tell the owner, stop.

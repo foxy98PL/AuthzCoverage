@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PostToolUse: warn when the session's context passes 80k, then every 20k from 100k on.
+"""PostToolUse: warn when context passes 80k (orchestrator: 120k), then every 20k from 100k on (orchestrator: 15k from 150k).
 
 Reads the latest assistant usage from the transcript (tail only). Silent otherwise. One warning per
 threshold, tracked in a small state file per session/agent.
@@ -9,9 +9,13 @@ import os
 import sys
 import tempfile
 
+# Subagents: warn at 80k, restart/return at 100k. Orchestrator (owner decision 2026-11-28): warn 120k, restart 150k.
 FIRST = 80_000
 RESTART = 100_000
 STEP = 20_000
+O_FIRST = 120_000
+O_RESTART = 150_000
+O_STEP = 15_000
 
 
 def last_context(path: str) -> int:
@@ -41,10 +45,11 @@ def main() -> None:
     agent = data.get("agent_id") or ""
     path = data.get("agent_transcript_path") or ("" if agent else data.get("transcript_path") or "")
     ctx = last_context(path) if path else 0
-    if ctx < FIRST:
+    first, restart, step = (FIRST, RESTART, STEP) if agent else (O_FIRST, O_RESTART, O_STEP)
+    if ctx < first:
         print("{}")
         return
-    level = 0 if ctx < RESTART else 1 + (ctx - RESTART) // STEP
+    level = 0 if ctx < restart else 1 + (ctx - restart) // step
     key = f"{data.get('session_id', 'x')}-{agent or 'main'}".replace("/", "_")
     state = os.path.join(tempfile.gettempdir(), f"authzcov-ctx-{key}")
     try:
@@ -58,9 +63,9 @@ def main() -> None:
         f.write(str(level))
     who = "orchestrator" if not agent else "subagent"
     if level == 0:
-        msg = f"[context-warn] {who} context ≈{ctx // 1000}k. Plan to wrap up; restart point is ~100k."
+        msg = f"[context-warn] {who} context ≈{ctx // 1000}k. Plan to wrap up; restart point is ~{restart // 1000}k."
     else:
-        msg = (f"[context-warn] {who} context ≈{ctx // 1000}k (≥100k). Per .claude/delegation-rules.md §0: "
+        msg = (f"[context-warn] {who} context ≈{ctx // 1000}k (≥{restart // 1000}k). Per .claude/delegation-rules.md §0: "
                "finish the current step, write a new docs/progress shard, batch Jira, tell the owner, stop."
                if not agent else
                f"[context-warn] subagent context ≈{ctx // 1000}k. Finish the current step, write your notes "
