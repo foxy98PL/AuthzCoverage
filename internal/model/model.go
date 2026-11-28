@@ -1,6 +1,11 @@
 // Package model holds the structs shared by all pipeline stages. Stdlib only.
 package model
 
+import (
+	"slices"
+	"strconv"
+)
+
 // Confidence orders how sure we are about an identity or owner.
 // Order matters: ConfUnknown < ConfInferred < ConfLearned < ConfDeclared.
 type Confidence uint8
@@ -128,21 +133,74 @@ func Relationships() []Relationship {
 	}
 }
 
-// Observation is one classified exchange.
+// Observation is one classified exchange. Fields are ordered to keep the
+// struct small: a run holds one Observation per matched request.
 type Observation struct {
-	X         *Exchange
-	Endpoint  *Endpoint
-	Params    map[string]string
-	Identity  *Identity
+	// X may be shared between observations that agree on every field a later
+	// stage reads (see Source for the per-request source label).
+	X        *Exchange
+	Endpoint *Endpoint
+	Identity *Identity
+	Owner    *Identity
+	// Params holds the parameter values, parallel to Endpoint.Params (plus the
+	// query-bound object parameter last, when the endpoint has one that is
+	// not a path parameter). "" means the request did not bind it. Read it
+	// with Param.
+	Params []string
+	Rel    Relationship
+	// ObjectTenant is that tenant value (set only with ObjectTenantKnown).
+	ObjectTenant string
+	// SrcLabel and SrcIdx rebuild the "file.har#index" source when X is shared
+	// (nil SrcLabel means use X.Source); SrcIdx < 0 means the label alone.
+	SrcLabel  *string
+	SrcIdx    int32
 	IDConf    Confidence
-	Owner     *Identity
 	OwnerConf Confidence
-	Rel       Relationship
 	// ObjectTenantKnown is true when the object's tenant came from a tenant
 	// path parameter, so other_tenant needs no known owner.
 	ObjectTenantKnown bool
-	// ObjectTenant is that tenant value (set only with ObjectTenantKnown).
-	ObjectTenant string
+}
+
+// ParamCount is the number of values an observation of ep carries.
+func ParamCount(ep *Endpoint) int {
+	n := len(ep.Params)
+	if ep.ObjectInQuery && !slices.Contains(ep.Params, ep.ObjectParam) {
+		n++
+	}
+	return n
+}
+
+// Param returns the value of the named parameter, or "".
+func (o *Observation) Param(name string) string {
+	if o.Endpoint == nil {
+		return ""
+	}
+	if i := slices.Index(o.Endpoint.Params, name); i >= 0 {
+		if i < len(o.Params) {
+			return o.Params[i]
+		}
+		return ""
+	}
+	if o.Endpoint.ObjectInQuery && name == o.Endpoint.ObjectParam {
+		if i := len(o.Endpoint.Params); i < len(o.Params) {
+			return o.Params[i]
+		}
+	}
+	return ""
+}
+
+// Source returns the "file.har#index" label of the request, or "".
+func (o *Observation) Source() string {
+	if o.SrcLabel != nil {
+		if o.SrcIdx < 0 {
+			return *o.SrcLabel
+		}
+		return *o.SrcLabel + "#" + strconv.Itoa(int(o.SrcIdx))
+	}
+	if o.X != nil {
+		return o.X.Source
+	}
+	return ""
 }
 
 // CoverageCell is one endpoint x relationship cell of the matrix.

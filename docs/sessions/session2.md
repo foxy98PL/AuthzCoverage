@@ -1,5 +1,5 @@
 # Session 2 — Bounded memory in the coverage pipeline
-Status: planned
+Status: active
 Budget: ~65k of ~100k
 Depends on: session 1 (done, a9a563b: KAN-104 landed; replanned 2026-11-28 for its effects, see Replan note)
 

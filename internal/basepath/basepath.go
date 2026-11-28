@@ -28,15 +28,33 @@ type reqKey struct{ method, path string }
 // remaining path gets a match Op. Ties: shortest prefix, then lexicographic.
 // Hosts are sorted. The result does not depend on exchange order.
 func Detect(xs []*model.Exchange, t *match.Trie) []Choice {
-	byHost := map[string]map[reqKey]int{}
+	c := NewCounter()
 	for _, x := range xs {
-		m := byHost[x.Host]
-		if m == nil {
-			m = map[reqKey]int{}
-			byHost[x.Host] = m
-		}
-		m[reqKey{strings.ToUpper(x.Method), x.Path}]++
+		c.Add(x.Host, x.Method, x.Path)
 	}
+	return c.Choices(t)
+}
+
+// Counter accumulates the (host, method, path) multiset Detect works on, so a
+// caller that streams requests need not build exchanges first.
+type Counter struct{ byHost map[string]map[reqKey]int }
+
+// NewCounter returns an empty Counter.
+func NewCounter() *Counter { return &Counter{byHost: map[string]map[reqKey]int{}} }
+
+// Add counts one request.
+func (c *Counter) Add(host, method, path string) {
+	m := c.byHost[host]
+	if m == nil {
+		m = map[reqKey]int{}
+		c.byHost[host] = m
+	}
+	m[reqKey{strings.ToUpper(method), path}]++
+}
+
+// Choices is Detect over everything added so far.
+func (c *Counter) Choices(t *match.Trie) []Choice {
+	byHost := c.byHost
 	hosts := make([]string, 0, len(byHost))
 	for h := range byHost {
 		hosts = append(hosts, h)

@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
+	"runtime/debug"
 	"slices"
 	"sort"
 	"strconv"
@@ -82,7 +84,9 @@ func analyze(o *coverageOpts, stderr io.Writer) (*analysis, error) {
 	resolver := newResolver(cfg)
 	extract := identity.NewExtractor(credSpecs(cfg))
 
-	exchanges, perFile, err := readHARsByFile(o.hars, extract, objectQueryKeys(endpoints)...)
+	needs := newBodyNeeds(cfg)
+	store := newRecStore(needs)
+	perFile, err := readHARsInto(o.hars, extract, store, objectQueryKeys(endpoints)...)
 	if err != nil {
 		return nil, inputErr(err)
 	}
@@ -90,8 +94,8 @@ func analyze(o *coverageOpts, stderr io.Writer) (*analysis, error) {
 	for _, w := range cfg.Warnings() {
 		_, _ = fmt.Fprintf(stderr, "warning: %s\n", redact.StripControl(w))
 	}
-	exchanges, choices, droppedHosts := applyBasePath(exchanges, trie, o.basePath, stderr)
-	obs, ms := matchExchanges(exchanges, trie, byID)
+	byHost, choices, droppedHosts := chooseBasePath(store, trie, o.basePath, stderr)
+	obs, ms := matchRecs(store, byHost, trie, byID, needs)
 	learnTokens(cfg, resolver, obs)
 	resolveAll(resolver, obs)
 	applyJWTTenant(cfg, obs)
@@ -118,6 +122,7 @@ func analyze(o *coverageOpts, stderr io.Writer) (*analysis, error) {
 // runCoverage executes the whole offline pipeline, writes the table to stdout
 // and (unless --out is empty) coverage.json to the output directory.
 func runCoverage(o *coverageOpts, stdout, stderr io.Writer) error {
+	defer limitGC()()
 	a, err := analyze(o, stderr)
 	if err != nil {
 		return err
@@ -299,8 +304,34 @@ func learnTokens(cfg *config.File, r *identity.Resolver, obs []*model.Observatio
 }
 
 func resolveAll(r *identity.Resolver, obs []*model.Observation) {
+	// Resolve is a function of the credential, and observations only read the
+	// identity (applyJWTTenant copies before changing it), so the many
+	// requests of one caller share one identity. The key includes the claims
+	// map pointer: equal fingerprints with different decoded claims never share.
+	type resolved struct {
+		id   *model.Identity
+		conf model.Confidence
+	}
+	type ck struct {
+		kind, fp string
+		claims   uintptr
+	}
+	const maxCached = 4096
+	cache := map[ck]resolved{}
 	for _, o := range obs {
-		o.Identity, o.IDConf = r.Resolve(o.X.Cred)
+		c := o.X.Cred
+		k := ck{kind: c.Kind, fp: c.Fingerprint}
+		if c.Claims != nil {
+			k.claims = reflect.ValueOf(c.Claims).Pointer()
+		}
+		if hit, ok := cache[k]; ok {
+			o.Identity, o.IDConf = hit.id, hit.conf
+			continue
+		}
+		o.Identity, o.IDConf = r.Resolve(c)
+		if len(cache) < maxCached {
+			cache[k] = resolved{o.Identity, o.IDConf}
+		}
 	}
 }
 
@@ -456,6 +487,16 @@ func readHARs(paths []string, extract har.Extractor, st *har.Stats) ([]*model.Ex
 // readHARsByFile reads every HAR file and returns one Stats per path.
 func readHARsByFile(paths []string, extract har.Extractor, queryKeys ...string) ([]*model.Exchange, []har.Stats, error) {
 	var all []*model.Exchange
+	perFile, err := readHARsEach(paths, extract, queryKeys, func(x *model.Exchange) { all = append(all, x) })
+	return all, perFile, err
+}
+
+// readHARsInto folds every exchange into store as it is read.
+func readHARsInto(paths []string, extract har.Extractor, store *recStore, queryKeys ...string) ([]har.Stats, error) {
+	return readHARsEach(paths, extract, queryKeys, store.add)
+}
+
+func readHARsEach(paths []string, extract har.Extractor, queryKeys []string, fn func(*model.Exchange)) ([]har.Stats, error) {
 	perFile := make([]har.Stats, len(paths))
 	mk := func(label string) har.Options {
 		return har.Options{Source: label, Extract: extract, QueryKeys: queryKeys}
@@ -463,12 +504,12 @@ func readHARsByFile(paths []string, extract har.Extractor, queryKeys ...string) 
 	for i, p := range paths {
 		for x, err := range har.ExchangesFromFile(p, mk, &perFile[i]) {
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
-			all = append(all, x)
+			fn(x)
 		}
 	}
-	return all, perFile, nil
+	return perFile, nil
 }
 
 func sumStats(per []har.Stats) har.Stats {
@@ -485,20 +526,21 @@ func sumStats(per []har.Stats) har.Stats {
 	return t
 }
 
-// applyBasePath strips the chosen per-host prefix from every exchange path
-// (on copies) and drops hosts where nothing matches. It reports one line per
-// host on w and returns the exchanges to match, the per-host choices and the
-// number of dropped hosts.
-func applyBasePath(xs []*model.Exchange, trie *match.Trie, mode string, w io.Writer) ([]*model.Exchange, []basepath.Choice, int) {
+// chooseBasePath picks the per-host path prefix to strip (printing one line
+// per host on w) and returns the choice by host, all choices and the number
+// of hosts where nothing matches (their requests are dropped).
+func chooseBasePath(store *recStore, trie *match.Trie, mode string, w io.Writer) (map[string]basepath.Choice, []basepath.Choice, int) {
 	var choices []basepath.Choice
 	if mode == basePathAuto {
-		choices = basepath.Detect(xs, trie)
+		c := basepath.NewCounter()
+		store.each(false, func(r *rec) { c.Add(r.shape.Host, r.shape.Method, r.path) })
+		choices = c.Choices(trie)
 	} else {
 		prefix := mode
 		if mode == basePathNone {
 			prefix = ""
 		}
-		choices = fixedChoices(xs, trie, prefix)
+		choices = fixedChoices(store, trie, prefix)
 	}
 	byHost := make(map[string]basepath.Choice, len(choices))
 	dropped := 0
@@ -513,37 +555,23 @@ func applyBasePath(xs []*model.Exchange, trie *match.Trie, mode string, w io.Wri
 			dropped++
 		}
 	}
-	out := make([]*model.Exchange, 0, len(xs))
-	for _, x := range xs {
-		c := byHost[x.Host]
-		if c.Matched == 0 {
-			continue
-		}
-		if rest, ok := basepath.Strip(x.Path, c.Prefix); ok {
-			cp := *x
-			cp.Path = rest
-			out = append(out, &cp)
-		} else {
-			out = append(out, x) // not under the prefix: stays unmatched
-		}
-	}
-	return out, choices, dropped
+	return byHost, choices, dropped
 }
 
 // fixedChoices scores one prefix on every host.
-func fixedChoices(xs []*model.Exchange, trie *match.Trie, prefix string) []basepath.Choice {
+func fixedChoices(store *recStore, trie *match.Trie, prefix string) []basepath.Choice {
 	byHost := map[string]*basepath.Choice{}
-	for _, x := range xs {
-		c := byHost[x.Host]
+	store.each(false, func(r *rec) {
+		c := byHost[r.shape.Host]
 		if c == nil {
-			c = &basepath.Choice{Host: x.Host, Prefix: prefix}
-			byHost[x.Host] = c
+			c = &basepath.Choice{Host: r.shape.Host, Prefix: prefix}
+			byHost[r.shape.Host] = c
 		}
 		c.Total++
-		if rest, ok := basepath.Strip(x.Path, prefix); ok && trie.Match(x.Method, rest).Op != nil {
+		if rest, ok := basepath.Strip(r.path, prefix); ok && trie.Match(r.shape.Method, rest).Op != nil {
 			c.Matched++
 		}
-	}
+	})
 	out := make([]basepath.Choice, 0, len(byHost))
 	for _, c := range byHost {
 		out = append(out, *c)
@@ -552,12 +580,38 @@ func fixedChoices(xs []*model.Exchange, trie *match.Trie, prefix string) []basep
 	return out
 }
 
-func matchExchanges(xs []*model.Exchange, trie *match.Trie, byID map[string]*model.Endpoint) ([]*model.Observation, matchStats) {
-	var ms matchStats
-	var obs []*model.Observation
+// matchExchanges matches already-read exchanges with no base-path handling
+// (tests and helpers); analyze uses matchRecs.
+func matchExchanges(xs []*model.Exchange, trie *match.Trie, byID map[string]*model.Endpoint, needs *bodyNeeds) ([]*model.Observation, matchStats) {
+	store := newRecStore(needs)
 	for _, x := range xs {
-		res := trie.Match(x.Method, x.Path)
+		store.add(x)
+	}
+	return matchRecs(store, nil, trie, byID, needs)
+}
+
+// matchRecs matches every rec (stripping the base path chosen for its host
+// and dropping hosts where nothing matches; byHost == nil means no base path)
+// and builds the observations. It consumes store.
+func matchRecs(store *recStore, byHost map[string]basepath.Choice, trie *match.Trie, byID map[string]*model.Endpoint, needs *bodyNeeds) ([]*model.Observation, matchStats) {
+	var ms matchStats
+	obs := make([]*model.Observation, 0, store.n)
+	var slab []model.Observation // observations are allocated in blocks, not one by one
+	store.each(true, func(r *rec) {
+		path := r.path
+		if byHost != nil {
+			c := byHost[r.shape.Host]
+			if c.Matched == 0 {
+				return
+			}
+			if rest, ok := basepath.Strip(path, c.Prefix); ok {
+				path = rest
+			} // else: not under the prefix: stays unmatched
+		}
+		method := r.shape.Method
+		res := trie.Match(method, path)
 		if res.Op == nil {
+			x := store.exchange(r, path)
 			if res.MethodMiss {
 				ms.methodMiss++
 				ms.methodMissX = append(ms.methodMissX, x)
@@ -565,13 +619,13 @@ func matchExchanges(xs []*model.Exchange, trie *match.Trie, byID map[string]*mod
 				ms.unmatched++
 			}
 			ms.unmatchedX = append(ms.unmatchedX, x)
-			continue
+			return
 		}
 		ep := byID[res.Op.ID]
 		if ep == nil {
 			ms.unmatched++
-			ms.unmatchedX = append(ms.unmatchedX, x)
-			continue
+			ms.unmatchedX = append(ms.unmatchedX, store.exchange(r, path))
+			return
 		}
 		ms.matched++
 		if len(res.Ambiguous) > 0 {
@@ -581,14 +635,39 @@ func matchExchanges(xs []*model.Exchange, trie *match.Trie, byID map[string]*mod
 			}
 			ms.ambiguousBy[ep.ID]++
 		}
-		params := res.Params
-		if ep.ObjectInQuery {
-			if v, ok := queryObjectValue(x, ep.ObjectParam); ok {
-				params[ep.ObjectParam] = v
+		var params []string
+		if n := model.ParamCount(ep); n > 0 {
+			params = make([]string, n)
+			for i, name := range ep.Params {
+				params[i] = res.Params[name]
+			}
+			if ep.ObjectInQuery {
+				if v, ok := queryObjectValue(r.query, ep.ObjectParam); ok {
+					if i := slices.Index(ep.Params, ep.ObjectParam); i >= 0 {
+						params[i] = v
+					} else {
+						params[n-1] = v
+					}
+				}
 			}
 		}
-		obs = append(obs, &model.Observation{X: x, Endpoint: ep, Params: params})
-	}
+		if len(slab) == 0 {
+			slab = make([]model.Observation, 1024)
+		}
+		o := &slab[0]
+		slab = slab[1:]
+		o.Endpoint, o.Params = ep, params
+		if needs == nil || needs.needs(method, path, ep.Template) {
+			o.X = store.exchange(r, path)
+		} else {
+			// No learning rule reads this request's path or bodies: share a
+			// slim exchange with look-alikes and keep only the source position.
+			o.X = store.obsShape(r)
+			lab := &store.labels[r.label]
+			o.SrcLabel, o.SrcIdx = lab, r.idx
+		}
+		obs = append(obs, o)
+	})
 	return obs, ms
 }
 
@@ -596,8 +675,8 @@ func matchExchanges(xs []*model.Exchange, trie *match.Trie, byID map[string]*mod
 // It fails closed: the key must appear exactly once with a non-empty,
 // single plain value (no comma list, array syntax, whitespace or control chars); anything else is
 // unknown and never counts as covered.
-func queryObjectValue(x *model.Exchange, name string) (string, bool) {
-	vs := x.Query[name]
+func queryObjectValue(query map[string][]string, name string) (string, bool) {
+	vs := query[name]
 	if len(vs) != 1 {
 		return "", false
 	}
@@ -657,7 +736,7 @@ func objectTenant(cfg *config.File, o *model.Observation) (string, bool) {
 		if _, ok := cfg.TenantParams[p]; !ok {
 			continue
 		}
-		if v := o.Params[p]; v != "" {
+		if v := o.Param(p); v != "" {
 			return v, true
 		}
 		return "", false
@@ -668,4 +747,16 @@ func objectTenant(cfg *config.File, o *model.Observation) (string, bool) {
 func writeSummary(w io.Writer, nHAR int, hs *har.Stats, ms matchStats) {
 	_, _ = fmt.Fprintf(w, "read %d entries from %d HAR file(s): kept %d, matched %d, unmatched %d, method miss %d, ambiguous %d; dropped static %d, options %d, status 0 %d, bad url %d; hosts without matches %d\n",
 		hs.Entries, nHAR, hs.Kept, ms.matched, ms.unmatched, ms.methodMiss, ms.ambiguous, hs.Static, hs.Options, hs.Status0, hs.BadURL, ms.droppedHosts)
+}
+
+// limitGC trades a little CPU for a smaller peak heap: the pipeline holds one
+// small record per request, so with Go's default GOGC=100 the heap would grow
+// to twice that. An explicit GOGC in the environment wins. The returned func
+// restores the previous setting so it does not leak process-wide.
+func limitGC() func() {
+	if os.Getenv("GOGC") != "" {
+		return func() {}
+	}
+	old := debug.SetGCPercent(30)
+	return func() { debug.SetGCPercent(old) }
 }

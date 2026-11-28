@@ -268,7 +268,7 @@ func (r *Registry) Owner(o *model.Observation) (*model.Identity, model.Confidenc
 		return nil, model.ConfUnknown
 	}
 	p := o.Endpoint.ObjectParam
-	v := o.Params[p]
+	v := o.Param(p)
 	if v == "" {
 		return nil, model.ConfUnknown
 	}

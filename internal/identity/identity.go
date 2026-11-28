@@ -3,6 +3,7 @@
 package identity
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/golang-jwt/jwt/v5"
 
@@ -59,17 +61,52 @@ func NewExtractor(specs []CredSpec) func(lookup func(name string) []string) mode
 		specs = []CredSpec{{Type: "bearer", Header: "Authorization", Schemes: []string{"Bearer"}}}
 	}
 	specs = append([]CredSpec(nil), specs...)
+	cache := &bearerCache{m: map[[sha256.Size]byte]model.Credential{}}
 	return func(lookup func(name string) []string) model.Credential {
 		for i := range specs {
-			if c, ok := applySpec(&specs[i], lookup); ok {
+			if c, ok := applySpec(&specs[i], lookup, cache); ok {
 				return c
 			}
 		}
-		return fallbackExtract(lookup)
+		return fallbackExtract(lookup, cache)
 	}
 }
 
-func applySpec(s *CredSpec, lookup func(string) []string) (model.Credential, bool) {
+// maxBearerCache bounds the distinct tokens whose decoded credential is
+// shared between exchanges.
+const maxBearerCache = 4096
+
+// bearerCache shares one Credential (fingerprint string and claims map, both
+// read-only) between all exchanges that carry the same bearer token, so a
+// large HAR does not hold one decoded claims map per entry. It is keyed by the
+// full SHA-256 of the token (never the token itself) and dies with the
+// extractor.
+type bearerCache struct {
+	mu sync.Mutex
+	m  map[[sha256.Size]byte]model.Credential
+}
+
+func (b *bearerCache) bearer(tok string) model.Credential {
+	if b == nil {
+		return bearerCredential(tok)
+	}
+	k := sha256.Sum256([]byte(tok))
+	b.mu.Lock()
+	c, ok := b.m[k]
+	b.mu.Unlock()
+	if ok {
+		return c
+	}
+	c = bearerCredential(tok)
+	b.mu.Lock()
+	if len(b.m) < maxBearerCache {
+		b.m[k] = c
+	}
+	b.mu.Unlock()
+	return c
+}
+
+func applySpec(s *CredSpec, lookup func(string) []string, cache *bearerCache) (model.Credential, bool) {
 	switch s.Type {
 	case "bearer":
 		h := s.Header
@@ -84,7 +121,7 @@ func applySpec(s *CredSpec, lookup func(string) []string) (model.Credential, boo
 			scheme, rest, _ := strings.Cut(strings.TrimSpace(v), " ")
 			for _, want := range schemes {
 				if strings.EqualFold(scheme, want) {
-					return bearerCredential(strings.TrimSpace(rest)), true
+					return cache.bearer(strings.TrimSpace(rest)), true
 				}
 			}
 		}
@@ -153,11 +190,11 @@ func basicCredential(b64 string) model.Credential {
 
 // fallbackExtract recognises credentials no spec asked for. Precedence:
 // Authorization, Cookie, API keys.
-func fallbackExtract(lookup func(name string) []string) model.Credential {
+func fallbackExtract(lookup func(name string) []string, cache *bearerCache) model.Credential {
 	if v := lookup("Authorization"); len(v) > 0 {
 		scheme, rest, _ := strings.Cut(strings.TrimSpace(v[0]), " ")
 		if strings.EqualFold(scheme, "Bearer") {
-			return bearerCredential(strings.TrimSpace(rest))
+			return cache.bearer(strings.TrimSpace(rest))
 		}
 		return model.Credential{Kind: KindAuthorization, Fingerprint: redact.Fingerprint(v[0])}
 	}

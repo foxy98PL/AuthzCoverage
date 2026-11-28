@@ -188,3 +188,35 @@ func TestQueryObjectValueRejectsWhitespace(t *testing.T) {
 		}
 	}
 }
+
+// A query-bound object endpoint gives the same table whatever the entry
+// order, so the query-derived value survives the compact record intact.
+func TestQueryObjectOrderIndependence(t *testing.T) {
+	a := hartest.Bearer(hartest.JWT(t, "alice", nil))
+	b := hartest.Bearer(hartest.JWT(t, "bob", nil))
+	var es []hartest.Entry
+	for _, q := range []string{"?uid=alice", "?uid=bob", "?uid=", "?uid=a,b", "?uid=alice&uid=alice", "", "?uid[]=alice", "?other=1&uid=bob"} {
+		es = append(es,
+			hartest.Entry{Method: "GET", URL: base + "/search" + q, Status: 200, Headers: a},
+			hartest.Entry{Method: "GET", URL: base + "/search" + q, Status: 200, Headers: b})
+	}
+	_, want, _ := runInline(t, queryObjSpec, queryIDs(searchOV), es)
+	// Pin the values: the alice/bob rows cover /search, nothing else does.
+	if c := cells(t, want, "GET     /search"); c["OWNER"] != "ok" || c["SAME_ROLE"] != "ok" || c["ANON"] != "GAP" || !strings.Contains(want, "covered 2 ") {
+		t.Fatalf("expected values not pinned: %v\n%s", c, want)
+	}
+	var bad []hartest.Entry
+	for _, q := range []string{"?uid=", "?uid=a,b", "?uid=alice&uid=alice", "", "?uid[]=alice"} {
+		bad = append(bad, hartest.Entry{Method: "GET", URL: base + "/search" + q, Status: 200, Headers: a})
+	}
+	if _, out, _ := runInline(t, queryObjSpec, queryIDs(searchOV), bad); cells(t, out, "GET     /search")["OWNER"] != "GAP" {
+		t.Fatalf("empty/comma/repeated/array rows must not cover:\n%s", out)
+	}
+	rev := make([]hartest.Entry, len(es))
+	for i, e := range es {
+		rev[len(es)-1-i] = e
+	}
+	if _, got, _ := runInline(t, queryObjSpec, queryIDs(searchOV), rev); got != want {
+		t.Fatalf("reversed differs:\n%s\nwant:\n%s", got, want)
+	}
+}

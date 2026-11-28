@@ -249,7 +249,7 @@ func TestReviewFixes(t *testing.T) {
 	// R3: messages carry names and status only, never the object ID or body.
 	id := obj(model.RelSameRoleOtherUser, 200, "GET", `{"secret":"s3cr3t-value"}`)
 	id.X.Path = "/b/obj-9f8e7d6c5b4a"
-	id.Params = map[string]string{"id": "obj-9f8e7d6c5b4a"}
+	id.Params = []string{"obj-9f8e7d6c5b4a"}
 	m := Find([]*model.Observation{id})[0].Message
 	if strings.Contains(m, "obj-9f8e7d6c5b4a") || strings.Contains(m, "s3cr3t") || strings.Contains(m, "/b/") {
 		t.Errorf("message leaks request data: %q", m)

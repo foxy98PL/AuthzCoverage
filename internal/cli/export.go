@@ -131,6 +131,7 @@ func runExportPlan(o *exportOpts, stdout, stderr io.Writer) error {
 // `authzcov coverage`) to resolve raw object IDs, tenant path parameters and
 // declared identities. coverage.json stays the source of the gaps.
 func rawFromPipeline(o *exportOpts, rep *coveragejson.Report, stderr io.Writer) (*plan.Raw, error) {
+	defer limitGC()()
 	a, err := analyze(&coverageOpts{spec: o.spec, hars: o.hars, identities: o.identities, basePath: o.basePath}, stderr)
 	if err != nil {
 		return nil, err

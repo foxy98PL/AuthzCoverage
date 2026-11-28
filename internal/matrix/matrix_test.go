@@ -402,3 +402,20 @@ func TestStrictTenantScopedDeclaredMinRole(t *testing.T) {
 		}
 	}
 }
+
+// A shared, source-less exchange plus Observation.SrcLabel/SrcIdx gives the same evidence
+// as a per-observation exchange; the observation's own source is used.
+func TestEvidenceFromObservationSrc(t *testing.T) {
+	shared := &model.Exchange{Status: 200}
+	var obs []*model.Observation
+	label := "a.har"
+	for i := 20; i > 0; i-- {
+		obs = append(obs, &model.Observation{Endpoint: objEP, Rel: model.RelOwner, Identity: &model.Identity{Name: "u"},
+			IDConf: 3, OwnerConf: 3, X: shared, SrcLabel: &label, SrcIdx: int32(i)})
+	}
+	c := cell(Build([]*model.Endpoint{objEP}, obs, true), objEP, model.RelOwner)
+	want := []string{"a.har#1", "a.har#2", "a.har#3", "a.har#4", "a.har#5"}
+	if !slices.Equal(c.Evidence, want) || c.Statuses[200] != 20 {
+		t.Fatalf("got %v %v", c.Evidence, c.Statuses)
+	}
+}

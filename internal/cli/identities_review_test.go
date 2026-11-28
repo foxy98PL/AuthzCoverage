@@ -79,7 +79,7 @@ func TestLearnTokensYieldsLearnedConfidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	obs, _ := matchExchanges(xs, trie, byID)
+	obs, _ := matchExchanges(xs, trie, byID, nil)
 	r := newResolver(cfg)
 	learnTokens(cfg, r, obs)
 	resolveAll(r, obs)

@@ -25,8 +25,14 @@ func create(who *model.Identity, conf model.Confidence, status int, body string)
 }
 
 func read(who *model.Identity, ep *model.Endpoint, param, val string) *model.Observation {
-	return &model.Observation{Endpoint: ep, Identity: who, IDConf: model.ConfLearned,
-		Params: map[string]string{param: val}, X: &model.Exchange{Method: "GET", Status: 200}}
+	cp := *ep // the endpoint must declare the parameter the request binds
+	if !slices.Contains(cp.Params, param) {
+		cp.Params = append(slices.Clone(cp.Params), param)
+	}
+	o := &model.Observation{Endpoint: &cp, Identity: who, IDConf: model.ConfLearned,
+		Params: make([]string, model.ParamCount(&cp)), X: &model.Exchange{Method: "GET", Status: 200}}
+	o.Params[slices.Index(cp.Params, param)] = val
+	return o
 }
 
 func cfg() Config {

@@ -4,18 +4,18 @@
     "version": "bench fixture"
   },
   "authzcov": {
-    "commit": "3ef6707",
-    "version": "v0.1.0-rc.1-11-g3ef6707"
+    "commit": "09d70c0",
+    "version": "v0.1.0-rc.2-41-g09d70c0-dirty"
   },
   "cases": [],
   "extra": {
     "fits": {
-      "rss_ratio": 83.116,
+      "rss_ratio": 12.785,
       "rss_ratio_sizes": [
         1000,
         1000000
       ],
-      "time_slope": 0.852
+      "time_slope": 0.872
     },
     "note": "machine-dependent timings; wall_ms is the median over runs, peak_rss_mib the maximum",
     "points": [
@@ -23,11 +23,11 @@
         "entries": 1000,
         "har_bytes": 665557,
         "runs": 3,
-        "wall_ms": 44.6,
-        "wall_ms_min": 44.6,
-        "wall_ms_max": 48.7,
-        "peak_rss_mib": 19.9,
-        "ns_per_entry": 44600,
+        "wall_ms": 27.4,
+        "wall_ms_min": 26.3,
+        "wall_ms_max": 28.1,
+        "peak_rss_mib": 20,
+        "ns_per_entry": 27400,
         "required": 142,
         "covered": 71,
         "percent": 50
@@ -36,11 +36,11 @@
         "entries": 10000,
         "har_bytes": 6556201,
         "runs": 3,
-        "wall_ms": 184.2,
-        "wall_ms_min": 172.3,
-        "wall_ms_max": 189.9,
-        "peak_rss_mib": 33.9,
-        "ns_per_entry": 18420,
+        "wall_ms": 144.9,
+        "wall_ms_min": 144.6,
+        "wall_ms_max": 147.6,
+        "peak_rss_mib": 20.5,
+        "ns_per_entry": 14490,
         "required": 142,
         "covered": 71,
         "percent": 50
@@ -49,11 +49,11 @@
         "entries": 100000,
         "har_bytes": 65508836,
         "runs": 3,
-        "wall_ms": 1276.7,
-        "wall_ms_min": 1273.4,
-        "wall_ms_max": 1300.5,
-        "peak_rss_mib": 186.3,
-        "ns_per_entry": 12767,
+        "wall_ms": 1217.8,
+        "wall_ms_min": 1213.6,
+        "wall_ms_max": 1229.8,
+        "peak_rss_mib": 41.6,
+        "ns_per_entry": 12178,
         "required": 142,
         "covered": 71,
         "percent": 50
@@ -62,11 +62,11 @@
         "entries": 1000000,
         "har_bytes": 655868562,
         "runs": 3,
-        "wall_ms": 16226,
-        "wall_ms_min": 15234.6,
-        "wall_ms_max": 16501.3,
-        "peak_rss_mib": 1654,
-        "ns_per_entry": 16226,
+        "wall_ms": 10842.2,
+        "wall_ms_min": 10706.7,
+        "wall_ms_max": 10876.4,
+        "peak_rss_mib": 255.7,
+        "ns_per_entry": 10842,
         "required": 142,
         "covered": 71,
         "percent": 50
@@ -75,7 +75,7 @@
     "rss_src": "/usr/bin/time -v (Maximum resident set size)",
     "runs": 3
   },
-  "generated_at": "2026-11-28T02:49:44Z",
+  "generated_at": "2026-11-28T05:18:40Z",
   "machine": {
     "arch": "amd64",
     "cpus": 20,

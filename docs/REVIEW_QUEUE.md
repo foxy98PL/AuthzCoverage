@@ -13,3 +13,4 @@ Status: `queued` → `in review` → `passed` | `findings` → (fixed) `passed`.
 | KAN-102 | internal/{config,ownership 🔒,suspicious,cli/pipeline.go}, docs/identities.md, e2e/thirdparty/crapi | Jira KAN-102 (exclusive list rules; crapi min_role) | reviewed (Haiku), F1/F3/F4 fixed; F2 groundtruth flip unverified until crapi eval |
 | KAN-94 | internal/{plan,cli/export*.go}, docs/plan.md, README | Jira KAN-94 (option A, hint, hash-miss note) | reviewed (Haiku), F1/F2/F4 fixed; F3/F5 left |
 | KAN-104 | internal/{model,spec,ingest/har,cli/pipeline.go}, docs/identities.md, e2e/thirdparty/crapi | Jira KAN-104 (object_param on in:query) | reviewed (Sonnet), F1-F3 fixed |
+| KAN-91 | bounded memory (uncommitted, base 09d70c0) | reviewer running | notes/KAN-91-review.md |

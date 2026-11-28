@@ -64,8 +64,24 @@ func RequirementsFor(e *model.Endpoint, hasTenants bool) []model.Relationship {
 type cellAcc struct {
 	cell     *model.CoverageCell
 	ids      map[string]bool
-	evidence map[string]bool
+	evidence []string // the MaxEvidence smallest distinct sources, in evidence order
 	minConf  model.Confidence
+}
+
+// addEvidence keeps the MaxEvidence smallest distinct sources, so a cell does
+// not hold one entry per observation.
+func (a *cellAcc) addEvidence(src string) {
+	if src == "" {
+		return
+	}
+	i, found := slices.BinarySearchFunc(a.evidence, src, compareEvidence)
+	if found || i >= MaxEvidence {
+		return
+	}
+	a.evidence = slices.Insert(a.evidence, i, src)
+	if len(a.evidence) > MaxEvidence {
+		a.evidence = a.evidence[:MaxEvidence]
+	}
 }
 
 // Options tunes Build.
@@ -128,7 +144,7 @@ func BuildWith(endpoints []*model.Endpoint, obs []*model.Observation, hasTenants
 				Endpoint: e.ID, Rel: rel, Statuses: map[int]int{},
 				Required: slices.Contains(req, rel),
 			}
-			byRel[rel] = &cellAcc{cell: c, ids: map[string]bool{}, evidence: map[string]bool{}, minConf: model.ConfDeclared}
+			byRel[rel] = &cellAcc{cell: c, ids: map[string]bool{}, minConf: model.ConfDeclared}
 			cells = append(cells, c)
 		}
 		accs[e.ID] = byRel
@@ -155,9 +171,7 @@ func BuildWith(endpoints []*model.Endpoint, obs []*model.Observation, hasTenants
 		}
 		if o.X != nil {
 			a.cell.Statuses[o.X.Status]++
-			if o.X.Source != "" {
-				a.evidence[o.X.Source] = true
-			}
+			a.addEvidence(o.Source())
 		}
 		if o.Identity != nil && o.Identity.Name != "" {
 			a.ids[o.Identity.Name] = true
@@ -188,11 +202,7 @@ func BuildWith(endpoints []*model.Endpoint, obs []*model.Observation, hasTenants
 			a := accs[e.ID][rel]
 			c := a.cell
 			c.Identities = slices.Sorted(mapKeys(a.ids))
-			ev := slices.SortedFunc(mapKeys(a.evidence), compareEvidence)
-			if len(ev) > MaxEvidence {
-				ev = ev[:MaxEvidence]
-			}
-			c.Evidence = ev
+			c.Evidence = a.evidence
 			if counted[a] {
 				c.Covered = true
 				c.MinConf = a.minConf

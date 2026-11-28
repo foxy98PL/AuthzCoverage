@@ -49,7 +49,7 @@ func Find(obs []*model.Observation) []Allow {
 			continue
 		}
 		k := key{o.Endpoint.ID, string(o.Rel)}
-		groups[k] = append(groups[k], example{source: o.X.Source, msg: msg})
+		groups[k] = append(groups[k], example{source: o.Source(), msg: msg})
 	}
 	out := make([]Allow, 0, len(groups))
 	for k, exs := range groups {
