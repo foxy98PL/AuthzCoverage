@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""PreToolUse(Bash): trim output of unpiped `go test` / `make <target>` runs, keeping the exit code.
+"""PreToolUse(Bash): trim output of unpiped `go test|vet|build`, `golangci-lint` and `make <target>` runs,
+keeping the exit code.
 
 Drops `ok  pkg` and `?   pkg [no test files]` lines and keeps the last N lines. Commands that already
 pipe, redirect or chain are left alone (that is the opt-out).
@@ -8,7 +9,10 @@ import json
 import re
 import sys
 
-PATTERN = re.compile(r"^(go test|make (check|test|e2e|fuzz|eval[\w-]*))(\s|$)")
+PATTERN = re.compile(
+    r"^(go (test|vet|build)|golangci-lint|"
+    r"make (check(-offline)?|test|vet|lint|e2e|fuzz|bench|golden|vuln|fixturecheck|eval[\w-]*))(\s|$)"
+)
 OPAQUE = re.compile(r"[|<>;&`]|\$\(")
 TAIL = {"go": 40, "make": 60}
 
@@ -20,7 +24,7 @@ def main() -> None:
     if not PATTERN.match(cmd) or OPAQUE.search(cmd) or "\n" in cmd:
         print("{}")
         return
-    n = TAIL["go" if cmd.startswith("go ") else "make"]
+    n = TAIL["make" if cmd.startswith("make ") else "go"]
     wrapped = (
         f"( {{ {cmd}; }} 2>&1 | grep -v -E '^(ok |\\?   )' | tail -n {n}; s=${{PIPESTATUS[0]}}; "
         f"echo \"[trim-output hook: ok-lines dropped, last {n} lines kept; exit $s]\"; exit $s )"
