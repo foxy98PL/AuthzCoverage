@@ -186,3 +186,32 @@ func TestLoginRecipeKeyIsNotLoginAndPasswordElsewhereRejected(t *testing.T) {
 		t.Fatalf("password key must be rejected: %v", err)
 	}
 }
+
+func TestLoginRecipeWithTokenEnvRejected(t *testing.T) {
+	t.Setenv("RCP_USER", "bob")
+	t.Setenv("RCP_PASS", "x")
+	t.Setenv("RCP_TOK", "tok")
+	y := strings.Replace(withRecipe(recipeOK), "match: {jwt: {sub: bob}}", "match: {token_env: RCP_TOK}", 1)
+	_, err := Parse([]byte(y), "x.yaml")
+	if err == nil || !strings.Contains(err.Error(), "login_recipe and match.token_env") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// KAN-39 F3: token_env names reach the probe by NAME only.
+func TestProbeTokenEnvs(t *testing.T) {
+	const val = "super-secret-env-token-value"
+	t.Setenv("AUTHZCOV_TEST_TOK", val)
+	y := strings.Replace(base, "match: {jwt: {sub: bob}}", "match: {token_env: AUTHZCOV_TEST_TOK}", 1)
+	f, err := Parse([]byte(y), "x.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	envs := f.ProbeTokenEnvs()
+	if len(envs) != 1 || envs["bob"] != "AUTHZCOV_TEST_TOK" {
+		t.Fatalf("envs = %v", envs)
+	}
+	if strings.Contains(fmt.Sprintf("%+v", *f), val) {
+		t.Fatal("value leaked")
+	}
+}

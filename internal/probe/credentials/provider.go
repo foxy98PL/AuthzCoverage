@@ -103,6 +103,7 @@ type Provider struct {
 	Recipes  map[string]Recipe
 	Lookup   func(string) string // env lookup; defaults to os.Getenv
 	ExpectFP map[string]string   // optional identity -> 12-hex token fingerprint
+	TokenEnv map[string]string   // identity -> env var NAME of a static bearer token
 
 	mu    sync.Mutex // guards cache only; never held across a login
 	cache map[string]*entry
@@ -124,6 +125,9 @@ func NewProvider(recipes map[string]Recipe) *Provider {
 func (p *Provider) For(ctx context.Context, identity string, d Doer) (Credential, error) {
 	rec, ok := p.Recipes[identity]
 	if !ok {
+		if name, ok := p.TokenEnv[identity]; ok {
+			return p.static(identity, name)
+		}
 		return Credential{}, ErrNoRecipe
 	}
 	p.mu.Lock()
@@ -146,6 +150,19 @@ func (p *Provider) For(ctx context.Context, identity string, d Doer) (Credential
 	return cred, err
 }
 
+// static loads an identity's static token from its env var (bearer).
+func (p *Provider) static(identity, name string) (Credential, error) {
+	lookup := p.Lookup
+	if lookup == nil {
+		lookup = os.Getenv
+	}
+	s, err := LoadEnvFrom(name, lookup)
+	if err != nil {
+		return Credential{}, fmt.Errorf("identity %s: %w", identity, err)
+	}
+	return Credential{Identity: identity, Apply: Apply{Kind: "bearer"}, Token: s}, nil
+}
+
 // CheckEnv verifies every recipe's env placeholders (probe start, before any
 // login). The error names the identity, field and variable, never a value.
 func (p *Provider) CheckEnv() error {
@@ -160,6 +177,19 @@ func (p *Provider) CheckEnv() error {
 	sort.Strings(ids)
 	for _, id := range ids {
 		if err := p.Recipes[id].CheckEnv(lookup); err != nil {
+			return fmt.Errorf("identity %s: %w", id, err)
+		}
+	}
+	tids := make([]string, 0, len(p.TokenEnv))
+	for id := range p.TokenEnv {
+		tids = append(tids, id)
+	}
+	sort.Strings(tids)
+	for _, id := range tids {
+		if _, ok := p.Recipes[id]; ok {
+			continue
+		}
+		if _, err := LoadEnvFrom(p.TokenEnv[id], lookup); err != nil {
 			return fmt.Errorf("identity %s: %w", id, err)
 		}
 	}

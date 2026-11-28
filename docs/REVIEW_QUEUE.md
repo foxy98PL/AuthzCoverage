@@ -16,3 +16,4 @@ Status: `queued` → `in review` → `passed` | `findings` → (fixed) `passed`.
 | KAN-91 | bounded memory (uncommitted, base 09d70c0) | reviewer running | notes/KAN-91-review.md |
 | KAN-12 | e2e/thirdparty/realworld, Makefile, docs/PLAN.md | Jira KAN-12 (RealWorld harness, notes/KAN-12-impl.md) | reviewed (Sonnet), no high; F1-F4 lows noted, F4 fixed |
 | KAN-38 | probe credentials (internal/probe/credentials, config login_recipe) | review started 2026-11-29 |
+| KAN-39 | probe executor (internal/probe/exec) | review started 2026-11-29 | notes/KAN-39-review.md |

@@ -67,7 +67,9 @@ type Identity struct {
 	// LoginRecipe is the optional probe login (env placeholders by name only;
 	// resolved values never live in config).
 	LoginRecipe *credentials.Recipe
-	Line        int
+	// TokenEnv is the NAME of the env var holding a static token (match.token_env); never its value.
+	TokenEnv string
+	Line     int
 }
 
 // Override picks the object parameter of one endpoint by hand.
@@ -504,6 +506,9 @@ func (p *parser) identities(n *yaml.Node, roles map[string]int) ([]Identity, *Er
 			return nil, e
 		}
 		if lr := m["login_recipe"]; lr != nil {
+			if hasKey(m["match"], "token_env") {
+				return nil, p.err(lr, ip+".login_recipe", "give only one of login_recipe and match.token_env (ambiguous credential source)")
+			}
 			if id.LoginRecipe, e = p.loginRecipe(lr, ip+".login_recipe"); e != nil {
 				return nil, e
 			}
@@ -844,6 +849,7 @@ func (p *parser) match(n *yaml.Node, mp string, id *Identity) *Error {
 			return p.err(vn, tp, "env var %s is empty or unset", s)
 		}
 		id.TokenFP = redact.Fingerprint(val)
+		id.TokenEnv = s
 	}
 	for key, dst := range map[string]*string{"basic_user": &id.BasicUser, "login": &id.Login} {
 		if vn := mm[key]; vn != nil {
@@ -1107,4 +1113,17 @@ func (f *File) Warnings() []string {
 		out = append(out, fmt.Sprintf("role %q has fewer than two identities in tenant %q: same_role_other_user cannot be covered", k.role, k.tenant))
 	}
 	return out
+}
+
+// hasKey reports whether mapping node n has the given key.
+func hasKey(n *yaml.Node, key string) bool {
+	if n == nil || n.Kind != yaml.MappingNode {
+		return false
+	}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value == key {
+			return true
+		}
+	}
+	return false
 }

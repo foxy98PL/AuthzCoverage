@@ -114,3 +114,16 @@ func (f *File) ProbeRecipes() (recipes map[string]credentials.Recipe, expectFP m
 	}
 	return recipes, expectFP
 }
+
+// ProbeTokenEnvs returns identity name -> env var NAME for identities with
+// match.token_env. It feeds credentials.Provider.TokenEnv; values are read at
+// probe time only.
+func (f *File) ProbeTokenEnvs() map[string]string {
+	out := map[string]string{}
+	for _, id := range f.Identities {
+		if id.TokenEnv != "" {
+			out[id.Name] = id.TokenEnv
+		}
+	}
+	return out
+}

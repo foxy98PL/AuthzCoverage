@@ -509,3 +509,36 @@ func TestNoNetworkImports(t *testing.T) {
 		}
 	}
 }
+
+// KAN-39 F3: static token_env credentials.
+func TestProviderStaticToken(t *testing.T) {
+	p := NewProvider(map[string]Recipe{})
+	p.TokenEnv = map[string]string{"alice": "ALICE_TOK", "bob": "BOB_TOK"}
+	p.Lookup = func(k string) string {
+		if k == "ALICE_TOK" {
+			return "static-canary\n"
+		}
+		return ""
+	}
+	c, err := p.For(context.Background(), "alice", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var h, v string
+	c.SetOn(func(n, val string) { h, v = n, val })
+	if h != "Authorization" || v != "Bearer static-canary" {
+		t.Fatalf("%q %q", h, v)
+	}
+	if strings.Contains(fmt.Sprintf("%v %+v %#v", c, c, c), "static-canary") {
+		t.Fatal("token leaked in formatting")
+	}
+	if _, err := p.For(context.Background(), "bob", nil); err == nil || strings.Contains(err.Error(), "BOB_TOK=") {
+		t.Fatalf("unset env must fail: %v", err)
+	}
+	if _, err := p.For(context.Background(), "carol", nil); !errors.Is(err, ErrNoRecipe) {
+		t.Fatalf("carol: %v", err)
+	}
+	if err := p.CheckEnv(); err == nil || !strings.Contains(err.Error(), "BOB_TOK") {
+		t.Fatalf("CheckEnv must flag the unset var: %v", err)
+	}
+}
