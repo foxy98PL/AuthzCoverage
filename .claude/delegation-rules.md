@@ -119,3 +119,22 @@ reads it at startup, it is for the owner's later investigation). (4) **Tell the 
   table and mark every figure an estimate; same table goes into `docs/SESSION_LOG.md`.
 - Pro plan estimate: share of a 5-hour window / weekly allowance the session likely used (rough, say so; subagent
   runs and long contexts count most).
+
+## 10. Practice check (external guidance, 2026-11-28; owner asked to align)
+
+Sources: Anthropic multi-agent research post, Claude Code subagent/caching docs. Already matched: subagents for
+context isolation, cheaper models for mechanical work, file handoff, sequential for dependent steps, restart with a
+written shard instead of `/compact`. Added:
+- **Delegate only when it pays.** Anthropic: multi-agent wins on parallel, breadth-heavy work and costs more tokens
+  than one agent; sequential coding is not its sweet spot. Do a ticket inline when it touches ≤ 2 files and
+  ≤ ~80 changed lines outside 🔒 packages (cold start ~6k + prompt + report exceeds the inline cost). Otherwise
+  implementer.
+- **Prompt names the output format.** Anthropic's top delegation failure is vague tasks: the contract (§2) must
+  state objective, boundaries, tools/paths and the §5 return format. Missing format → add it, don't resend.
+- **Protect the prompt cache.** Don't switch the orchestrator's model or effort mid-session (uncached turn); don't
+  edit CLAUDE.md or the rules files mid-session; the cache expires after a few idle minutes, so batch work and
+  avoid long idle gaps with a large context. Prefer `/clear` + shard over `/compact` (compaction re-reads the
+  whole context).
+- **Measure, don't guess.** Weekly: split cache reads by orchestrator vs. subagent type from the transcripts
+  (`~/.claude/projects/**/*.jsonl`); if the orchestrator dominates, restart earlier; if subagents dominate,
+  tighten scope or go inline.
