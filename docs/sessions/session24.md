@@ -5,6 +5,7 @@ Depends on: session 20 (kit); session 19 triage kept the controls
 
 ## Goal
 False-alarm rate measured on real apps that enforce authorization, beyond RealWorld.
+Each app reports passive coverage and read-only probe confirmation via Judge (kit probe step, session 20).
 
 ## Work (in order)
 1. VAL-9a Gitea control suite — normal ~30k — implementer (ground truth first) → reviewer → fixer

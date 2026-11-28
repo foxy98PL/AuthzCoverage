@@ -51,15 +51,15 @@ Status = Jira status category (new = to do, indeterminate = in progress / in rev
 | KAN-44 | Story | To do | session9 | ACV-4.9 Probe findings in all reporters with placeholder curl repros |
 | KAN-45 | Story | To do | session10 (Docker) | ACV-4.10 VAmPI end-to-end probe oracle in CI (vulnerable=1 / 0) |
 | KAN-46 | Story | To do | session10 (Docker) | ACV-4.11 crAPI vehicle-location and Juice Shop basket e2e tests |
-| KAN-47 | Story | To do | session11 | ACV-4.12 Destructive mode: create-as-owner, attack, verify-as-owner |
-| KAN-48 | Story | To do | session11 | ACV-4.13 Re-run inconclusive results; --resume from audit log |
-| KAN-49 | Story | To do | session12 (owner tags v0.3.0) | ACV-4.14 Safety documentation and v0.3.0 release |
-| KAN-50 | Story | To do | session13 (gated on Gate D) | ACV-5.1 Spring route extraction via Actuator /actuator/mappings |
-| KAN-51 | Story | To do | session14 | ACV-5.2 NestJS (swagger doc) and Express route dumper |
-| KAN-52 | Story | To do | session13 (gated on Gate D) | ACV-5.3 Next.js route scanning (app/api, pages/api) |
-| KAN-53 | Story | To do | session14 | ACV-5.4 OTLP JSON input (http.route + identity attribute) |
-| KAN-54 | Story | To do | session15 (step a GraphQL) + session16 (step b gRPC) | ACV-5.5 GraphQL and gRPC adapters |
-| KAN-55 | Story | To do | session16 (only if Gate D passes) | ACV-5.6 Hosted dashboard spike (only if Gate D passes) |
+| KAN-47 | Story | To do | session33 | ACV-4.12 Destructive mode: create-as-owner, attack, verify-as-owner |
+| KAN-48 | Story | To do | session33 | ACV-4.13 Re-run inconclusive results; --resume from audit log |
+| KAN-49 | Story | To do | session34 (owner tags v0.3.0) | ACV-4.14 Safety documentation and v0.3.0 release |
+| KAN-50 | Story | To do | session36 (gated on Gate D) | ACV-5.1 Spring route extraction via Actuator /actuator/mappings |
+| KAN-51 | Story | To do | session37 | ACV-5.2 NestJS (swagger doc) and Express route dumper |
+| KAN-52 | Story | To do | session36 (gated on Gate D) | ACV-5.3 Next.js route scanning (app/api, pages/api) |
+| KAN-53 | Story | To do | session37 | ACV-5.4 OTLP JSON input (http.route + identity attribute) |
+| KAN-54 | Story | To do | session38 (step a GraphQL) + session39 (step b gRPC) | ACV-5.5 GraphQL and gRPC adapters |
+| KAN-55 | Story | To do | session39 (only if Gate D passes) | ACV-5.6 Hosted dashboard spike (only if Gate D passes) |
 | KAN-56 | Epic | To do | epic: owner closes when children are Done | Documentation: AuthzCoverage project docs |
 | KAN-57 | Task | To do | spec doc (lives in Jira; implemented work references it): owner closes | DOC-00 Project overview |
 | KAN-58 | Task | To do | spec doc (lives in Jira; implemented work references it): owner closes | DOC-01 Architecture |
@@ -81,17 +81,17 @@ Status = Jira status category (new = to do, indeterminate = in progress / in rev
 | KAN-74 | Story | Done | Done | ACV-1.7 tenantshop multi-tenant demo app with seeded cross-tenant bug |
 | KAN-75 | Story | In progress | owner-only: dev env / Docker RAM check on owner machine | ACV-0.5 Dev environment and tooling setup (incl. Docker RAM check) |
 | KAN-76 | Story | To do | session4 (licence part); name-collision search is owner-only | ACV-0.6 Name collision check and licence attribution |
-| KAN-77 | Story | To do | session12 | ACV-5.7 authzcov migrate command (placeholder until a v2 schema exists) |
+| KAN-77 | Story | To do | session34 | ACV-5.7 authzcov migrate command (placeholder until a v2 schema exists) |
 | KAN-78 | Task | To do | spec doc (lives in Jira; implemented work references it): owner closes | DOC-10 Test case catalogue and traceability |
 | KAN-79 | Task | To do | spec doc (lives in Jira; implemented work references it): owner closes | DOC-11 Non-functional requirements and decision recommendations |
 | KAN-80 | Task | To do | spec doc (lives in Jira; implemented work references it): owner closes | DOC-12 Compliance, naming and Gate A outreach kit |
 | KAN-81 | Task | To do | spec doc (lives in Jira; implemented work references it): owner closes | DOC-13 Test environment setup runbook (Windows 11, WSL2, Docker) with expected results |
-| KAN-82 | Story | To do | session15 | SPIKE ACV-5.8 Spec-less mode and bug-bounty hunting checklist |
+| KAN-82 | Story | To do | session38 | SPIKE ACV-5.8 Spec-less mode and bug-bounty hunting checklist |
 | KAN-83 | Epic | To do | epic: owner closes when children are Done | Future: AI workflow on top of AuthzCoverage (spikes) |
-| KAN-84 | Story | To do | session17 | SPIKE AI-1 MCP server for authzcov (coverage, explain, gate as agent tools) |
-| KAN-85 | Story | To do | session18 | SPIKE AI-2 Gap → generated test (close coverage gaps with AI-written tests) |
-| KAN-86 | Story | To do | session17 | SPIKE AI-3 identities.yaml configuration assistant |
-| KAN-87 | Story | To do | session18 | SPIKE AI-4 AI triage of suspicious_allow and probe findings |
+| KAN-84 | Story | To do | session40 | SPIKE AI-1 MCP server for authzcov (coverage, explain, gate as agent tools) |
+| KAN-85 | Story | To do | session41 | SPIKE AI-2 Gap → generated test (close coverage gaps with AI-written tests) |
+| KAN-86 | Story | To do | session40 | SPIKE AI-3 identities.yaml configuration assistant |
+| KAN-87 | Story | To do | session41 | SPIKE AI-4 AI triage of suspicious_allow and probe findings |
 | KAN-88 | Story | Done | Done | ACV-2.9 suspicious_allow findings (cross-user / cross-tenant success) |
 | KAN-89 | Story | Done | Done | learn_from_create: read the created object's ID from the response body (id_from.response_json) |
 | KAN-90 | Story | In Review | In Review: owner moves to Done | Validation benchmark: mutants, ablation, third-party apps (VAmPI first) and a validation article |

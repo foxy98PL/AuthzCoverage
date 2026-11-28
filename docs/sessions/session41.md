@@ -1,7 +1,7 @@
-# Session 32 — AI spikes: gap-to-test and finding triage
+# Session 41 — AI spikes: gap-to-test and finding triage
 Status: planned
 Budget: ~50k of ~100k
-Depends on: session 31; session 9 (probe findings exist for AI-4)
+Depends on: session 40; session 9 (probe findings exist for AI-4)
 
 ## Goal
 Both remaining AI spikes have a written recommendation and, where cheap, an offline prototype that works on
@@ -16,7 +16,7 @@ coverage.json / probe findings without network access from authzcov.
 3. Jira batch + shard + commit — ~10k
 
 ## Owner / blocked
-- Same AI-in-binary decision as session 31.
+- Same AI-in-binary decision as session 40.
 
 ## Done when
 - `make check` green; KAN-85, KAN-87 In Review; KAN-83 epic summary comment.

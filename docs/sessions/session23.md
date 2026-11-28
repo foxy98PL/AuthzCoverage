@@ -5,6 +5,7 @@ Depends on: session 22; session 19 triage (this session is deleted by /planner i
 
 ## Goal
 Up to two further vulnerable apps scored, so the aggregate rests on at least six vulnerable apps.
+Each app reports passive coverage and read-only probe confirmation via Judge (kit probe step, session 20).
 
 ## Work (in order)
 1. VAL-7 first extra app kept by triage (candidates: BrokenCrystals, Pixi, Juice Shop only if triage found a usable

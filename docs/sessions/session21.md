@@ -6,6 +6,7 @@ Depends on: session 20 (kit); session 19 triage kept both (else /planner swaps i
 ## Goal
 Two more vulnerable apps scored under the protocol: digest-pinned image, multi-identity HAR, pre-registered ground
 truth, eval result in eval/results/.
+Each app reports passive coverage and read-only probe confirmation via Judge (kit probe step, session 20).
 
 ## Work (in order)
 1. VAL-3 DVAPI suite — normal ~30k — implementer (ground truth first) → reviewer → fixer

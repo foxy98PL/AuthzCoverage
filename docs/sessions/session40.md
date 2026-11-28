@@ -1,7 +1,7 @@
-# Session 31 — AI spikes: MCP server and identities.yaml assistant
+# Session 40 — AI spikes: MCP server and identities.yaml assistant
 Status: planned
 Budget: ~60k of ~100k
-Depends on: session 25 (validation report; owner: validation before any further feature growth); session 12 (stable v0.3.0 CLI surface); owner interest in the AI epic (KAN-83, Low)
+Depends on: session 25 (validation report; owner: validation before any further feature growth); session 34 (stable v0.3.0 CLI surface); owner interest in the AI epic (KAN-83, Low)
 
 ## Goal
 A prototype MCP server exposes coverage, explain and gate as agent tools, and the identities.yaml assistant

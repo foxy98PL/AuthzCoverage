@@ -1,7 +1,7 @@
-# Session 11 — Destructive mode and resume
+# Session 33 — Destructive mode and resume
 Status: planned
 Budget: ~75k of ~100k
-Depends on: session 10 (read-only probing proven by the VAmPI oracle, KAN-65)
+Depends on: session 25 go/no-go by the owner (owner decision 2026-11-28: validation 19–25 runs before destructive mode); session 10 (read-only probing proven by the VAmPI oracle, KAN-65)
 
 ## Goal
 Opt-in destructive mode (create as owner, attack, verify as owner) works on objects the probe created itself,
@@ -22,4 +22,4 @@ inconclusive results can be re-run, and `--resume` continues from the audit log.
 - `make check` green; VAmPI oracle still green; KAN-47, KAN-48 In Review.
 
 ## Out of scope
-- Safety docs and v0.3.0 (session 12).
+- Safety docs and v0.3.0 (session 34).

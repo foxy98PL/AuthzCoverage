@@ -1,7 +1,7 @@
-# Session 12 — Probe safety docs, v0.3.0 prep, migrate placeholder
+# Session 34 — Probe safety docs, v0.3.0 prep, migrate placeholder
 Status: planned
 Budget: ~40k of ~100k
-Depends on: session 11
+Depends on: session 33; session 25 go/no-go by the owner
 
 ## Goal
 Probe safety is documented, v0.3.0 is ready to tag, and `authzcov migrate` exists as a v1 no-op placeholder.
@@ -16,10 +16,10 @@ Probe safety is documented, v0.3.0 is ready to tag, and `authzcov migrate` exist
 
 ## Owner / blocked
 - Push the v0.3.0 tag and verify the signed release.
-- Gate D (Sun 2027-02-28, KAN-65: continue / OSS-only / archive) decides whether sessions 13–18 run.
+- Gate D (Sun 2027-02-28, KAN-65: continue / OSS-only / archive) decides whether sessions 36–41 run.
 
 ## Done when
 - `make check` green; KAN-49 In progress until the owner tags; KAN-77 In Review.
 
 ## Out of scope
-- Phase 5 extensions and AI spikes (sessions 13–18).
+- Phase 5 extensions and AI spikes (sessions 36–41).

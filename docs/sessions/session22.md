@@ -5,6 +5,7 @@ Depends on: session 21; session 19 triage kept both (else /planner swaps in the 
 
 ## Goal
 Two more vulnerable apps scored under the protocol.
+Each app reports passive coverage and read-only probe confirmation via Judge (kit probe step, session 20).
 
 ## Work (in order)
 1. VAL-5 dvws-node suite — normal ~30k — implementer (ground truth first) → reviewer → fixer

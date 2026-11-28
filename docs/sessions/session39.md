@@ -1,7 +1,7 @@
-# Session 30 — gRPC adapter and hosted dashboard spike
+# Session 39 — gRPC adapter and hosted dashboard spike
 Status: planned
 Budget: ~75k of ~100k
-Depends on: session 29; Gate D passed for the dashboard spike (KAN-9 out-of-scope rule)
+Depends on: session 38; Gate D passed for the dashboard spike (KAN-9 out-of-scope rule)
 
 ## Goal
 gRPC calls (path `/pkg.Service/Method`) map to coverage endpoints (step b of KAN-54), and the hosted dashboard
@@ -23,4 +23,4 @@ spike has a go/no-go write-up.
 - `make check` green; KAN-54 and KAN-55 In Review (or KAN-55 commented as skipped).
 
 ## Out of scope
-- AI spikes (sessions 31–32).
+- AI spikes (sessions 40–41).

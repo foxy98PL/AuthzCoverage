@@ -21,6 +21,8 @@ and Juice Shop basket e2e tests exist.
 
 ## Done when
 - `make check` green; VAmPI oracle job green in CI; KAN-45, KAN-46 In Review.
+- Probe results (Judge verdict per probed cell) for VAmPI, crAPI and Juice Shop are committed under eval/results
+  in a stable format, because validation session 20 reuses them instead of re-running these probes.
 
 ## Out of scope
-- Destructive mode (session 11).
+- Destructive mode (session 33, after validation 19–25 and its go/no-go).

@@ -1,7 +1,7 @@
-# Session 26 — CONDITIONAL STUB: live report (`authzcov watch`) and identity-switch recording
+# Session 35 — CONDITIONAL STUB: live report (`authzcov watch`) and identity-switch recording
 Status: planned
 Budget: ~? of ~100k (stub: /planner sizes it after the go decision)
-Depends on: session 25 go decision by the owner; if no-go, /planner deletes this file
+Depends on: session 34 (Phase 4 closed); session 25 go decision by the owner; if no-go, /planner deletes this file
 
 ## Goal
 If validation shows the engine is worth it and setup cost is the bottleneck: a localhost-only HTML report that
@@ -20,4 +20,4 @@ re-aggregates HARs as they land, and a documented workflow for recording several
 - Defined when the stub is planned for real.
 
 ## Out of scope
-- `authzcov record` (own MITM proxy), hosted dashboard (KAN-55, session 30).
+- `authzcov record` (own MITM proxy), hosted dashboard (KAN-55, session 39).

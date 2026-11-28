@@ -9,7 +9,8 @@ One file per planned orchestrator session, written by `/planner` (the Opus `plan
 - `session<N>.<k>.md`: bug fixes for bugs introduced by session N's work, k = 1, 2 … They sort right after
   session N, so they run before any later planned session.
 - Order: `ls docs/sessions/session*.md | sort -V` (gives 1, 1.1, 1.2, 1.10, 2, 10). Numbers are never reused or
-  renumbered.
+  renumbered. Exception: on an owner-ordered reorder, not-yet-started planned files may move to new, higher
+  numbers; the vacated numbers are retired (e.g. 2026-11-28: 11–12 → 33–34, 26–32 → 35–41).
 
 ## Picking up (/start, /resume)
 
