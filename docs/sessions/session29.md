@@ -1,7 +1,7 @@
-# Session 15 — GraphQL adapter and spec-less mode spike
+# Session 29 — GraphQL adapter and spec-less mode spike
 Status: planned
 Budget: ~80k of ~100k
-Depends on: session 14; owner decision on parser dependencies (see Owner / blocked)
+Depends on: session 28; owner decision on parser dependencies (see Owner / blocked)
 
 ## Goal
 GraphQL operations in a HAR map to coverage endpoints (step a of KAN-54), and the spec-less mode spike has a
@@ -25,4 +25,4 @@ written recommendation with a bug-bounty checklist.
 - `make check` green; GraphQL adapter fuzzed; KAN-82 write-up committed; KAN-54 stays In progress (step b left).
 
 ## Out of scope
-- gRPC (session 16).
+- gRPC (session 30).

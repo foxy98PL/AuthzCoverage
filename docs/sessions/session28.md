@@ -1,7 +1,7 @@
-# Session 14 — NestJS/Express routes and OTLP input
+# Session 28 — NestJS/Express routes and OTLP input
 Status: planned
 Budget: ~80k of ~100k
-Depends on: session 13 (shared route-extractor interface)
+Depends on: session 27 (shared route-extractor interface)
 
 ## Goal
 NestJS swagger documents and an Express route dump load as endpoint sources, and OTLP JSON spans
@@ -23,4 +23,4 @@ NestJS swagger documents and an Express route dump load as endpoint sources, and
 - `make check` green; KAN-9 exit "OTel spans with http.route ingest without a spec" shown by a test; KAN-51, KAN-53 In Review.
 
 ## Out of scope
-- GraphQL and gRPC (sessions 15–16).
+- GraphQL and gRPC (sessions 29–30).

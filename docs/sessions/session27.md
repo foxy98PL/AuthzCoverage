@@ -1,7 +1,7 @@
-# Session 13 — Route extraction without a spec: Spring Actuator and Next.js
+# Session 27 — Route extraction without a spec: Spring Actuator and Next.js
 Status: planned
 Budget: ~65k of ~100k
-Depends on: session 12; Gate D "continue" (owner); user demand for these inputs (KAN-9 scope rule)
+Depends on: session 25 (validation report; owner: validation before any further feature growth); Gate D "continue" (owner); user demand for these inputs (KAN-9 scope rule)
 
 ## Goal
 `authzcov` can build its endpoint list from Spring `/actuator/mappings` JSON and from a Next.js project tree,
@@ -17,11 +17,11 @@ feeding the same matcher as OpenAPI.
 
 ## Owner / blocked
 - Gate D outcome and which extensions users asked for (KAN-9: only requested ones). Assumption: if Gate D says
-  "continue" without a pick, run sessions 13–16 in this order.
+  "continue" without a pick, run sessions 27–30 in this order.
 - A PetClinic mappings dump (needs Docker/Java) for the 95% check; the owner records it if Docker is down.
 
 ## Done when
 - `make check` green; new loaders fuzzed like the spec loader; KAN-50, KAN-52 In Review.
 
 ## Out of scope
-- NestJS/Express and OTLP (session 14).
+- NestJS/Express and OTLP (session 28).
