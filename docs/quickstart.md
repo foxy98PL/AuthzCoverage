@@ -48,18 +48,18 @@ authzcov prints a few progress lines on stderr, writes
 `authzcov-out/coverage.json`, and prints this table:
 
 ```
-ENDPOINT                                OWNER  SAME_ROLE  LOWER  OTHER_TENANT  ANON
-DELETE  /orgs/{orgId}/orders/{orderId}  ok     GAP        -      ok 403        GAP
-GET     /me                             ok     -          GAP    -             GAP
-GET     /openapi.yaml                   GAP    -          GAP    -             GAP
-GET     /orgs/{orgId}/customers         GAP    GAP        -      ok 403        GAP
-GET     /orgs/{orgId}/orders            GAP    GAP        -      ok 403        GAP
-GET     /orgs/{orgId}/orders/{orderId}  ok     ok 403     -      ok 200,403    ok 401
-POST    /login                          GAP    -          GAP    -             ok
-POST    /orgs/{orgId}/orders            GAP    GAP        -      GAP           GAP
-PUT     /orgs/{orgId}/orders/{orderId}  ok     GAP        -      ok 403        GAP
+ENDPOINT                                OWNER  SAME_ROLE  LOWER   OTHER_TENANT  ANON
+DELETE  /orgs/{orgId}/orders/{orderId}  ok     GAP        -       ok 403        GAP
+GET     /me                             ok     -          -       -             GAP
+GET     /openapi.yaml                   GAP    -          GAP     -             GAP
+GET     /orgs/{orgId}/customers         ok     -          ok 403  ok 403        GAP
+GET     /orgs/{orgId}/orders            ok     -          -       ok 403        GAP
+GET     /orgs/{orgId}/orders/{orderId}  ok     ok 403     -       ok 200,403    ok 401
+POST    /login                          GAP    -          GAP     -             ok
+POST    /orgs/{orgId}/orders            ok     -          -       GAP           GAP
+PUT     /orgs/{orgId}/orders/{orderId}  ok     GAP        -       ok 403        GAP
 
-required 33  covered 12 (36.4%)  gaps 21
+required 30  covered 16 (53.3%)  gaps 14
 ! 1 suspicious allow(s): run "authzcov report --format markdown" for details
 ```
 
@@ -72,7 +72,7 @@ How to read it:
 - `ok 403` means your tests tried it and the API answered 403. The status
   codes seen are listed.
 - `GAP` means no test tried it. The test you never wrote is the gap.
-- 33 combinations are required and 12 are covered.
+- 30 combinations are required and 16 are covered.
 
 ### The line with `!`
 

@@ -49,7 +49,7 @@ must change it (until then verification fails closed).
 
 | Output | Meaning |
 | --- | --- |
-| `coverage-percent` | required-cell coverage, e.g. `36.4` |
+| `coverage-percent` | required-cell coverage, e.g. `53.3` |
 | `gaps` | number of uncovered required cells |
 | `report-dir` | directory holding `coverage.json` |
 | `gate-result` | `pass`, `fail` (regression found) or `error` (gate could not run); empty when no `baseline` is set. Written before the step exits non-zero, so it is usable with `continue-on-error` |

@@ -48,8 +48,8 @@ jobs:
           GAPS: ${{ steps.cov.outputs.gaps }}
           REPORT_DIR: ${{ steps.cov.outputs.report-dir }}
         run: |
-          test "$PERCENT" = "36.4" || { echo "coverage-percent=$PERCENT, want 36.4"; exit 1; }
-          test "$GAPS" = "21" || { echo "gaps=$GAPS, want 21"; exit 1; }
+          test "$PERCENT" = "53.3" || { echo "coverage-percent=$PERCENT, want 53.3"; exit 1; }
+          test "$GAPS" = "14" || { echo "gaps=$GAPS, want 14"; exit 1; }
           test -f "$REPORT_DIR/coverage.json"
 
       - name: Write baseline from this run
