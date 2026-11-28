@@ -20,7 +20,7 @@
 <table id="matrix">
 <thead><tr><th>Endpoint</th>{{range .Cols}}<th data-rel="{{.}}">{{.}}</th>{{end}}</tr></thead>
 <tbody>
-{{range .Rows}}<tr data-endpoint="{{.ID}}"><td class="ep">{{.Label}}{{range .Cells}}<td data-rel="{{.Rel}}" data-state="{{.State}}"{{if .Title}} title="{{.Title}}"{{end}}>{{.Text}}{{end}}{{end}}</tbody>
+{{range .Rows}}<tr data-endpoint="{{.ID}}"><td class="ep">{{.Label}}</td>{{range .Cells}}<td data-rel="{{.Rel}}" data-state="{{.State}}"{{if .Title}} title="{{.Title}}"{{end}}>{{.Text}}{{end}}{{end}}</tbody>
 </table>
 </div>
 <h2>Findings ({{len .Findings}})</h2>

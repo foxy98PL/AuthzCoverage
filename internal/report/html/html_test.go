@@ -209,3 +209,28 @@ func TestSuspiciousAllowShown(t *testing.T) {
 		t.Error("html lacks suspicious_allow finding")
 	}
 }
+
+// TestJSContract ties report.js to the markup it filters: every id, attribute
+// and selector the script reads must exist in the rendered page, so a typo on
+// either side fails here (no JS engine is available in the test environment).
+func TestJSContract(t *testing.T) {
+	out := render(t, sample())
+	for _, m := range regexp.MustCompile(`getElementById\("([^"]+)"\)`).FindAllStringSubmatch(reportJS, -1) {
+		if !strings.Contains(out, `id="`+m[1]+`"`) {
+			t.Errorf("report.js reads #%s, absent from the page", m[1])
+		}
+	}
+	for _, m := range regexp.MustCompile(`getAttribute\("([^"]+)"\)`).FindAllStringSubmatch(reportJS, -1) {
+		if !strings.Contains(out, m[1]+`="`) {
+			t.Errorf("report.js reads attribute %s, absent from the page", m[1])
+		}
+	}
+	for _, m := range regexp.MustCompile(`td\[(data-[a-z]+)="([^"]+)"\]`).FindAllStringSubmatch(reportJS, -1) {
+		if !strings.Contains(out, m[1]+`="`+m[2]+`"`) {
+			t.Errorf("report.js selects %s=%s, absent from the page", m[1], m[2])
+		}
+	}
+	if !strings.Contains(reportJS, `"hidden"`) || !strings.Contains(reportCSS, ".hidden") {
+		t.Error("report.js toggles class hidden but report.css has no .hidden rule")
+	}
+}
