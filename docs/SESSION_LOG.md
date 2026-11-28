@@ -25,3 +25,7 @@ Done: KAN-103/100/98 agent-doable parts (SARIF step in action-test.yml; fuzz ver
 - Cost (estimate, Sonnet list $3/$15 per M, cache read $0.30/M): implementer ~$1.5, reviewer ~$0.3, fixer ~$0.3, orchestrator ~$0.5; total ~$2.6.
 - Pro plan: roughly 30-40% of a 5-hour window (rough).
 - Surprises: GC-restore fix regressed RSS 256 -> 380 MiB; caught by re-running eval-scaling myself.
+
+## Session 3 (2026-11-29) partial, blocked
+- Done: spec fetched only (not committed, fixturecheck). Blocked: no Docker, no trustworthy backend image. No code changes, no eval run, replan: not checked.
+- Tokens: implementer KAN-12 24.2k (Sonnet). Orchestrator ~35k context (estimate). Cost ~ $0.3 (estimate).

@@ -1,5 +1,5 @@
 # Session 3 — RealWorld harness (last v0.1.0 golden)
-Status: planned
+Status: active
 Budget: ~60k of ~100k
 Depends on: session 2 (goldens must be stable); Docker daemon for the run
 
