@@ -25,4 +25,4 @@ Args = optional focus (e.g. "KAN-102", "only step 4"). Empty = follow the shard.
    batch Jira, tell the owner, stop.
 5. Before stopping do the end-of-session report in `.claude/delegation-rules.md` §9: docker eval of external apps,
    next-session impact check (replan if affected), append to `docs/SESSION_LOG.md` (write-only), and give the owner
-   the token / estimated cost / Pro-plan summary.
+   the token / cost / Pro-plan summary (cost as the per-agent table: agent, model, tokens, API cost).

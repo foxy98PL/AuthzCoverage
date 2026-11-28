@@ -112,7 +112,10 @@ reads it at startup, it is for the owner's later investigation). (4) **Tell the 
 - Tokens: subagent tokens = sum of `subagent_tokens` from the completion notifications (list per agent role);
   orchestrator = context size at the end (hook figure or `/cost`) × turns is unknowable here, so state the
   context size and say "estimate". Never invent exact numbers.
-- Estimated API-equivalent cost: tokens × current list prices per model (Sonnet orchestrator/implementers,
-  Haiku jira, Opus advisor); show the formula and mark it an estimate.
+- Estimated API-equivalent cost: **always a table**, one row per agent run plus the orchestrator and a total row:
+  `| Agent | Model | Tokens | API cost (est.) |` (agent = role + ticket, e.g. implementer KAN-104; model from
+  `.claude/agents/<role>.md`; tokens = `subagent_tokens` from the notification, orchestrator = estimated
+  context × turns split into cache-read / cache-write / output). State the per-model list prices used under the
+  table and mark every figure an estimate; same table goes into `docs/SESSION_LOG.md`.
 - Pro plan estimate: share of a 5-hour window / weekly allowance the session likely used (rough, say so; subagent
   runs and long contexts count most).
