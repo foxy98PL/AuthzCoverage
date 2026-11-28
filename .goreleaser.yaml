@@ -30,6 +30,7 @@ archives:
     files:
       - LICENSE
       - NOTICE
+      - THIRD_PARTY_LICENSES
       - README.md
 
 checksum:

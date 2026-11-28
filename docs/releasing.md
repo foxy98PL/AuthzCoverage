@@ -46,3 +46,26 @@ Semantic versioning with a leading `v`: `v0.1.0`, `v0.1.1`. Pre-releases carry a
 - Signing and attestation need GitHub's OIDC token, so they cannot be exercised locally. Local dry
   run: `go run github.com/goreleaser/goreleaser/v2@v2.20.3 release --snapshot --clean --skip=sign,sbom,publish`
   (then `rm -rf dist`).
+
+## v0.1.0 owner checklist (KAN-27)
+
+Only the repository owner does these. Agents never tag, push or publish.
+
+- [ ] `main` is clean, CI green (including the `bench` job), `make check` passes locally.
+- [ ] `CHANGELOG.md`: replace `YYYY-MM-DD` in `## [0.1.0]` with the release date; the compare link
+      at the bottom already points at `v0.1.0-rc.2...v0.1.0`.
+- [ ] README "Known limitations" matches the CHANGELOG list (crAPI C2, VAmPI `_debug`, unknown never
+      covered).
+- [ ] Commit the changelog, then tag and push (annotated):
+      `git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0`
+- [ ] Release workflow succeeds; release page has six archives, SBOMs, `checksums.txt`,
+      `checksums.txt.sigstore.json`; not flagged as pre-release, not a draft.
+- [ ] Verification from downloaded files (KAN-97): `cosign verify-blob` on `checksums.txt`,
+      `sha256sum --ignore-missing -c checksums.txt`, `gh attestation verify <archive> --repo
+      foxy98PL/AuthzCoverage`. Commands are in README, "Releases and signatures". Note the result on KAN-97.
+- [ ] `authzcov version` from a downloaded archive prints `authzcov 0.1.0 (commit <short sha>)`.
+- [ ] Release notes: GoReleaser generates the commit list; paste the `## [0.1.0]` section from
+      `CHANGELOG.md` at the top of the release page, including "Known limitations".
+- [ ] Verify the Action: `uses: foxy98PL/AuthzCoverage@v0.1.0` in a scratch repo passes the checksum
+      and cosign steps.
+- [ ] Move KAN-27 to Done; add `## [Unreleased]` content for the next cycle.

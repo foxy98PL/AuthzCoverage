@@ -7,9 +7,51 @@ between candidates.
 
 ## [Unreleased]
 
+## [0.1.0] - YYYY-MM-DD
+
+First stable release. Changes since v0.1.0-rc.2. Set the date when the tag is pushed
+(see `docs/releasing.md`).
+
+### Added
+
+- `object_param` on `in: query` parameters in `identities.yaml`, so objects addressed by a query
+  parameter can be tracked (KAN-104).
+- Exclusive list rules in ownership learning: an object seen only in one caller's list response is
+  owned by that caller (KAN-102).
+- `export --plan` resolve hint and a note when a plan hash does not match (hash-miss note); object ID
+  handling documented (KAN-94).
+- HTML report: filter controls with a tested JS contract and CSP-safe markup (KAN-100).
+- crAPI evaluation results refreshed after KAN-102 (precision 0.833, recall 0.833; `make eval-crapi`).
+
+### Changed
+
+- Coverage pipeline memory is bounded: the 1M-entry HAR run peaks at 256 MiB RSS instead of
+  1665 MiB (KAN-91).
+- CI runs the 10k-entry benchmark gate (`scripts/bench.sh`, `BENCH_MAX_RATIO`) and a hard 5 s test
+  (KAN-96); fuzzing runs 30 s per target (KAN-103).
+
 ### Fixed
-- Gate: `new-gaps` now also fails on a new uncovered cell on an existing endpoint, not only on new endpoints (KAN-93).
-- fixturecheck scans every text fixture for non-demo hosts, not only HAR files (KAN-99).
+
+- Gate: `new-gaps` also fails on a new uncovered cell on an existing endpoint, not only on new
+  endpoints (KAN-93).
+- fixturecheck scans every text fixture for non-demo hosts, not only HAR files (KAN-99), and covers
+  oversize files.
+- Corrected `suspicious_allow` reason text in the eval report (KAN-101).
+
+### Known limitations
+
+- **Unknown never counts as covered.** A request whose caller cannot be identified, or whose object
+  owner is not known, leaves the cell uncovered. Coverage can read lower than reality; add identities
+  or ownership hints to raise it.
+- **crAPI challenge C2 (mechanic report by query parameter) is still a false negative** in
+  `make eval-crapi`. KAN-104 allows `object_param` on query parameters, but the crAPI identities file
+  has no such override and no rule learns the report owner (it needs a create rule on
+  `contact_mechanic`). Follow-up, not in this release.
+- **VAmPI `_debug` is a false negative.** The spec declares no `security` on `GET /users/v1/_debug`, so
+  the endpoint looks public and a missing check on it is not found. Workaround: declare the
+  intended security in the spec or a `min_role` override.
+- `suspicious_allow` uses status and body only; apps that ignore the path parameter produce false
+  alarms (VAmPI `PWCHANGE`, `U2-EMAIL`). See the README "Known limitations".
 
 ## [0.1.0-rc.2] - 2026-11-28
 
@@ -71,8 +113,6 @@ Changes since v0.1.0-rc.1. Coverage percentages for the same inputs can differ f
 - Raw object IDs from `export --plan --har` are only written to a 0600 file, never to stdout
   (KAN-34).
 
-Not in this release: bounded memory for large HARs (KAN-91). Memory is still linear in HAR size.
-
 ## [0.1.0-rc.1] - 2026-11-27
 
 First published pre-release.
@@ -92,5 +132,6 @@ First published pre-release.
   keyless bundle and GitHub build provenance.
 - Probe plan: `export --plan` writes gaps as a versioned JSON plan (`schema/plan.v1.json`).
 
+[0.1.0]: https://github.com/foxy98PL/AuthzCoverage/compare/v0.1.0-rc.2...v0.1.0
 [0.1.0-rc.2]: https://github.com/foxy98PL/AuthzCoverage/compare/v0.1.0-rc.1...v0.1.0-rc.2
 [0.1.0-rc.1]: https://github.com/foxy98PL/AuthzCoverage/releases/tag/v0.1.0-rc.1

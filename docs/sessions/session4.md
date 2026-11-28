@@ -1,5 +1,5 @@
 # Session 4 — v0.1.0 final prep and launch material
-Status: planned
+Status: active
 Budget: ~60k of ~100k
 Depends on: sessions 1–3; KAN-97 rc.2 verification by the owner before the v0.1.0 tag
 
