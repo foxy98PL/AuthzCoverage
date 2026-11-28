@@ -7,7 +7,8 @@ Binding. Measurements behind each rule: `.claude/delegation-rationale.md` (grep 
 - **Sonnet orchestrates** (implement → review → fix → commit → Jira). Never an Opus orchestrator.
 - **Opus only for security or architecture decisions** (credentials, identity, tenancy, threat-model trade-offs,
   package/API design), or a security finding a Haiku reviewer cannot settle: write the question with options to
-  `notes/<KEY>-opus.md`, launch a fresh `general-purpose` agent with `model: opus` pointed at it, or ask the owner.
+  `notes/<KEY>-opus.md`, launch the `advisor` agent (Opus, starts at ~6k vs ~32k for `general-purpose`)
+  pointed at it, or ask the owner.
 - **Restart the orchestrator at ~150k tokens** (the hook warns at 120k; subagents warn at 80k, return at 100k):
   write a new progress shard (`docs/progress/README.md`), do the batched Jira updates (§7), tell the owner, stop.
   Local-only details (agent IDs, scratch paths) go to `notes/orchestrator-state.md`.
@@ -20,7 +21,8 @@ Binding. Measurements behind each rule: `.claude/delegation-rationale.md` (grep 
 
 ## 1. Agent choice
 
-- Lean agents in `.claude/agents/`: `implementer`, `fixer` (Sonnet), `reviewer`, `validator` (Haiku).
+- Lean agents in `.claude/agents/`: `implementer`, `fixer` (Sonnet), `reviewer`, `validator`, `jira` (Haiku),
+  `advisor` (Opus, §0 questions only). Never `general-purpose` for work a lean agent covers.
 - Run `make check` / `go test` **yourself** (the hook keeps output short). Use `validator` only for long or noisy
   runs: fuzz, eval, determinism diffs, multi-command scans.
 - `subagent_type: fork` only when the task needs the whole conversation. Never fork to implement, fix or review.
@@ -36,6 +38,11 @@ gets "fix F1–F3 in `notes/<KEY>-review.md`". Over 1.5k needs a one-line reason
 Reviewer input: `git diff <base>...HEAD -- <paths>` (or `git diff -- <paths>`) + the AC. It reads further code
 only to check a specific suspicion, and writes F1…Fn (severity, file:line, failing scenario) to
 `notes/<KEY>-review.md`.
+
+Audits (done-readiness, verification, "is X still true") get the same scope as a review: per ticket the
+commit(s) (`git show --stat <sha>`) or `git diff <base>...HEAD -- <paths>`, the AC, and a question list. Never
+"no diff, explore": four unscoped Haiku audits cost 150 turns and 6.7M cache reads. Skip the audit for a ticket
+that already had a reviewer pass; its review notes are the evidence.
 
 ## 3. Read hygiene (the biggest saving)
 
@@ -72,8 +79,11 @@ Every byte the orchestrator sees is re-read on every later turn.
 - **Never poll background agents** (no `sleep`, `until`, tailing agent output): the harness notifies you. Do other
   work or end the turn.
 - **Jira in one batch, at the end** (before a restart or end of round). Go straight to In Review (31) for work
-  finished this session. Pass `responseFields` (e.g. `["key","fields.status.name"]`) where the tool accepts it,
-  `fields: ["summary","status"]` on searches; never re-fetch a description already in `notes/`; comments ≤ 10 lines.
+  finished this session. `transitionJiraIssue` and `createJiraIssue` have no `responseFields` and echo the whole
+  issue (~4k chars each), so for 2 or more writes, put them in `notes/jira-batch.md` (one block per ticket: key,
+  comment ≤ 10 lines, transition 21/31, or a new issue's summary, type and description) and run the `jira` agent
+  on it. Its reply is one line per ticket. A single write may stay inline. Reads stay inline: `fields:
+  ["summary","status"]` on searches; never re-fetch a description already in `notes/`.
 - Startup: newest progress shard only; `grep` PLAN.md / older shards for specific facts.
 - Batch independent tool calls into one turn.
 - Summarise agent returns to the owner; don't relay them verbatim.
