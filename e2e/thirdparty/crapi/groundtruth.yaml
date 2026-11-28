@@ -1,0 +1,297 @@
+# Ground truth for crAPI v1.1.6 (OWASP/crAPI, commit 700f03d, 2025-09-22). Derived from docs/challenges.md and
+# docs/challengeSolutions.md at that tag plus the source of the services (paths below are relative to the repo
+# root at that tag; abbreviations: ID = services/identity/src/main/java/com/crapi, WS = services/workshop/crapi),
+# then confirmed by the runner's own probe statuses (see results "extra.runs[].probes").
+#
+# Flat subset of YAML (one "- id:" block per item), parsed by the runner.
+#   authz: true  = authorization failure; authzcov is expected to flag it when it can
+#   authz: false = not an authorization problem (out_of_scope for authzcov), or a 2xx that is not an authz failure
+#   category: documented | undocumented | control | quirk | non_authz | query_param
+#     documented   a crAPI challenge (docs/challenges.md) that is a path-parameter authorization failure
+#     undocumented real authorization failure found by reading the source
+#     query_param  BOLA/BFLA where the object is addressed by a query parameter: authzcov only analyses path
+#                  parameters, so a miss is expected (counted as fn, honestly)
+#     control      forbidden for the caller in crAPI (a flag here is a false positive)
+#     quirk        2xx that is not an authorization failure (a flag here is a false positive)
+#     non_authz    other crAPI challenge classes (injection, SSRF, JWT, mass assignment, rate limit, LLM): out of scope
+#   expect: what a forbidden caller gets (allow = 2xx with data/effect for the named victim, deny = 401/403/404,
+#           noop = 2xx without effect on the victim)
+#   probe: step tag in the recorder that exercises the item
+#   miss: optional, the reason authzcov is expected to miss an authz item (used in the fn reason)
+
+# ---- Documented authorization challenges (path parameter) ------------------
+- id: CRAPI-C1-VEHICLE
+  name: Challenge 1, BOLA - location and owner details of another user's vehicle
+  category: documented
+  authz: true
+  endpoint: GET /identity/api/v2/vehicle/{vehicleId}/location
+  relationship: same_role_other_user
+  expect: allow
+  probe: bola_vehicle
+  miss: observed in the attack run - bob and alice both get 200 on the vehicle location, and the cell is not flagged by suspicious_allow although identities.yaml learns vehicle ownership from the GET /identity/api/v2/vehicle/vehicles list (learn_from_lists, add_vehicle returns no id); the cause (id mapping, learned ownership or authzcov) is not determined offline, needs a docker run
+  source: docs/challenges.md "Challenge 1"; ID/controller/VehicleController.java:getLocationBOLA (looks the vehicle up by uuid only, no owner check)
+
+- id: CRAPI-C7-VIDEO
+  name: Challenge 7, BFLA - delete another user's video through the admin endpoint
+  category: documented
+  authz: true
+  endpoint: DELETE /identity/api/v2/admin/videos/{video_id}
+  relationship: same_role_other_user
+  expect: allow
+  probe: bfla_video
+  source: docs/challenges.md "Challenge 7"; ID/controller/ProfileController.java:deleteVideoBOLA and ID/service/Impl/ProfileServiceImpl.java:deleteAdminProfileVideo (no role or owner check; WebSecurityConfig only protects /identity/management/admin/**)
+
+- id: CRAPI-C14-ORDER-ANON
+  name: Challenge 14, unauthenticated access - order details readable without a token
+  category: documented
+  authz: true
+  endpoint: GET /workshop/api/shop/orders/{order_id}
+  relationship: anonymous
+  expect: allow
+  probe: order_anon
+  source: docs/challenges.md "Challenge 14" names no endpoint; WS/shop/views.py:OrderControlView.get has no @jwt_auth_required (put/post/other views have it), which is the unauthenticated endpoint. The mapping of challenge 14 to this endpoint is ours.
+
+# ---- Undocumented but real (found by reading the source) --------------------
+- id: CRAPI-U1-ORDER-OTHER
+  name: Order details of another user readable (BOLA)
+  category: undocumented
+  authz: true
+  endpoint: GET /workshop/api/shop/orders/{order_id}
+  relationship: same_role_other_user
+  expect: allow
+  probe: bola_order
+  source: WS/shop/views.py:OrderControlView.get (Order.objects.get(id=order_id), never compares order.user with the caller; order ids are sequential integers)
+
+- id: CRAPI-U2-USERS-ALL
+  name: Management user list (e-mails, phone numbers, credit) readable by any customer
+  category: undocumented
+  authz: true
+  endpoint: GET /workshop/api/management/users/all
+  relationship: lower_role
+  expect: allow
+  probe: users_all_user
+  source: WS/user/views.py:AdminUserView.get (only @jwt_auth_required, no role check). Function-level: no object parameter, so authzcov raises no suspicious_allow without a declared minimum role.
+
+# ---- Query-parameter BOLA: expected misses -----------------------------------
+- id: CRAPI-C2-REPORT
+  name: Challenge 2, BOLA - mechanic report of another user (report_id query parameter)
+  category: query_param
+  authz: true
+  endpoint: GET /workshop/api/mechanic/mechanic_report
+  relationship: same_role_other_user
+  expect: allow
+  probe: report_other
+  source: docs/challenges.md "Challenge 2"; WS/mechanic/views.py:GetReportView.get (ServiceRequest.objects.filter(id=report_id) with report_id from request.GET, no owner check)
+
+# ---- Quirks: 2xx that is not an authorization failure ------------------------
+- id: CRAPI-Q1-POST-OTHER
+  name: Community posts are public by design (any user reads any post)
+  category: quirk
+  authz: false
+  endpoint: GET /community/api/v2/community/posts/{postId}
+  relationship: same_role_other_user
+  expect: noop
+  probe: post_other
+  source: docs/overview.md (community section where users contribute blog posts and comments for everyone); services/community/api/controllers/post_controller.go:GetPostByID returns any post by id, by design of a public blog
+
+- id: CRAPI-Q2-VIDEO-PUT
+  name: Video update ignores the {video_id} path parameter (changes the caller's own video)
+  category: quirk
+  authz: false
+  endpoint: PUT /identity/api/v2/user/videos/{video_id}
+  relationship: same_role_other_user
+  expect: noop
+  probe: video_put_other
+  source: ID/service/Impl/ProfileServiceImpl.java:updateProfileVideo (profileVideoRepository.findByUser_id(token user); the path id is not used), same pattern as VAmPI's email update
+
+# ---- Controls: forbidden for the caller (a flag here is a false positive) ----
+- id: CRAPI-C-VEHICLE-ANON
+  name: Vehicle location without token is rejected
+  category: control
+  authz: true
+  endpoint: GET /identity/api/v2/vehicle/{vehicleId}/location
+  relationship: anonymous
+  expect: deny
+  probe: vehicle_anon
+  source: ID/config/WebSecurityConfig.java (anyRequest().authenticated())
+
+- id: CRAPI-C-ORDER-PUT-OTHER
+  name: Order update of another user is refused (403)
+  category: control
+  authz: true
+  endpoint: PUT /workshop/api/shop/orders/{order_id}
+  relationship: same_role_other_user
+  expect: deny
+  probe: order_put_other
+  source: WS/shop/views.py:OrderControlView.put (if user != order.user: 403)
+
+- id: CRAPI-C-ORDER-PUT-ANON
+  name: Order update without token is rejected
+  category: control
+  authz: true
+  endpoint: PUT /workshop/api/shop/orders/{order_id}
+  relationship: anonymous
+  expect: deny
+  probe: order_put_anon
+  source: WS/shop/views.py (@jwt_auth_required on put)
+
+- id: CRAPI-C-VIDEO-GET-OTHER
+  name: Video of another user is not returned (404)
+  category: control
+  authz: true
+  endpoint: GET /identity/api/v2/user/videos/{video_id}
+  relationship: same_role_other_user
+  expect: deny
+  probe: video_get_other
+  source: ID/service/Impl/ProfileServiceImpl.java:getProfileVideo (returns only the token user's own video, else VIDEO_NOT_FOUND 404)
+
+- id: CRAPI-C-VIDEO-GET-ANON
+  name: Video without token is rejected
+  category: control
+  authz: true
+  endpoint: GET /identity/api/v2/user/videos/{video_id}
+  relationship: anonymous
+  expect: deny
+  probe: video_get_anon
+  source: ID/config/WebSecurityConfig.java (anyRequest().authenticated())
+
+- id: CRAPI-C-VIDEO-DELETE-USER
+  name: User video delete endpoint never deletes (hint "this is an admin function")
+  category: control
+  authz: true
+  endpoint: DELETE /identity/api/v2/user/videos/{video_id}
+  relationship: same_role_other_user
+  expect: deny
+  probe: video_delete_user
+  source: ID/controller/ProfileController.java:deleteVideo (builds a 403 CRAPIResponse for an existing video, but the controller only maps status 200 to a 2xx, so the response is 404 in both cases; nothing is deleted)
+
+- id: CRAPI-C-ADMIN-VIDEO-ANON
+  name: Admin video delete without token is rejected
+  category: control
+  authz: true
+  endpoint: DELETE /identity/api/v2/admin/videos/{video_id}
+  relationship: anonymous
+  expect: deny
+  probe: admin_video_anon
+  source: ID/config/WebSecurityConfig.java (anyRequest().authenticated())
+
+- id: CRAPI-C-POST-ANON
+  name: Community post without token is rejected
+  category: control
+  authz: true
+  endpoint: GET /community/api/v2/community/posts/{postId}
+  relationship: anonymous
+  expect: deny
+  probe: post_anon
+  source: services/community/api/router/routes.go (SetMiddlewareAuthentication on GetPostByID)
+
+# ---- Other crAPI challenges: not authorization problems for authzcov ---------
+- id: CRAPI-C3-RESET
+  name: Challenge 3, broken user authentication - password reset of another user via OTP brute force
+  category: non_authz
+  authz: false
+  endpoint: POST /identity/api/auth/v3/check-otp
+  relationship: anonymous
+  expect: n/a
+  probe:
+  source: docs/challenges.md "Challenge 3" (authentication, no object path parameter)
+
+- id: CRAPI-C4-DATA-EXPOSURE
+  name: Challenge 4, excessive data exposure - community posts leak the author's e-mail and vehicle id
+  category: non_authz
+  authz: false
+  endpoint: GET /community/api/v2/community/posts/recent
+  relationship: n/a
+  expect: n/a
+  probe:
+  source: docs/challenges.md "Challenge 4" (response content, not access)
+
+- id: CRAPI-C5-VIDEO-PROPERTY
+  name: Challenge 5, excessive data exposure - internal conversion_params property of a video
+  category: non_authz
+  authz: false
+  endpoint: GET /identity/api/v2/user/videos/{video_id}
+  relationship: n/a
+  expect: n/a
+  probe:
+  source: docs/challenges.md "Challenge 5" (response content, the caller's own video)
+
+- id: CRAPI-C6-RATE-LIMIT
+  name: Challenge 6, rate limiting - layer 7 DoS through contact mechanic
+  category: non_authz
+  authz: false
+  endpoint: POST /workshop/api/merchant/contact_mechanic
+  relationship: n/a
+  expect: n/a
+  probe:
+  source: docs/challenges.md "Challenge 6"
+
+- id: CRAPI-C8-ORDER-MASS
+  name: Challenge 8 and 9, mass assignment - set the status of the caller's own order to returned (free item, credit)
+  category: non_authz
+  authz: false
+  endpoint: PUT /workshop/api/shop/orders/{order_id}
+  relationship: n/a
+  expect: n/a
+  probe: mass_assign_order
+  source: docs/challenges.md "Challenge 8/9"; WS/shop/views.py:OrderControlView.put (status accepted from the body; the caller is the owner)
+
+- id: CRAPI-C10-VIDEO-MASS
+  name: Challenge 10, mass assignment - update the internal conversion_params of the caller's own video
+  category: non_authz
+  authz: false
+  endpoint: PUT /identity/api/v2/user/videos/{video_id}
+  relationship: n/a
+  expect: n/a
+  probe: mass_assign_video
+  source: docs/challenges.md "Challenge 10"
+
+- id: CRAPI-C11-SSRF
+  name: Challenge 11, SSRF - contact mechanic makes crAPI call an arbitrary URL (mechanic_api)
+  category: non_authz
+  authz: false
+  endpoint: POST /workshop/api/merchant/contact_mechanic
+  relationship: n/a
+  expect: n/a
+  probe:
+  source: docs/challenges.md "Challenge 11"
+
+- id: CRAPI-C12-NOSQLI
+  name: Challenge 12, NoSQL injection - coupons validated through an operator in the request body
+  category: non_authz
+  authz: false
+  endpoint: POST /community/api/v2/coupon/validate-coupon
+  relationship: n/a
+  expect: n/a
+  probe:
+  source: docs/challenges.md "Challenge 12"
+
+- id: CRAPI-C13-SQLI
+  name: Challenge 13, SQL injection - redeem an already claimed coupon
+  category: non_authz
+  authz: false
+  endpoint: POST /workshop/api/shop/apply_coupon
+  relationship: n/a
+  expect: n/a
+  probe:
+  source: docs/challenges.md "Challenge 13"; WS/shop/views.py:ApplyCouponView.post (raw SQL string concatenation)
+
+- id: CRAPI-C15-JWT
+  name: Challenge 15, JWT vulnerabilities - forged tokens (alg none, jku, weak secret)
+  category: non_authz
+  authz: false
+  endpoint: n/a
+  relationship: n/a
+  expect: n/a
+  probe:
+  source: docs/challenges.md "Challenge 15", docs/challengeSolutions.md
+
+- id: CRAPI-C16-18-LLM
+  name: Challenges 16 to 18, LLM chatbot (prompt injection, credential extraction, actions for another user)
+  category: non_authz
+  authz: false
+  endpoint: n/a
+  relationship: n/a
+  expect: n/a
+  probe:
+  source: docs/challenges.md "Challenge 16-18"; the chatbot and chromadb services are not part of the evaluated stack (compose.yaml)

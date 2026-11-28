@@ -10,3 +10,15 @@ This repository bundles third-party material used only as test data:
   Copyright (c) 2020 erev0s
   Copied verbatim from openapi_specs/openapi3.yml (master, fetched 2026-11-27).
   Licensed under the MIT License.
+
+- e2e/thirdparty/crapi/openapi.json
+  OpenAPI specification from crAPI (https://github.com/OWASP/crAPI)
+  Copyright (c) OWASP crAPI contributors
+  Copied verbatim from openapi-spec/crapi-openapi-spec.json (tag v1.1.6, commit 700f03d).
+  sha256 9dc66ecfb21556b454d9b71be32753abb43d13f6fd2e39a414d583ffdd66bceb
+  Licensed under the Apache License, Version 2.0.
+
+- e2e/thirdparty/crapi/compose.yaml
+  Derived from deploy/docker/docker-compose.yml of crAPI (tag v1.1.6, commit 700f03d): services trimmed,
+  images pinned by digest, ports rebound (see the header of the file).
+  Copyright (c) OWASP crAPI contributors. Licensed under the Apache License, Version 2.0.

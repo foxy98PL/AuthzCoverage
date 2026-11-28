@@ -1,0 +1,167 @@
+# crAPI v1.1.6 (OWASP/crAPI, commit 700f03d, Apache-2.0) trimmed for the authzcov evaluation.
+# Derived from deploy/docker/docker-compose.yml at that tag. Changes (see README "crAPI" in eval/README.md):
+#   - every image pinned by digest (the crapi/* images are the `main` builds of 2025-09-22, the day of the
+#     tag commit; only crapi-identity also has a 1.1.6 tag, the other services have no 1.1.6 image)
+#   - dropped: crapi-chatbot, chromadb (LLM, needs an API key; out of scope), api.mypremiumdealership.com
+#     (payment/SSRF gateway; its absence only makes the order detail's payment call fail, which the app catches)
+#   - ports bound to 127.0.0.1 with random host ports; no container_name (the compose project name is unique)
+#   - TLS off, resource limits removed (a throttled JVM made start-up time vary), named volumes replaced by
+#     anonymous ones that `docker compose down -v` deletes
+#   - CHATBOT_SERVICE of crapi-web points at crapi-identity: nginx resolves every upstream at start-up and
+#     would refuse to boot without a chatbot host. /chatbot/ is never called.
+services:
+  crapi-identity:
+    image: crapi/crapi-identity@sha256:5d1db5b3ba8e02bc68711ec6fc4e35ed7cd8b87e63785ece9e7ff5b5e36c5260
+    environment:
+      - LOG_LEVEL=INFO
+      - DB_NAME=crapi
+      - DB_USER=admin
+      - DB_PASSWORD=crapisecretpassword
+      - DB_HOST=postgresdb
+      - DB_PORT=5432
+      - SERVER_PORT=8080
+      - ENABLE_SHELL_INJECTION=false
+      - JWT_SECRET=crapi
+      - MAILHOG_HOST=mailhog
+      - MAILHOG_PORT=1025
+      - MAILHOG_DOMAIN=example.com
+      - SMTP_HOST=smtp.example.com
+      - SMTP_PORT=587
+      - SMTP_EMAIL=user@example.com
+      - SMTP_PASS=xxxxxxxxxxxxxx
+      - SMTP_FROM=no-reply@example.com
+      - SMTP_AUTH=true
+      - SMTP_STARTTLS=true
+      - JWT_EXPIRATION=604800000
+      - ENABLE_LOG4J=false
+      - API_GATEWAY_URL=https://api.mypremiumdealership.com
+      - TLS_ENABLED=false
+    depends_on:
+      postgresdb: {condition: service_healthy}
+      mongodb: {condition: service_healthy}
+      mailhog: {condition: service_healthy}
+    healthcheck:
+      test: /app/health.sh
+      interval: 10s
+      timeout: 15s
+      retries: 30
+
+  crapi-community:
+    image: crapi/crapi-community@sha256:8ba0c7eda86ae065a673f1fa554d0109a24f25c5a8d65097ae024e5ee715c54e
+    environment:
+      - LOG_LEVEL=INFO
+      - IDENTITY_SERVICE=crapi-identity:8080
+      - DB_NAME=crapi
+      - DB_USER=admin
+      - DB_PASSWORD=crapisecretpassword
+      - DB_HOST=postgresdb
+      - DB_PORT=5432
+      - SERVER_PORT=8087
+      - MONGO_DB_HOST=mongodb
+      - MONGO_DB_PORT=27017
+      - MONGO_DB_USER=admin
+      - MONGO_DB_PASSWORD=crapisecretpassword
+      - MONGO_DB_NAME=crapi
+      - TLS_ENABLED=false
+    depends_on:
+      postgresdb: {condition: service_healthy}
+      mongodb: {condition: service_healthy}
+      crapi-identity: {condition: service_healthy}
+    healthcheck:
+      test: /app/health.sh
+      interval: 10s
+      timeout: 15s
+      retries: 30
+
+  crapi-workshop:
+    image: crapi/crapi-workshop@sha256:d4d2d94d35a31e211b04d5a771881f5ae13e358e8fa0804463ae3bace05dd815
+    environment:
+      - LOG_LEVEL=INFO
+      - IDENTITY_SERVICE=crapi-identity:8080
+      - DB_NAME=crapi
+      - DB_USER=admin
+      - DB_PASSWORD=crapisecretpassword
+      - DB_HOST=postgresdb
+      - DB_PORT=5432
+      - SERVER_PORT=8000
+      - MONGO_DB_HOST=mongodb
+      - MONGO_DB_PORT=27017
+      - MONGO_DB_USER=admin
+      - MONGO_DB_PASSWORD=crapisecretpassword
+      - MONGO_DB_NAME=crapi
+      - SECRET_KEY=crapi
+      - API_GATEWAY_URL=https://api.mypremiumdealership.com
+      - TLS_ENABLED=false
+      - FILES_LIMIT=1000
+    depends_on:
+      postgresdb: {condition: service_healthy}
+      mongodb: {condition: service_healthy}
+      crapi-identity: {condition: service_healthy}
+      crapi-community: {condition: service_healthy}
+    healthcheck:
+      test: /app/health.sh
+      interval: 10s
+      timeout: 15s
+      retries: 30
+
+  crapi-web:
+    image: crapi/crapi-web@sha256:b27d246c646bd33898e7d1d2095b6e7576c0993a7b81a73aa7386929493d7151
+    ports:
+      - "127.0.0.1::80"
+    environment:
+      - COMMUNITY_SERVICE=crapi-community:8087
+      - IDENTITY_SERVICE=crapi-identity:8080
+      - WORKSHOP_SERVICE=crapi-workshop:8000
+      - CHATBOT_SERVICE=crapi-identity:8080
+      - MAILHOG_WEB_SERVICE=mailhog:8025
+      - TLS_ENABLED=false
+    depends_on:
+      crapi-community: {condition: service_healthy}
+      crapi-identity: {condition: service_healthy}
+      crapi-workshop: {condition: service_healthy}
+    healthcheck:
+      test: curl 0.0.0.0:80/health
+      interval: 10s
+      timeout: 15s
+      retries: 30
+
+  postgresdb:
+    image: postgres@sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059  # postgres:14
+    command: ["postgres", "-c", "max_connections=500"]
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: crapisecretpassword
+      POSTGRES_DB: crapi
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 15s
+      retries: 30
+
+  mongodb:
+    image: mongo@sha256:4be76f674fc4b27859816811b8baa3c51830eb1dbf4ca81a51e26b79edd662ef  # mongo:4.4
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: crapisecretpassword
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
+      interval: 5s
+      timeout: 15s
+      retries: 30
+      start_period: 20s
+
+  mailhog:
+    user: root
+    image: crapi/mailhog@sha256:015c23f79d40c9dc1800cd0a458503b89aeda3b585a12c37d53829d6c7d61fdd
+    environment:
+      MH_MONGO_URI: admin:crapisecretpassword@mongodb:27017
+      MH_STORAGE: mongodb
+    ports:
+      - "127.0.0.1::8025"
+    depends_on:
+      mongodb: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8025"]
+      interval: 5s
+      timeout: 15s
+      retries: 30

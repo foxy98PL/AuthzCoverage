@@ -12,10 +12,50 @@ commit), `machine` (os, arch, cpus, go_version), `summary`, `cases`, `extra`.
 | `tenantshop-mutants` | `tenantshop-mutants.json` | go | Does `suspicious_allow` fire on the right (endpoint, relationship) when exactly one authorization check of the correct tenantshop is removed? Does it stay quiet on the unmutated app? |
 | `tenantshop-ablation` | `tenantshop-ablation.json` | go | Cell-level precision/recall of the coverage matrix: drop one attacker request from the recording and see whether exactly that cell turns from covered to GAP and nothing else changes. |
 | `vampi` | `vampi.json` | docker | Third-party app VAmPI (pinned image digest) against a hand-written ground truth, honest and attack recordings, vulnerable=1 and vulnerable=0. |
+| `crapi` | `crapi.json` | docker compose | Third-party app OWASP crAPI v1.1.6 (digest-pinned compose stack) against a ground truth of its documented challenges, honest and attack recordings. |
 
 Run: `make eval` (all), `make eval-tenantshop` (vet, tests, then the two tenantshop suites; no
-docker), `make eval-vampi` (docker). `go run ./cmd/tenantshop -v -out DIR` (in `eval/`) prints every
+docker), `make eval-vampi` (docker), `make eval-crapi` (docker compose, about 3 minutes). `go run ./cmd/tenantshop -v -out DIR` (in `eval/`) prints every
 authzcov run.
+
+## crAPI
+
+`make eval-crapi` (`e2e/thirdparty/crapi`, module `crapieval`) vets and tests the harness, then runs it.
+`run.sh` pulls the images of `compose.yaml` by digest; the Go program builds authzcov from source, starts a
+fresh crAPI stack per suite (unique compose project `crapieval-<pid>-<n>`, host ports random on 127.0.0.1,
+`docker compose down -v` registered before `up`, so a failure still cleans up), waits until nginx reaches
+the identity, community and workshop services and MailHog answers (`up --wait`, then a probe, 3 minute
+limit), records a HAR and scores it. Start-up takes about a minute per suite; the whole run about 3 minutes.
+
+- Pin: crAPI tag `v1.1.6` (commit `700f03d`, 2025-09-22). Only `crapi-identity` has a `1.1.6` image; the
+  other crAPI services have no release tag on Docker Hub, so every `crapi/*` image is the `main` build of
+  2025-09-22 (the day of the tag commit), pinned by digest in `compose.yaml`, as are `postgres:14` and
+  `mongo:4.4`. `extra.images` in the result lists the digests, `app.image_digest` is crapi-web's.
+- Dropped from crAPI's compose: `crapi-chatbot` and `chromadb` (LLM, needs an API key; challenges 16 to 18
+  are `out_of_scope`), `api.mypremiumdealership.com` (payment and SSRF target; without it the payment call
+  of `GET /orders/{id}` fails inside the app, which catches it, the order is still returned). Resource
+  limits, TLS and fixed host ports are removed. `crapi-web` still needs a `CHATBOT_SERVICE` host to resolve
+  at start-up, so it points at `crapi-identity` (never called).
+- Spec: `openapi.json` is crAPI's own `openapi-spec/crapi-openapi-spec.json` at the tag, unchanged
+  (OpenAPI 3.0.1, no external `$ref`); authzcov loads it as is.
+- Identities (`identities.yaml`): alice, bob, carol (role user) and crAPI's seeded admin; matched by JWT
+  `sub`, which crAPI sets to the e-mail address (`@example.test`, throwaway passwords). Each customer gets
+  a vehicle through the welcome e-mail: the recorder polls MailHog's API for the VIN and pin code and calls
+  `add_vehicle`. Ownership: `learn_from_create` for orders, videos and posts (ids in the response),
+  `learn_from_lists` for vehicles (`add_vehicle` returns no id).
+- Suites: honest = each customer uses only their own order, video, post, vehicle and mechanic report;
+  the admin lists users and deletes a video. Attack = honest plus cross-user, anonymous and mass-assignment
+  requests, destructive ones last. `extra.runs[].probes` has the status of every tagged attack request.
+- Ground truth (`groundtruth.yaml`): one item per crAPI challenge plus items found in the source, each with
+  a citation; categories `documented`, `undocumented`, `query_param` (BOLA by query parameter, authzcov only
+  reads path parameters, so counted as `fn`), `control`, `quirk` (2xx that is no authz failure: flagged = `fp`)
+  and `non_authz` (`out_of_scope`).
+- Recorder setup failures (a login that is not accepted yet, a mail that does not arrive) retry the whole
+  session on a fresh stack (3 attempts); entries of a failed attempt are discarded. A failed `up` or readiness
+  wait is fatal. The stack is removed on success, failure and SIGINT/SIGTERM (Go signal handler plus a trap in
+  `run.sh`); a failed teardown is printed and makes the run exit non-zero.
+- No mechanic identity: the recorder only files the mechanic report (`contact_mechanic`) as a customer and
+  has no mechanic login; whether crAPI offers one in this stack is not verified offline.
 
 ## Reading a result
 
@@ -89,5 +129,11 @@ exchanges or observations in memory afterwards.
   on both builds are flagged although the 2xx only changed the caller's own record (the handler
   ignores the path's username). authzcov sees a 2xx on another user's path and cannot tell that the
   path was ignored, so these count as `fp`.
+- crAPI: `CRAPI-C1-VEHICLE` (challenge 1) is a miss in the attack run although vehicle ownership is learned from the
+  vehicle list; the cause is not determined yet (needs a docker run). `CRAPI-C2-REPORT` is a query-parameter
+  BOLA and `CRAPI-U2-USERS-ALL` is function-level; both are expected misses. `CRAPI-Q1-POST-OTHER` (public
+  community posts) and `CRAPI-Q2-VIDEO-PUT` (path ignored) are `fp`: authzcov cannot tell public data or an
+  ignored path parameter from a leak. Challenge 14 is mapped to the anonymous order lookup by us (the
+  challenge text names no endpoint). Only one release was evaluated, on one machine.
 - VAmPI runs mix honest and attack suites in the top-level summary; use `extra.runs[].summary` for
   the per-run numbers (honest = "gap reported" tp/fn, attack = detections against ground truth).

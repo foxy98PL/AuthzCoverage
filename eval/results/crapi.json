@@ -1,0 +1,696 @@
+{
+  "app": {
+    "image_digest": "sha256:b27d246c646bd33898e7d1d2095b6e7576c0993a7b81a73aa7386929493d7151",
+    "name": "crAPI",
+    "version": "v1.1.6@700f03d"
+  },
+  "authzcov": {
+    "commit": "5b6018b",
+    "version": "v0.1.0-rc.1-8-g5b6018b-dirty"
+  },
+  "cases": [
+    {
+      "id": "attack/CRAPI-C-ADMIN-VIDEO-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by crAPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/CRAPI-C-ORDER-PUT-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by crAPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/CRAPI-C-ORDER-PUT-OTHER",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by crAPI (probe status bob:403,alice:403) and not flagged"
+    },
+    {
+      "id": "attack/CRAPI-C-POST-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by crAPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/CRAPI-C-VEHICLE-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by crAPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/CRAPI-C-VIDEO-DELETE-USER",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by crAPI (probe status bob:404,alice:404) and not flagged"
+    },
+    {
+      "id": "attack/CRAPI-C-VIDEO-GET-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by crAPI (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/CRAPI-C-VIDEO-GET-OTHER",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by crAPI (probe status bob:404,alice:404) and not flagged"
+    },
+    {
+      "id": "attack/CRAPI-C1-VEHICLE",
+      "kind": "documented",
+      "expected": [
+        {
+          "endpoint": "GET /identity/api/v2/vehicle/{vehicleId}/location",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [],
+      "result": "fn",
+      "reason": "no suspicious_allow (probe status bob:200,alice:200); observed in the attack run - bob and alice both get 200 on the vehicle location, and the cell is not flagged by suspicious_allow although identities.yaml learns vehicle ownership from the GET /identity/api/v2/vehicle/vehicles list (learn_from_lists, add_vehicle returns no id); the cause (id mapping, learned ownership or authzcov) is not determined offline, needs a docker run"
+    },
+    {
+      "id": "attack/CRAPI-C10-VIDEO-MASS",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 10, mass assignment - update the internal conversion_params of the caller's own video"
+    },
+    {
+      "id": "attack/CRAPI-C11-SSRF",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 11, SSRF - contact mechanic makes crAPI call an arbitrary URL (mechanic_api)"
+    },
+    {
+      "id": "attack/CRAPI-C12-NOSQLI",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 12, NoSQL injection - coupons validated through an operator in the request body"
+    },
+    {
+      "id": "attack/CRAPI-C13-SQLI",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 13, SQL injection - redeem an already claimed coupon"
+    },
+    {
+      "id": "attack/CRAPI-C14-ORDER-ANON",
+      "kind": "documented",
+      "expected": [
+        {
+          "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status anonymous:200: anonymous received 200 for an object owned by alice"
+    },
+    {
+      "id": "attack/CRAPI-C15-JWT",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 15, JWT vulnerabilities - forged tokens (alg none, jku, weak secret)"
+    },
+    {
+      "id": "attack/CRAPI-C16-18-LLM",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenges 16 to 18, LLM chatbot (prompt injection, credential extraction, actions for another user)"
+    },
+    {
+      "id": "attack/CRAPI-C2-REPORT",
+      "kind": "query_param",
+      "expected": [
+        {
+          "endpoint": "GET /workshop/api/mechanic/mechanic_report",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [],
+      "result": "fn",
+      "reason": "no suspicious_allow (probe status bob:200,alice:200); the object is addressed by a query parameter; authzcov only analyses path parameters (expected miss)"
+    },
+    {
+      "id": "attack/CRAPI-C3-RESET",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 3, broken user authentication - password reset of another user via OTP brute force"
+    },
+    {
+      "id": "attack/CRAPI-C4-DATA-EXPOSURE",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 4, excessive data exposure - community posts leak the author's e-mail and vehicle id"
+    },
+    {
+      "id": "attack/CRAPI-C5-VIDEO-PROPERTY",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 5, excessive data exposure - internal conversion_params property of a video"
+    },
+    {
+      "id": "attack/CRAPI-C6-RATE-LIMIT",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 6, rate limiting - layer 7 DoS through contact mechanic"
+    },
+    {
+      "id": "attack/CRAPI-C7-VIDEO",
+      "kind": "documented",
+      "expected": [
+        {
+          "endpoint": "DELETE /identity/api/v2/admin/videos/{video_id}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "DELETE /identity/api/v2/admin/videos/{video_id}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status bob:200,alice:200: bob received 200 for an object owned by alice (and 1 more)"
+    },
+    {
+      "id": "attack/CRAPI-C8-ORDER-MASS",
+      "kind": "non_authz",
+      "expected": [],
+      "flagged": [],
+      "result": "out_of_scope",
+      "reason": "not an authorization problem: Challenge 8 and 9, mass assignment - set the status of the caller's own order to returned (free item, credit)"
+    },
+    {
+      "id": "attack/CRAPI-Q1-POST-OTHER",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "GET /community/api/v2/community/posts/{postId}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but this is not an authorization failure: Community posts are public by design (any user reads any post) (probe status bob:200,alice:200; bob received 200 for an object owned by alice (and 1 more))"
+    },
+    {
+      "id": "attack/CRAPI-Q2-VIDEO-PUT",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "PUT /identity/api/v2/user/videos/{video_id}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but this is not an authorization failure: Video update ignores the {video_id} path parameter (changes the caller's own video) (probe status bob:200,alice:200; bob received 200 for an object owned by alice (and 1 more))"
+    },
+    {
+      "id": "attack/CRAPI-U1-ORDER-OTHER",
+      "kind": "undocumented",
+      "expected": [
+        {
+          "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status bob:200,alice:200: bob received 200 for an object owned by alice (and 1 more)"
+    },
+    {
+      "id": "attack/CRAPI-U2-USERS-ALL",
+      "kind": "undocumented",
+      "expected": [
+        {
+          "endpoint": "GET /workshop/api/management/users/all",
+          "relationship": "lower_role"
+        }
+      ],
+      "flagged": [],
+      "result": "fn",
+      "reason": "no suspicious_allow (probe status alice:200); cell is shown as covered (ok) or not required; suspicious_allow is only raised for object-level endpoints (path has an object parameter)"
+    },
+    {
+      "id": "honest/CRAPI-C1-VEHICLE",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /identity/api/v2/vehicle/{vehicleId}/location",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /identity/api/v2/vehicle/{vehicleId}/location",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Challenge 1, BOLA - location and owner details of another user's vehicle)"
+    },
+    {
+      "id": "honest/CRAPI-C14-ORDER-ANON",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+          "relationship": "anonymous"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Challenge 14, unauthenticated access - order details readable without a token)"
+    },
+    {
+      "id": "honest/CRAPI-C2-REPORT",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /workshop/api/mechanic/mechanic_report",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [],
+      "result": "fn",
+      "reason": "no gap finding for this cell (covered or not required): the object is addressed by a query parameter; authzcov only analyses path parameters (expected miss)"
+    },
+    {
+      "id": "honest/CRAPI-C7-VIDEO",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "DELETE /identity/api/v2/admin/videos/{video_id}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "DELETE /identity/api/v2/admin/videos/{video_id}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Challenge 7, BFLA - delete another user's video through the admin endpoint)"
+    },
+    {
+      "id": "honest/CRAPI-U1-ORDER-OTHER",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Order details of another user readable (BOLA))"
+    },
+    {
+      "id": "honest/CRAPI-U2-USERS-ALL",
+      "kind": "gap",
+      "expected": [
+        {
+          "endpoint": "GET /workshop/api/management/users/all",
+          "relationship": "lower_role"
+        }
+      ],
+      "flagged": [
+        {
+          "endpoint": "GET /workshop/api/management/users/all",
+          "relationship": "lower_role"
+        }
+      ],
+      "result": "tp",
+      "reason": "gap reported: the test suite never tried this cell (Management user list (e-mails, phone numbers, credit) readable by any customer)"
+    }
+  ],
+  "extra": {
+    "image_order": [
+      "crapi/crapi-community",
+      "crapi/crapi-identity",
+      "crapi/crapi-web",
+      "crapi/crapi-workshop",
+      "crapi/mailhog",
+      "mongo",
+      "postgres"
+    ],
+    "images": {
+      "crapi/crapi-community": "sha256:8ba0c7eda86ae065a673f1fa554d0109a24f25c5a8d65097ae024e5ee715c54e",
+      "crapi/crapi-identity": "sha256:5d1db5b3ba8e02bc68711ec6fc4e35ed7cd8b87e63785ece9e7ff5b5e36c5260",
+      "crapi/crapi-web": "sha256:b27d246c646bd33898e7d1d2095b6e7576c0993a7b81a73aa7386929493d7151",
+      "crapi/crapi-workshop": "sha256:d4d2d94d35a31e211b04d5a771881f5ae13e358e8fa0804463ae3bace05dd815",
+      "crapi/mailhog": "sha256:015c23f79d40c9dc1800cd0a458503b89aeda3b585a12c37d53829d6c7d61fdd",
+      "mongo": "sha256:4be76f674fc4b27859816811b8baa3c51830eb1dbf4ca81a51e26b79edd662ef",
+      "postgres": "sha256:c0e9c0e9bac7e4c1834b698217a03ee5c708de30d313c84a506972de0e24b059"
+    },
+    "note": "tp/fn in honest runs = gap reported yes/no; attack runs = suspicious_allow vs ground truth; tn/fp only meaningful for expected-deny/not-authz cells; one fresh crAPI stack per suite",
+    "runs": [
+      {
+        "name": "honest",
+        "suite": "honest",
+        "har_entries": 63,
+        "coverage_percent": 17.4,
+        "required": 121,
+        "covered": 21,
+        "suspicious_allow": [],
+        "warnings": [
+          "map[code:single_identity_role message:role \"admin\" has exactly one identity in tenant \"\": same_role_other_user cannot be covered]"
+        ],
+        "summary": {
+          "fn": 1,
+          "fp": 0,
+          "out_of_scope": 0,
+          "precision": 1,
+          "recall": 0.833,
+          "tn": 0,
+          "tp": 5
+        }
+      },
+      {
+        "name": "attack",
+        "suite": "attack",
+        "har_entries": 92,
+        "coverage_percent": 30.8,
+        "required": 120,
+        "covered": 37,
+        "suspicious_allow": [
+          {
+            "endpoint": "DELETE /identity/api/v2/admin/videos/{video_id}",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "GET /community/api/v2/community/posts/{postId}",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+            "relationship": "anonymous"
+          },
+          {
+            "endpoint": "GET /workshop/api/shop/orders/{order_id}",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "PUT /identity/api/v2/user/videos/{video_id}",
+            "relationship": "same_role_other_user"
+          }
+        ],
+        "warnings": [
+          "map[code:single_identity_role message:role \"admin\" has exactly one identity in tenant \"\": same_role_other_user cannot be covered]"
+        ],
+        "probes": [
+          {
+            "tag": "bola_vehicle",
+            "who": "bob",
+            "method": "GET",
+            "path": "/identity/api/v2/vehicle/{uuid}/location",
+            "status": 200
+          },
+          {
+            "tag": "bola_vehicle",
+            "who": "alice",
+            "method": "GET",
+            "path": "/identity/api/v2/vehicle/{uuid}/location",
+            "status": 200
+          },
+          {
+            "tag": "vehicle_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/identity/api/v2/vehicle/{uuid}/location",
+            "status": 401
+          },
+          {
+            "tag": "bola_order",
+            "who": "bob",
+            "method": "GET",
+            "path": "/workshop/api/shop/orders/6",
+            "status": 200
+          },
+          {
+            "tag": "bola_order",
+            "who": "alice",
+            "method": "GET",
+            "path": "/workshop/api/shop/orders/7",
+            "status": 200
+          },
+          {
+            "tag": "order_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/workshop/api/shop/orders/6",
+            "status": 200
+          },
+          {
+            "tag": "order_put_other",
+            "who": "bob",
+            "method": "PUT",
+            "path": "/workshop/api/shop/orders/6",
+            "status": 403
+          },
+          {
+            "tag": "order_put_other",
+            "who": "alice",
+            "method": "PUT",
+            "path": "/workshop/api/shop/orders/7",
+            "status": 403
+          },
+          {
+            "tag": "order_put_anon",
+            "who": "anonymous",
+            "method": "PUT",
+            "path": "/workshop/api/shop/orders/6",
+            "status": 401
+          },
+          {
+            "tag": "video_get_other",
+            "who": "bob",
+            "method": "GET",
+            "path": "/identity/api/v2/user/videos/6",
+            "status": 404
+          },
+          {
+            "tag": "video_get_other",
+            "who": "alice",
+            "method": "GET",
+            "path": "/identity/api/v2/user/videos/7",
+            "status": 404
+          },
+          {
+            "tag": "video_get_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/identity/api/v2/user/videos/6",
+            "status": 401
+          },
+          {
+            "tag": "video_put_other",
+            "who": "bob",
+            "method": "PUT",
+            "path": "/identity/api/v2/user/videos/6",
+            "status": 200
+          },
+          {
+            "tag": "video_put_other",
+            "who": "alice",
+            "method": "PUT",
+            "path": "/identity/api/v2/user/videos/7",
+            "status": 200
+          },
+          {
+            "tag": "video_delete_user",
+            "who": "bob",
+            "method": "DELETE",
+            "path": "/identity/api/v2/user/videos/6",
+            "status": 404
+          },
+          {
+            "tag": "video_delete_user",
+            "who": "alice",
+            "method": "DELETE",
+            "path": "/identity/api/v2/user/videos/7",
+            "status": 404
+          },
+          {
+            "tag": "admin_video_anon",
+            "who": "anonymous",
+            "method": "DELETE",
+            "path": "/identity/api/v2/admin/videos/6",
+            "status": 401
+          },
+          {
+            "tag": "post_other",
+            "who": "bob",
+            "method": "GET",
+            "path": "/community/api/v2/community/posts/{id}",
+            "status": 200
+          },
+          {
+            "tag": "post_other",
+            "who": "alice",
+            "method": "GET",
+            "path": "/community/api/v2/community/posts/{id}",
+            "status": 200
+          },
+          {
+            "tag": "post_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/community/api/v2/community/posts/{id}",
+            "status": 401
+          },
+          {
+            "tag": "report_other",
+            "who": "bob",
+            "method": "GET",
+            "path": "/workshop/api/mechanic/mechanic_report?report_id=6",
+            "status": 200
+          },
+          {
+            "tag": "report_other",
+            "who": "alice",
+            "method": "GET",
+            "path": "/workshop/api/mechanic/mechanic_report?report_id=7",
+            "status": 200
+          },
+          {
+            "tag": "report_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/workshop/api/mechanic/mechanic_report?report_id=6",
+            "status": 401
+          },
+          {
+            "tag": "users_all_user",
+            "who": "alice",
+            "method": "GET",
+            "path": "/workshop/api/management/users/all",
+            "status": 200
+          },
+          {
+            "tag": "users_all_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/workshop/api/management/users/all",
+            "status": 401
+          },
+          {
+            "tag": "mass_assign_order",
+            "who": "bob",
+            "method": "PUT",
+            "path": "/workshop/api/shop/orders/7",
+            "status": 200
+          },
+          {
+            "tag": "mass_assign_video",
+            "who": "bob",
+            "method": "PUT",
+            "path": "/identity/api/v2/user/videos/7",
+            "status": 200
+          },
+          {
+            "tag": "bfla_video",
+            "who": "bob",
+            "method": "DELETE",
+            "path": "/identity/api/v2/admin/videos/6",
+            "status": 200
+          },
+          {
+            "tag": "bfla_video",
+            "who": "alice",
+            "method": "DELETE",
+            "path": "/identity/api/v2/admin/videos/7",
+            "status": 200
+          }
+        ],
+        "summary": {
+          "fn": 3,
+          "fp": 2,
+          "out_of_scope": 11,
+          "precision": 0.6,
+          "recall": 0.5,
+          "tn": 8,
+          "tp": 3
+        }
+      }
+    ]
+  },
+  "generated_at": "2026-11-28T02:43:48Z",
+  "machine": {
+    "arch": "amd64",
+    "cpus": 20,
+    "go_version": "go1.27.4",
+    "os": "linux"
+  },
+  "schema_version": 1,
+  "suite": "crapi",
+  "summary": {
+    "fn": 4,
+    "fp": 2,
+    "out_of_scope": 11,
+    "precision": 0.8,
+    "recall": 0.667,
+    "tn": 8,
+    "tp": 8
+  }
+}

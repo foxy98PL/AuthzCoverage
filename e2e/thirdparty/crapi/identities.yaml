@@ -1,0 +1,28 @@
+# Identities for the crAPI evaluation. No secrets: callers are matched by the decoded JWT "sub" claim.
+# crAPI puts the user's e-mail address in sub (services/identity/.../JwtProvider.java: setSubject(email)).
+# The e-mail addresses are synthetic (@example.test); "admin@example.com" is crAPI's seeded administrator
+# (services/identity/.../constant/TestUsers.java).
+version: 1
+roles: {user: 10, admin: 100}
+identities:
+  - {name: alice, role: user, match: {jwt: {sub: alice@example.test}}}
+  - {name: bob, role: user, match: {jwt: {sub: bob@example.test}}}
+  - {name: carol, role: user, match: {jwt: {sub: carol@example.test}}}
+  - {name: admin, role: admin, match: {jwt: {sub: admin@example.com}}}
+resources: {vehicleId: vehicles, order_id: orders, video_id: videos, postId: posts}
+ownership:
+  learn_from_create:
+    - match: {method: POST, path: /workshop/api/shop/orders}
+      resource: orders
+      id_from: {response_json: id}
+    - match: {method: POST, path: /identity/api/v2/user/videos}
+      resource: videos
+      id_from: {response_json: id}
+    - match: {method: POST, path: /community/api/v2/community/posts}
+      resource: posts
+      id_from: {response_json: id}
+  learn_from_lists:
+    # add_vehicle returns no id; the caller's own vehicles are listed here.
+    - match: {method: GET, path: /identity/api/v2/vehicle/vehicles}
+      resource: vehicles
+      ids_from: {response_json: "[].uuid"}
