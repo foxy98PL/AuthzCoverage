@@ -91,7 +91,7 @@ non-2xx response, a body that is not JSON, a missing or non-scalar field, or a
 body redacted or dropped at ingest (over 64 KiB) teaches nothing. A redacted
 placeholder is never learned as an id. Conflict rules are the same for both.
 
-### learn_from_lists (inferred ownership)
+### learn_from_lists (inferred unless `exclusive: true`)
 
 ```yaml
 ownership:
@@ -102,7 +102,7 @@ ownership:
 ```
 
 Every id found in a 2xx response of a known caller (confidence learned or
-better) is owned by that caller, with confidence `inferred`. Use it only for
+better) is owned by that caller, with confidence `inferred` (unless `exclusive: true`, below). Use it only for
 lists that return the caller's own objects. The path is dotted; `[]` after a
 name means every element (`items[].id`, `data.items[].id`), and `[].id` reads a
 top-level array. Conflicts: higher confidence wins (a `learn_from_create` or

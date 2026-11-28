@@ -28,6 +28,7 @@
   relationship: same_role_other_user
   expect: allow
   probe: bola_vehicle
+  # KAN-102: the flip to a true positive is expected but UNVERIFIED until the next crapi eval (docker) run.
   # KAN-102: identities.yaml marks the vehicles list rule exclusive (operator assertion), so ownership is learned and the cell is an expected true positive
   source: docs/challenges.md "Challenge 1"; ID/controller/VehicleController.java:getLocationBOLA (looks the vehicle up by uuid only, no owner check)
 
