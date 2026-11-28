@@ -1,7 +1,7 @@
 # Session 2 — Bounded memory in the coverage pipeline
 Status: planned
-Budget: ~60k of ~100k
-Depends on: session 1 (KAN-104 changes the pipeline's object-param path; land it first)
+Budget: ~65k of ~100k
+Depends on: session 1 (done, a9a563b: KAN-104 landed; replanned 2026-11-28 for its effects, see Replan note)
 
 ## Goal
 Peak RSS at 1M HAR entries is at least 5x lower than today with byte-identical output.
@@ -16,6 +16,11 @@ Peak RSS at 1M HAR entries is at least 5x lower than today with byte-identical o
    AC: RSS ≥5x lower at 1M, byte-identical goldens and `make eval`, determinism (shuffled input) and no-network
    tests pass, 1M time no more than 20% slower. Report before/after in the Jira comment.
    Advisor (Opus) only if two-pass reading changes what pass 1 may learn (identity/ownership semantics).
+   Replan note (KAN-104 effects): ingest now keeps only declared object query keys (`har.Options.QueryKeys`) and
+   `Observation.Params` can hold a query-derived value (`queryObjectValue`: repeated/empty/array/comma/whitespace
+   -> unknown). Pass 1 and pass 2 must both pass the same QueryKeys; the compact per-observation record must carry
+   the query-derived object value (or its hash) so memory does not regress; add a determinism case with a
+   query-object endpoint (tests in internal/cli/queryparam_test.go are the baseline). Budget +~5k.
 2. Jira batch + shard + commit — ~10k
 
 ## Owner / blocked

@@ -98,3 +98,21 @@ Every byte the orchestrator sees is re-read on every later turn.
   built-in agent types (general-purpose, claude, Explore, Plan, claude-code-guide, statusline-setup, web-fetch)
   from every prompt; `skillOverrides` hides unused skills (still typable as /name). Need one for a session?
   Remove its deny line locally, don't work around it.
+
+## 9. End-of-session report (owner request 2026-11-28; every session, at the restart/stop point)
+
+Order: (1) **External apps**: if the session touched detection, ingest, identity/ownership or matching code, run the
+docker suites yourself (`make eval-crapi`, `make eval-vampi`; background, log to `notes/eval-<app>-<session>.log`)
+and assess groundtruth flips (TP/FP/miss) before the shard; no docker -> list it under "Waiting on the owner".
+(2) **Next-session impact**: read the next `docs/sessions/session*.md` (`sort -V`, Status not done); if this
+session's changes touch its files, contracts or assumptions, replan it in place (add a "Replan note", adjust
+budget, keep Status `planned`) and say so. (3) **Append a row/block to `docs/SESSION_LOG.md`** (write-only: nobody
+reads it at startup, it is for the owner's later investigation). (4) **Tell the owner** the same summary:
+- Done / not done, commits, Jira transitions, eval results, replan yes/no.
+- Tokens: subagent tokens = sum of `subagent_tokens` from the completion notifications (list per agent role);
+  orchestrator = context size at the end (hook figure or `/cost`) × turns is unknowable here, so state the
+  context size and say "estimate". Never invent exact numbers.
+- Estimated API-equivalent cost: tokens × current list prices per model (Sonnet orchestrator/implementers,
+  Haiku jira, Opus advisor); show the formula and mark it an estimate.
+- Pro plan estimate: share of a 5-hour window / weekly allowance the session likely used (rough, say so; subagent
+  runs and long contexts count most).

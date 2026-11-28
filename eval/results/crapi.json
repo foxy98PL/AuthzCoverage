@@ -5,8 +5,8 @@
     "version": "v1.1.6@700f03d"
   },
   "authzcov": {
-    "commit": "3ef6707",
-    "version": "v0.1.0-rc.1-11-g3ef6707"
+    "commit": "5b8ffed",
+    "version": "v0.1.0-rc.2-37-g5b8ffed"
   },
   "cases": [
     {
@@ -82,9 +82,14 @@
           "relationship": "same_role_other_user"
         }
       ],
-      "flagged": [],
-      "result": "fn",
-      "reason": "no suspicious_allow (probe status bob:200,alice:200); observed in the attack run - bob and alice both get 200 on the vehicle location, and the cell is not flagged by suspicious_allow although identities.yaml learns vehicle ownership from the GET /identity/api/v2/vehicle/vehicles list (learn_from_lists, add_vehicle returns no id); the cause (id mapping, learned ownership or authzcov) is not determined offline, needs a docker run"
+      "flagged": [
+        {
+          "endpoint": "GET /identity/api/v2/vehicle/{vehicleId}/location",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status bob:200,alice:200: bob received 200 for an object owned by alice (and 1 more)"
     },
     {
       "id": "attack/CRAPI-C10-VIDEO-MASS",
@@ -276,9 +281,14 @@
           "relationship": "lower_role"
         }
       ],
-      "flagged": [],
-      "result": "fn",
-      "reason": "no suspicious_allow (probe status alice:200); cell is shown as covered (ok) or not required; suspicious_allow is only raised for object-level endpoints (path has an object parameter)"
+      "flagged": [
+        {
+          "endpoint": "GET /workshop/api/management/users/all",
+          "relationship": "lower_role"
+        }
+      ],
+      "result": "tp",
+      "reason": "suspicious_allow raised; probe status alice:200: alice (role user) received 200 on an endpoint that requires role admin"
     },
     {
       "id": "honest/CRAPI-C1-VEHICLE",
@@ -430,9 +440,9 @@
         "name": "attack",
         "suite": "attack",
         "har_entries": 92,
-        "coverage_percent": 30.8,
-        "required": 120,
-        "covered": 37,
+        "coverage_percent": 31.4,
+        "required": 121,
+        "covered": 38,
         "suspicious_allow": [
           {
             "endpoint": "DELETE /identity/api/v2/admin/videos/{video_id}",
@@ -441,6 +451,14 @@
           {
             "endpoint": "GET /community/api/v2/community/posts/{postId}",
             "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "GET /identity/api/v2/vehicle/{vehicleId}/location",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "GET /workshop/api/management/users/all",
+            "relationship": "lower_role"
           },
           {
             "endpoint": "GET /workshop/api/shop/orders/{order_id}",
@@ -664,18 +682,18 @@
           }
         ],
         "summary": {
-          "fn": 3,
+          "fn": 1,
           "fp": 2,
           "out_of_scope": 11,
-          "precision": 0.6,
-          "recall": 0.5,
+          "precision": 0.714,
+          "recall": 0.833,
           "tn": 8,
-          "tp": 3
+          "tp": 5
         }
       }
     ]
   },
-  "generated_at": "2026-11-28T02:48:40Z",
+  "generated_at": "2026-11-28T04:47:30Z",
   "machine": {
     "arch": "amd64",
     "cpus": 20,
@@ -685,12 +703,12 @@
   "schema_version": 1,
   "suite": "crapi",
   "summary": {
-    "fn": 4,
+    "fn": 2,
     "fp": 2,
     "out_of_scope": 11,
-    "precision": 0.8,
-    "recall": 0.667,
+    "precision": 0.833,
+    "recall": 0.833,
     "tn": 8,
-    "tp": 8
+    "tp": 10
   }
 }
