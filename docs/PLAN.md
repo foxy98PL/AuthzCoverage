@@ -133,3 +133,21 @@ Each one is reversible; the owner can overturn any of them.
 | O10 | Next release | **v0.1.0-rc.2** after O3–O5 + real-app goldens; final **v0.1.0** when rc.2 verifies | rc.1 (db3ddcc) is published; release plan needs goldens + known limitations |
 
 Not delegable (owner only): G1/E3 employment IP check, Gate A practitioner outreach (KAN-13), repo settings (branch protection, private vulnerability reporting, Pages), pushing tags.
+
+## Implementation decisions (made during implementation; moved from PROGRESS 2026-11-28)
+
+1. Non-bearer credentials (Basic, cookie, API key) → identity unknown, never anonymous.
+2. Request/response JSON bodies are scrubbed of password/token/secret fields at ingest.
+3. Multiple identity rules matching one token → unknown.
+4. learn_from_create only learns from 2xx responses by a known creator.
+5. self_params for another user's subject → owner with confidence `learned` if that subject was seen in pass 1.
+6. Unknown caller → relationship unknown; function-level with no 2xx observed → unknown.
+7. Table status suffix: all distinct statuses when any is non-2xx (`ok 200,401`).
+8. Partial-segment path templates (`/{id}.json`) rejected with exit 3.
+9. `--base-path` defaults to `auto`; a non-empty prefix is not credited when the remainder is only `/`.
+10. learn_tokens never needs the raw token: the login response is redacted at ingest to `[redacted:<fp12>]`, and that fingerprint is what later bearer requests carry.
+11. `token_sha256` is matched on its first 12 hex chars (the stored fingerprint length).
+13. Basic fingerprint = Fingerprint("basic:"+user); password-like body fields redacted without hash (offline-guessing risk).
+14. Tenancy: a caller with no tenant vs a known object tenant → other_tenant (only `*` is exempt). Note DOC-03 said `""` = global; conflict to decide.
+15. coverage.json: same HAR → byte-identical; reordered HAR changes only har sha256 + evidence refs. Percent is rounded like the table's %.1f.
+12. JSON Schema is shipped for editors only; validation stays in the Go validator (a JSON Schema library would be a new dependency).

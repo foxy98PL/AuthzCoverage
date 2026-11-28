@@ -36,5 +36,9 @@ coverage.txt
 !/e2e/thirdparty/*/go.mod
 !/e2e/thirdparty/*/go.sum
 !/e2e/thirdparty/*/*.md
+!/e2e/thirdparty/*/openapi.json
 /e2e/thirdparty/*/vampieval
 /eval/tenantshop-bin
+
+# Orchestrator/subagent working notes (local paths, review drafts)
+/notes/
