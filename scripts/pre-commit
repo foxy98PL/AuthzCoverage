@@ -10,7 +10,12 @@ if [[ -n "$bad" ]]; then
 	exit 1
 fi
 
-if ! make check-offline; then
+# Quiet on success (keeps agent transcripts small); last 60 lines on failure.
+log=$(mktemp)
+trap 'rm -f "$log"' EXIT
+if ! make check-offline >"$log" 2>&1; then
+	grep -v -E '^(ok |\?   )' "$log" | tail -n 60 >&2
 	echo "pre-commit: make check-offline failed; commit blocked" >&2
 	exit 1
 fi
+echo "pre-commit: check-offline ok"
