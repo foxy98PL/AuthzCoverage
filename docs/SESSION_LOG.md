@@ -17,3 +17,11 @@ orchestrator context), estimated cost, Pro plan estimate, surprises.
 
 ## Session 1.1 (2026-11-28)
 Done: KAN-103/100/98 agent-doable parts (SARIF step in action-test.yml; fuzz verified; README checked). Commit 911f3a2. No external-app eval (no detection code touched). Next session 2 not affected. Agents: jira (Haiku) x1, tokens pending notification. Orchestrator context small (~40k, estimate).
+
+## 2026-11-29 session 2 (session2.md) — KAN-91
+- Outcome: done. Commit 630e196 (pushed) + docs commit. KAN-91 -> In Review. RSS 1M 1664.9 -> 255.7 MiB, time 14.1 -> 10.8 s.
+- Eval: VAmPI tp16/fp3/fn2/tn11; crAPI tp10/fp2/fn2/tn8, no flips. Replan: no (session 3 unaffected).
+- Tokens (subagent_tokens): implementer KAN-91 149.8k, reviewer 37.2k, fixer 16.0k + 19.4k resume. Orchestrator: ~50k context (estimate).
+- Cost (estimate, Sonnet list $3/$15 per M, cache read $0.30/M): implementer ~$1.5, reviewer ~$0.3, fixer ~$0.3, orchestrator ~$0.5; total ~$2.6.
+- Pro plan: roughly 30-40% of a 5-hour window (rough).
+- Surprises: GC-restore fix regressed RSS 256 -> 380 MiB; caught by re-running eval-scaling myself.
