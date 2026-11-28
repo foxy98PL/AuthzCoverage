@@ -3,6 +3,11 @@ Status: planned
 Budget: ~80k of ~100k
 Depends on: session 6 (safety module, plan generator)
 
+## Replan note (session 6)
+- Safety API: `safety.Check`/`CheckAddr`, exit code `cli.ExitProbeRefused` = 5; items from `internal/probe/items`.
+- Advisor design (notes/KAN-37-opus-answer.md): exec must dial the checked IP and set TLS SNI and Host itself,
+  record cross-host 3xx as the response (not followed), re-check every hop. Add a redirect and dial-pinning test to KAN-39; budget +5k.
+
 ## Goal
 Probe credentials load only from env vars or login recipes, and `internal/probe/exec` (the only net/http user)
 sends planned requests with rate limit, budget, safe redirects, circuit breaker and a redacted audit log.

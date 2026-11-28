@@ -35,3 +35,9 @@ Done: KAN-103/100/98 agent-doable parts (SARIF step in action-test.yml; fuzz ver
 - Tokens (subagent_tokens): implementer KAN-12 r1 24.2k, r2 93.0k; implementer KAN-27 22.9k; KAN-76 13.7k; reviewer KAN-12 23.7k; implementer KAN-31 21.0k. Orchestrator ~70k context (estimate).
 - Cost (estimate, Sonnet $3/$15 per M in/out): subagents ~ $0.3+$1.0+$0.25+$0.15+$0.25+$0.25; orchestrator ~$1.0; total ~$3.2.
 - Surprise: first KAN-12 round blocked (no Docker); backend chosen by a live probe after Docker appeared; fixturecheck pre-commit blocked the upstream spec's hosts.
+
+## Session 6 (2026-11-29)
+- Done: KAN-37 safety module, KAN-36 probe items (Gate C waived by owner). Eval: not needed. Replan: session 7 yes (note added).
+- Tokens (subagent_tokens): advisor 18.4k (Opus); implementer KAN-37 33.5k, KAN-36 15.7k; reviewer KAN-37 29.1k, KAN-36 15.5k; fixer KAN-36 16.6k. Orchestrator ~45k context (estimate).
+- Cost (estimate, Sonnet $3/$15 per M, Opus $15/$75): advisor ~$0.4, Sonnet subagents ~$0.9 total, orchestrator ~$0.6; total ~$1.9.
+- Pro plan: roughly 15-20% of a 5-hour window (rough).

@@ -1,5 +1,5 @@
 # Session 6 — Probe foundation: safety module, then plan generator
-Status: planned
+Status: done — shard 2026-11-29-0400-session6.md
 Budget: ~80k of ~100k
 Depends on: session 5; Gate C passed (owner, see Owner / blocked); KAN-34 export --plan In Review/Done
 
@@ -19,7 +19,8 @@ exported gaps into (object ID, attacker identity) probe items. No HTTP is sent y
 4. Jira batch + shard + commit — ~10k
 
 ## Owner / blocked
-- Gate C (2027-01-31). Assumption: Phase 4 starts only after the owner records Gate C as passed, or waives it
+- Gate C WAIVED by the owner on 2026-11-28 ("just build it, no recorded need is needed"); Phase 4 proceeds.
+  Original assumption: Phase 4 starts only after the owner records Gate C as passed, or waives it
   in writing; until then /start stops here and reports.
 - KAN-37 and KAN-36 Jira texts disagree on order (KAN-65 note); this plan follows safety first.
 
