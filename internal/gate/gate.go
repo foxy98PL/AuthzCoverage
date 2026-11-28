@@ -80,15 +80,9 @@ func Evaluate(in Input) Result {
 	res := Result{Pass: true, Removed: slices.Clone(d.Removed), PercentWas: d.PercentWas, PercentNow: d.PercentNow}
 	slices.Sort(res.Removed)
 
-	newEP := map[string]bool{}
-	for _, e := range d.NewEndpoints {
-		newEP[e] = true
-	}
 	checks := map[Rule][]string{}
 	for _, c := range d.NewGaps {
-		if newEP[c.Endpoint] {
-			checks[NewGaps] = append(checks[NewGaps], c.Endpoint+"  "+c.Relationship)
-		}
+		checks[NewGaps] = append(checks[NewGaps], c.Endpoint+"  "+c.Relationship)
 	}
 	for _, c := range d.Regressions {
 		if c.Was == baseline.Covered && c.Now == baseline.Missing {

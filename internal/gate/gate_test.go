@@ -32,13 +32,33 @@ func TestCleanPasses(t *testing.T) {
 }
 
 func TestNewGaps(t *testing.T) {
+	// (a) known endpoint gains a new missing cell -> fails; (b) new endpoint too.
 	d := baseline.Diff{
 		NewEndpoints: []string{"GET /new"},
 		NewGaps:      []baseline.Change{ch("GET /new", "owner", "", "missing"), ch("GET /old", "lower_role", "", "missing")},
 	}
 	r := eval(d, nil, AllRules(), 0)
 	if r.Pass || len(r.Violations) != 1 || r.Violations[0].Rule != NewGaps ||
-		!slices.Equal(r.Violations[0].Items, []string{"GET /new  owner"}) {
+		!slices.Equal(r.Violations[0].Items, []string{"GET /new  owner", "GET /old  lower_role"}) {
+		t.Fatalf("%+v", r)
+	}
+}
+
+func TestNewGapsOnKnownEndpoint(t *testing.T) {
+	d := baseline.Diff{NewGaps: []baseline.Change{ch("GET /old", "lower_role", "", "missing")}}
+	r := eval(d, nil, AllRules(), 0)
+	if r.Pass || !slices.Equal(r.Violations[0].Items, []string{"GET /old  lower_role"}) {
+		t.Fatalf("%+v", r)
+	}
+}
+
+func TestNewCellsCoveredWaivedUnchangedPass(t *testing.T) {
+	d := baseline.Diff{
+		Improvements: []baseline.Change{ch("GET /old", "owner", "", "covered")},
+		Waived:       []baseline.Change{ch("GET /old", "lower_role", "", "waived")},
+		PercentWas:   50, PercentNow: 50,
+	}
+	if r := eval(d, nil, AllRules(), 0); !r.Pass || len(r.Violations) != 0 {
 		t.Fatalf("%+v", r)
 	}
 }

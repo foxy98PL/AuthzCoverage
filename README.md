@@ -80,7 +80,7 @@ authzcov report --format sarif --in authzcov-out/coverage.json > authzcov.sarif
 authzcov export --plan --in authzcov-out/coverage.json --out plan.json   # gaps as a probe plan (docs/plan.md)
 ```
 
-`gate` fails on new gaps, regressions, a coverage drop, or expired waivers (`--fail-on` and
+`gate` fails on new gaps (any missing, unwaived cell with no baseline entry, on new or existing endpoints), regressions, a coverage drop, or expired waivers (`--fail-on` and
 `--max-drop` tune this). Accepted gaps go in `.authzcov/waivers.yaml`. Upload the SARIF file with
 GitHub code scanning.
 
