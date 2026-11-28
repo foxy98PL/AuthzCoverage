@@ -13,6 +13,7 @@ commit), `machine` (os, arch, cpus, go_version), `summary`, `cases`, `extra`.
 | `tenantshop-ablation` | `tenantshop-ablation.json` | go | Cell-level precision/recall of the coverage matrix: drop one attacker request from the recording and see whether exactly that cell turns from covered to GAP and nothing else changes. |
 | `vampi` | `vampi.json` | docker | Third-party app VAmPI (pinned image digest) against a hand-written ground truth, honest and attack recordings, vulnerable=1 and vulnerable=0. |
 | `crapi` | `crapi.json` | docker compose | Third-party app OWASP crAPI v1.1.6 (digest-pinned compose stack) against a ground truth of its documented challenges, honest and attack recordings. |
+| `realworld` | `realworld.json` | docker compose | RealWorld (Conduit) backend kivio/golang-echo-realworld, digest-pinned, against observed ownership probes. The app enforces ownership, so it measures false positives and true negatives only (recall undefined). |
 
 Run: `make eval` (all), `make eval-tenantshop` (vet, tests, then the two tenantshop suites; no
 docker), `make eval-vampi` (docker), `make eval-crapi` (docker compose, about 3 minutes). `go run ./cmd/tenantshop -v -out DIR` (in `eval/`) prints every

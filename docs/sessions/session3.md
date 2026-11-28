@@ -1,5 +1,5 @@
 # Session 3 — RealWorld harness (last v0.1.0 golden)
-Status: active
+Status: done — shard 2026-11-29-0200-session3.md
 Budget: ~60k of ~100k
 Depends on: session 2 (goldens must be stable); Docker daemon for the run
 

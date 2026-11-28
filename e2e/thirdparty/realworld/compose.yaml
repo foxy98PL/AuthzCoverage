@@ -11,6 +11,7 @@ services:
       - "127.0.0.1::8080"
 
   relay:
+    # digest resolved from the :latest tag on 2026-11-28 (alpine/socat has no versioned tag we rely on)
     image: alpine/socat@sha256:c95c67c1b4860a195bb2ea1351cb8388e1ec1bf4636633ccac7e0d19661ed5fe
     network_mode: "service:app"
     command: ["TCP-LISTEN:8080,fork,reuseaddr,bind=0.0.0.0", "TCP:127.0.0.1:8585"]
