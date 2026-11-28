@@ -3,12 +3,14 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"authzcov/internal/ownership"
 	"authzcov/internal/report/coveragejson"
 	"authzcov/internal/testutil/hartest"
 )
@@ -442,9 +444,34 @@ func TestExportPlan_HashOnly_ContainsRawIDsFalse(t *testing.T) {
 	if code != ExitOK {
 		t.Fatalf("exit %d: %s", code, errs)
 	}
-	if parsePlan(t, out).ContainsRaw || strings.Contains(out, "ord-7f3a") {
-		t.Errorf("hash-only plan: %s", out)
+	if parsePlan(t, out).ContainsRaw {
+		t.Errorf("hash-only plan claims raw IDs: %s", out)
 	}
+	for _, id := range harRawIDs(t) {
+		if strings.Contains(out, id) || strings.Contains(errs, id) {
+			t.Errorf("hash-only plan output contains raw ID %q", id)
+		}
+	}
+}
+
+// harRawIDs returns every raw object ID the pipeline learns from the fixture
+// HAR in the current directory (the same source as rawFromPipeline).
+func harRawIDs(t *testing.T) []string {
+	t.Helper()
+	a, err := analyze(&coverageOpts{spec: "spec.yml", hars: []string{"t.har"}, identities: "ids.yaml", basePath: basePathAuto}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, ob := range a.objects {
+		if ob.Resource != ownership.SubjectResource {
+			ids = append(ids, ob.ID)
+		}
+	}
+	if len(ids) == 0 {
+		t.Fatal("fixture HAR yields no raw IDs")
+	}
+	return ids
 }
 
 func TestCoverageJSON_NeverContainsRawObjectID(t *testing.T) {
@@ -453,7 +480,9 @@ func TestCoverageJSON_NeverContainsRawObjectID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(b), "ord-7f3a") {
-		t.Error("coverage.json contains a raw object ID")
+	for _, id := range harRawIDs(t) {
+		if strings.Contains(string(b), id) {
+			t.Errorf("coverage.json contains raw object ID %q", id)
+		}
 	}
 }

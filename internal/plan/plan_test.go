@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -295,8 +296,24 @@ func extras(t *testing.T, root map[string]any, doc map[string]any, name string) 
 
 func TestPlan_HashOnly_NoRawIDAnywhere(t *testing.T) {
 	r := fixture("owner", "other_tenant", "anonymous")
+	raw := &Raw{IDs: map[string]string{}, TenantParams: map[string]bool{}}
+	var ids []string
+	for i, o := range r.Objects {
+		id := fmt.Sprintf("rawid-%d-zq", i)
+		raw.IDs[o.Resource+"/"+o.IDHash] = id
+		ids = append(ids, id)
+	}
+	// every raw ID the raw plan resolves must be absent from the hash-only plan
+	for _, pr := range Build(r, Options{Raw: raw}).Probes {
+		if pr.Object != nil && pr.Object.ID != "" && !slices.Contains(ids, pr.Object.ID) {
+			ids = append(ids, pr.Object.ID)
+		}
+	}
+	if len(ids) == 0 {
+		t.Fatal("no raw IDs to check")
+	}
 	b, _ := json.Marshal(Build(r, Options{}))
-	for _, id := range []string{"ord-1", "ord-7f3a"} {
+	for _, id := range ids {
 		if strings.Contains(string(b), id) {
 			t.Errorf("hash-only plan contains raw ID %q: %s", id, b)
 		}

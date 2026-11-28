@@ -60,7 +60,7 @@ coverage.json stores only `id_hash`, so a plan built from it alone has no usable
   umask-readable. `--base-path` (default `auto`, same values and validation as `coverage`) must match the
   coverage run, and a warning is printed when the `--har`, `--spec` or `--identities` files differ from the
   hashes recorded in coverage.json. **Never commit or share it.** The flag is true
-whenever `--har` is given. Objects of self-claim (`subject`) resources get no raw ID. The plan never
+whenever `--har` is given. Raw IDs are resolved for every learned object by `resource/id_hash`, including self-claim (`subject`) entries. The plan never
 contains credentials in either mode.
 
 - **Hash-only (default):** `object.id_hash` only. Each probe with an object carries the note
