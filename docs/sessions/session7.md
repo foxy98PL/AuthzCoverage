@@ -1,5 +1,5 @@
 # Session 7 — Probe credentials and executor
-Status: active
+Status: done — shard 2026-11-29-0600-session7.md
 Budget: ~80k of ~100k
 Depends on: session 6 (safety module, plan generator)
 
