@@ -2,11 +2,14 @@ package cli
 
 // Process exit codes (spec section 4.3).
 const (
-	ExitOK       = 0
-	ExitGate     = 1
-	ExitUsage    = 2
-	ExitInput    = 3
-	ExitInternal = 10
+	ExitOK    = 0
+	ExitGate  = 1
+	ExitUsage = 2
+	ExitInput = 3
+
+	// ExitProbeRefused: a probe target was refused by the safety policy.
+	ExitProbeRefused = 5
+	ExitInternal     = 10
 )
 
 // exitError carries an exit code through cobra's error return.
