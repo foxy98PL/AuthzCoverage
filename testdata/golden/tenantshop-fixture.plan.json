@@ -30,7 +30,8 @@
         "owner": "ann",
         "tenant": "OrgA"
       },
-      "expect": "allow"
+      "expect": "allow",
+      "note": "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
     },
     {
       "id": "8a1d2755739d0afe",
@@ -50,7 +51,8 @@
         "owner": "ann",
         "tenant": "OrgA"
       },
-      "expect": "deny"
+      "expect": "deny",
+      "note": "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
     },
     {
       "id": "c1a28e7387a65fd8",
@@ -70,7 +72,8 @@
         "owner": "ann",
         "tenant": "OrgA"
       },
-      "expect": "deny"
+      "expect": "deny",
+      "note": "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
     },
     {
       "id": "013b46935558afe4",
@@ -89,7 +92,8 @@
         "owner": "ann",
         "tenant": "OrgA"
       },
-      "expect": "deny"
+      "expect": "deny",
+      "note": "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
     },
     {
       "id": "8bb5b4373b6d73e3",
@@ -213,7 +217,8 @@
         "owner": "ann",
         "tenant": "OrgA"
       },
-      "expect": "deny"
+      "expect": "deny",
+      "note": "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
     },
     {
       "id": "9a2110e61096873c",
@@ -295,7 +300,8 @@
         "owner": "ann",
         "tenant": "OrgA"
       },
-      "expect": "deny"
+      "expect": "deny",
+      "note": "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
     },
     {
       "id": "1845d92a032f2447",
@@ -315,7 +321,8 @@
         "owner": "ann",
         "tenant": "OrgA"
       },
-      "expect": "deny"
+      "expect": "deny",
+      "note": "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
     },
     {
       "id": "c911e02e372e8fcd",
@@ -334,7 +341,8 @@
         "owner": "ann",
         "tenant": "OrgA"
       },
-      "expect": "deny"
+      "expect": "deny",
+      "note": "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
     }
   ]
 }

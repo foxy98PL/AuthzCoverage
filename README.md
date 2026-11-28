@@ -185,7 +185,7 @@ authzcov is pre-release. Measured numbers (mutants, ablation, VAmPI, crAPI, scal
 - **Memory is linear in HAR size** (about 1.7 KB per entry: 1.6 GiB at 1M entries). Time is close to
   linear. Workaround: split large recordings, or record only the authorization tests (KAN-91).
 - **No active probing yet.** authzcov only reads recordings; `export --plan` lists the gaps for another
-  tool to probe. Active probing is planned for Phase 4.
+  tool to probe (raw IDs only with `--har`). Active probing is planned for Phase 4.
 - **A role with one identity cannot cover `same_role_other_user`**, which needs two users of that role.
   Workaround: add a second identity for the role.
 - **No `cross_parent` checks** (an object reached through a parent it does not belong to, for example

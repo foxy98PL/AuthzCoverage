@@ -146,6 +146,7 @@ Not delegable (owner only): G1/E3 employment IP check, Gate A practitioner outre
 8. Partial-segment path templates (`/{id}.json`) rejected with exit 3.
 9. `--base-path` defaults to `auto`; a non-empty prefix is not credited when the remainder is only `/`.
 10. learn_tokens never needs the raw token: the login response is redacted at ingest to `[redacted:<fp12>]`, and that fingerprint is what later bearer requests carry.
+- KAN-94 (KAN-34 AC2): raw credentials/IDs never survive ingest *into shareable artifacts* (coverage.json, SARIF, HTML); the opt-in `export --plan --har` file (0600, `--out` only) is the only raw-ID output.
 11. `token_sha256` is matched on its first 12 hex chars (the stored fingerprint length).
 13. Basic fingerprint = Fingerprint("basic:"+user); password-like body fields redacted without hash (offline-guessing risk).
 14. Tenancy: a caller with no tenant vs a known object tenant → other_tenant (only `*` is exempt). Note DOC-03 said `""` = global; conflict to decide.

@@ -98,6 +98,9 @@ func runExportPlan(o *exportOpts, stdout, stderr io.Writer) error {
 		_, _ = fmt.Fprintln(stderr, "warning: the plan contains raw object IDs from the recording; never commit or share it")
 	}
 	p := plan.Build(rep, opt)
+	if !o.raw() && slices.ContainsFunc(p.Probes, func(pr plan.Probe) bool { return pr.Note == plan.HintResolveIDs }) {
+		_, _ = fmt.Fprintln(stderr, "note: "+plan.HintResolveIDs)
+	}
 	sum := sha256.Sum256(raw)
 	p.Source.CoverageSHA256 = hex.EncodeToString(sum[:])
 	p.GeneratedAt = clock()().UTC().Format("2006-01-02T15:04:05Z")

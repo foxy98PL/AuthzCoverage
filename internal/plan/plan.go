@@ -32,6 +32,10 @@ const (
 	NoteNoIdentity = "no identity with this relationship was seen"
 	NoteNoObject   = "no object with a known owner was seen for this resource"
 	NoteNoMinRole  = "no minimum allowed role was inferred for this endpoint"
+	// HintResolveIDs is set on probes with an object in a hash-only plan.
+	HintResolveIDs = "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
+	// NoteIDNotFound is set in raw mode when the HAR does not hold the object's hash.
+	NoteIDNotFound = "id_hash not found in the given --har; raw ID left empty (the HAR differs from the one coverage.json was built from)"
 )
 
 // Plan is the whole plan document. Field order is output order.
@@ -235,9 +239,18 @@ func probe(ep coveragejson.Endpoint, c coveragejson.Cell, objs []coveragejson.Ob
 func setObject(p *Probe, ep coveragejson.Endpoint, o coveragejson.Object, raw *Raw) {
 	p.Object.IDHash, p.Object.Owner, p.Object.Tenant = o.IDHash, o.Owner, o.Tenant
 	if raw == nil {
+		if o.IDHash != "" && p.Note == "" {
+			p.Note = HintResolveIDs
+		}
 		return
 	}
-	p.Object.ID = raw.IDs[o.Resource+"/"+o.IDHash]
+	// Never fall back to another object of the same resource: a wrong object
+	// would turn into a false "deny" result.
+	if id, ok := raw.IDs[o.Resource+"/"+o.IDHash]; ok {
+		p.Object.ID = id
+	} else if o.IDHash != "" && p.Note == "" {
+		p.Note = NoteIDNotFound
+	}
 	if o.Tenant == "" {
 		return
 	}

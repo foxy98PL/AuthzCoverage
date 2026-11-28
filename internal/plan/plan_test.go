@@ -292,3 +292,59 @@ func extras(t *testing.T, root map[string]any, doc map[string]any, name string) 
 		t.Errorf("%s: no probes to check patterns against", name)
 	}
 }
+
+func TestPlan_HashOnly_NoRawIDAnywhere(t *testing.T) {
+	r := fixture("owner", "other_tenant", "anonymous")
+	b, _ := json.Marshal(Build(r, Options{}))
+	for _, id := range []string{"ord-1", "ord-7f3a"} {
+		if strings.Contains(string(b), id) {
+			t.Errorf("hash-only plan contains raw ID %q: %s", id, b)
+		}
+	}
+	for _, pr := range Build(r, Options{}).Probes {
+		if pr.Object != nil && pr.Object.ID != "" {
+			t.Errorf("raw id set: %+v", pr.Object)
+		}
+	}
+}
+
+func TestPlan_HashOnly_EmitsResolveHint(t *testing.T) {
+	n := 0
+	for _, pr := range Build(fixture("owner"), Options{}).Probes {
+		if pr.Object != nil && pr.Object.IDHash != "" {
+			n++
+			if pr.Note != HintResolveIDs {
+				t.Errorf("note = %q", pr.Note)
+			}
+		}
+	}
+	if n == 0 {
+		t.Fatal("no probe with an object")
+	}
+}
+
+func TestPlan_Raw_ResolvesIDByHash(t *testing.T) {
+	raw := &Raw{IDs: map[string]string{"orders/aaaaaaaa": "ord-1"}}
+	for _, pr := range Build(fixture("owner"), Options{Raw: raw}).Probes {
+		if pr.Object != nil && pr.Object.IDHash != "" && (pr.Object.ID != "ord-1" || pr.Note != "") {
+			t.Errorf("%+v note=%q", pr.Object, pr.Note)
+		}
+	}
+}
+
+func TestPlan_Raw_HashMiss_LeavesIDEmptyWithNote(t *testing.T) {
+	// Another object of the same resource is known, but not the one in coverage.json.
+	raw := &Raw{IDs: map[string]string{"orders/bbbbbbbb": "ord-other"}}
+	n := 0
+	for _, pr := range Build(fixture("owner"), Options{Raw: raw}).Probes {
+		if pr.Object != nil && pr.Object.IDHash != "" {
+			n++
+			if pr.Object.ID != "" || pr.Note != NoteIDNotFound {
+				t.Errorf("%+v note=%q", pr.Object, pr.Note)
+			}
+		}
+	}
+	if n == 0 {
+		t.Fatal("no probe with an object")
+	}
+}

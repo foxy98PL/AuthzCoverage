@@ -383,3 +383,77 @@ func TestExportBasePathMirrorsCoverage(t *testing.T) {
 		t.Errorf("--base-path /nope should fail like coverage: %s", errs)
 	}
 }
+
+func rawArgs() []string {
+	return []string{"--har", "t.har", "--spec", "spec.yml", "--identities", "ids.yaml"}
+}
+
+func TestExportPlan_HashOnly_HintOnStderrOnce(t *testing.T) {
+	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, tenantshopEntries(t))
+	code, out, errs := runCLI(t, "export", "--plan", "--in", filepath.Join(cov.dir, "out", "coverage.json"))
+	if code != ExitOK {
+		t.Fatalf("exit %d: %s", code, errs)
+	}
+	if n := strings.Count(errs, "raw ID omitted"); n != 1 {
+		t.Errorf("hint on stderr %d times: %s", n, errs)
+	}
+	if !strings.Contains(out, "raw ID omitted") {
+		t.Errorf("no hint note in plan")
+	}
+}
+
+func TestExportPlan_Raw_RequiresOut_NoStdout(t *testing.T) {
+	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, tenantshopEntries(t))
+	args := append([]string{"export", "--plan", "--in", filepath.Join(cov.dir, "out", "coverage.json")}, rawArgs()...)
+	code, out, _ := runCLI(t, args...)
+	if code != ExitUsage || strings.Contains(out, "ord-7f3a") {
+		t.Errorf("exit %d, stdout=%s", code, out)
+	}
+}
+
+func TestExportPlan_Raw_FileMode0600(t *testing.T) {
+	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, tenantshopEntries(t))
+	o := filepath.Join(cov.dir, "r.json")
+	args := append([]string{"export", "--plan", "--in", filepath.Join(cov.dir, "out", "coverage.json"), "--out", o}, rawArgs()...)
+	if code, _, errs := runCLI(t, args...); code != ExitOK {
+		t.Fatalf("exit %d: %s", code, errs)
+	}
+	if st, err := os.Stat(o); err != nil || st.Mode().Perm() != 0o600 {
+		t.Errorf("stat %v err %v", st, err)
+	}
+}
+
+func TestExportPlan_Raw_ContainsRawIDsTrue(t *testing.T) {
+	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, tenantshopEntries(t))
+	o := filepath.Join(cov.dir, "r.json")
+	args := append([]string{"export", "--plan", "--in", filepath.Join(cov.dir, "out", "coverage.json"), "--out", o}, rawArgs()...)
+	if code, _, errs := runCLI(t, args...); code != ExitOK {
+		t.Fatalf("exit %d: %s", code, errs)
+	}
+	b, _ := os.ReadFile(o) //nolint:gosec // test path
+	if !parsePlan(t, string(b)).ContainsRaw || !strings.Contains(string(b), "ord-7f3a") {
+		t.Errorf("raw plan: %s", b)
+	}
+}
+
+func TestExportPlan_HashOnly_ContainsRawIDsFalse(t *testing.T) {
+	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, tenantshopEntries(t))
+	code, out, errs := runCLI(t, "export", "--plan", "--in", filepath.Join(cov.dir, "out", "coverage.json"))
+	if code != ExitOK {
+		t.Fatalf("exit %d: %s", code, errs)
+	}
+	if parsePlan(t, out).ContainsRaw || strings.Contains(out, "ord-7f3a") {
+		t.Errorf("hash-only plan: %s", out)
+	}
+}
+
+func TestCoverageJSON_NeverContainsRawObjectID(t *testing.T) {
+	cov := runCoverageIn(t, tenantshopSpecFx, tenantshopIDsFx, tenantshopEntries(t))
+	b, err := os.ReadFile(filepath.Join(cov.dir, "out", "coverage.json")) //nolint:gosec // test path
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), "ord-7f3a") {
+		t.Error("coverage.json contains a raw object ID")
+	}
+}
