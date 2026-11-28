@@ -5,6 +5,12 @@ All notable changes to authzcov are listed here. The format follows
 [Semantic Versioning](https://semver.org/). Pre-release versions (`-rc.N`) may change behaviour
 between candidates.
 
+## [Unreleased]
+
+### Fixed
+- Gate: `new-gaps` now also fails on a new uncovered cell on an existing endpoint, not only on new endpoints (KAN-93).
+- fixturecheck scans every text fixture for non-demo hosts, not only HAR files (KAN-99).
+
 ## [0.1.0-rc.2] - 2026-11-28
 
 Changes since v0.1.0-rc.1. Coverage percentages for the same inputs can differ from rc.1; see

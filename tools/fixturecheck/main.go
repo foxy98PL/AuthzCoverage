@@ -76,7 +76,12 @@ func parseAllowlist(r io.Reader) (allowlist, error) {
 		if len(f) < 3 {
 			return nil, fmt.Errorf("allow list line %d: want \"path hash12 reason\"", n)
 		}
-		if len(f[1]) != 12 {
+		if strings.HasPrefix(f[1], "host:") {
+			if name := f[1][len("host:"):]; name == "" || strings.Contains(name, "*") {
+				return nil, fmt.Errorf("allow list line %d: host entry needs a literal host name", n)
+			}
+			f[1] = hostKey(f[1][len("host:"):])
+		} else if len(f[1]) != 12 {
 			return nil, fmt.Errorf("allow list line %d: hash must be 12 hex chars", n)
 		}
 		if al[f[0]] == nil {
@@ -85,6 +90,14 @@ func parseAllowlist(r io.Reader) (allowlist, error) {
 		al[f[0]][f[1]] = strings.Join(f[2:], " ")
 	}
 	return al, sc.Err()
+}
+
+// hostKey is the allowlist key (second field) for a per-path host entry: "host:NAME".
+func hostKey(host string) string { return "host:" + strings.ToLower(host) }
+
+func (al allowlist) allowsHost(path, host string) bool {
+	_, ok := al[path][hostKey(host)]
+	return ok
 }
 
 func (al allowlist) allows(path, tok string) bool {
@@ -126,6 +139,16 @@ func isBinary(b []byte) bool {
 		head = head[:8000]
 	}
 	return bytes.IndexByte(head, 0) >= 0
+}
+
+// isTextFixture names extensions that are always host-scanned, even with NUL bytes.
+func isTextFixture(lowerPath string) bool {
+	for _, e := range []string{".json", ".yml", ".yaml", ".md", ".txt", ".sarif", ".html"} {
+		if strings.HasSuffix(lowerPath, e) {
+			return true
+		}
+	}
+	return false
 }
 
 // scanJWTs checks every JWT-shaped byte sequence in a blob. Text files report
@@ -186,6 +209,34 @@ func hostAllowed(host string) bool {
 		}
 	}
 	return false
+}
+
+// urlHostRe captures the host of http(s)/ws(s) URLs in free text (optional userinfo skipped).
+var urlHostRe = regexp.MustCompile(`(?i)\b(?:https?|wss?)(?::(?:\\?/){2})(?:[^/\s"'<>@\\?#]*@)?(\[[0-9a-f:]+\]|[a-z0-9][a-z0-9._\-\x{80}-\x{10FFFF}]*)`)
+
+// textHostAllowed is hostAllowed plus the RFC 2606 reserved names, which can never resolve.
+func textHostAllowed(host string) bool {
+	h := strings.ToLower(strings.Trim(host, "[]"))
+	return hostAllowed(h) || h == "invalid" || strings.HasSuffix(h, ".invalid") || strings.HasSuffix(h, ".example")
+}
+
+// scanTextHosts fails every URL host in a text file that is neither a demo host
+// nor allowlisted for this path. One failure per host per file.
+func scanTextHosts(path string, data []byte, al allowlist) []failure {
+	var out []failure
+	seen := map[string]bool{}
+	line, pos := 1, 0
+	for _, m := range urlHostRe.FindAllSubmatchIndex(data, -1) {
+		line += bytes.Count(data[pos:m[2]], []byte("\n"))
+		pos = m[2]
+		h := strings.ToLower(strings.TrimRight(string(data[m[2]:m[3]]), ".-_"))
+		if h == "" || seen[h] || textHostAllowed(h) || al.allowsHost(path, h) {
+			continue
+		}
+		seen[h] = true
+		out = append(out, failure{path, line, fmt.Sprintf("URL host %q is not a demo host (allow with \"%s host:%s reason\")", h, path, h)})
+	}
+	return out
 }
 
 func lineOf(data []byte, needle string) int {
@@ -272,8 +323,23 @@ func scanContent(path string, data []byte, al allowlist) []failure {
 			return scanZip(path, data, al)
 		}
 	}
-	if strings.HasSuffix(lower, ".har") || looksLikeHAR(data) {
-		out = append(out, scanHAR(path, data)...)
+	harName := strings.HasSuffix(lower, ".har")
+	var harFails []failure
+	if harName || looksLikeHAR(data) {
+		harFails = scanHAR(path, data)
+		out = append(out, harFails...)
+	}
+	if !harName && (isTextFixture(lower) || !isBinary(data)) {
+	text:
+		for _, f := range scanTextHosts(path, data, al) {
+			q := f.reason[strings.Index(f.reason, `"`) : strings.Index(f.reason, `" is not`)+1]
+			for _, h := range harFails {
+				if strings.Contains(h.reason, q) {
+					continue text // already reported by the HAR scan
+				}
+			}
+			out = append(out, f)
+		}
 	}
 	return append(out, scanJWTs(path, data, al)...)
 }

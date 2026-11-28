@@ -8,3 +8,58 @@ internal/redact/redact_test.go 432b86b29fc6 synthetic test token (sub alice) for
 internal/redact/redact_test.go 4406b062a4a4 synthetic test token (sub x) for redaction tests
 internal/redact/redact_test.go bcbaff226943 synthetic alg=none test token (sub x) for redaction tests
 testdata/specs/vampi.yml a97c0765dbb4 upstream VAmPI OpenAPI spec example token (expired 2022, John.Doe demo user)
+
+# Per-path host allowances (format: path host:NAME reason). Covers one host in one file.
+.goreleaser.yaml host:goreleaser.com synthetic placeholder host in test code
+CHANGELOG.md host:github.com repo/project link
+CHANGELOG.md host:keepachangelog.com synthetic placeholder host in test code
+CHANGELOG.md host:semver.org synthetic placeholder host in test code
+CLAUDE.md host:github.com repo/project link
+CONTRIBUTING.md host:github.com repo/project link
+CONTRIBUTING.md host:www.conventionalcommits.org doc link
+LICENSE host:www.apache.org Apache-2.0 license text
+Makefile host:github.com repo/project link
+NOTICE host:github.com repo/project link
+README.md host:github.com repo/project link
+README.md host:token.actions.githubusercontent.com GitHub OIDC issuer, public
+README.md host:www.sigstore.dev doc link
+action.yml host:api.github.com GitHub API reference
+action.yml host:github.com repo/project link
+action.yml host:token.actions.githubusercontent.com GitHub OIDC issuer, public
+docs/PLAN.md host:github.com repo/project link
+docs/dev-setup.md host:go.dev doc link
+docs/dev-setup.md host:golangci-lint.run doc link
+docs/progress/2026-11-27-2209-rounds-1-4.md host:api.github.com GitHub API reference
+docs/progress/2026-11-27-2209-rounds-1-4.md host:github.com repo/project link
+docs/progress/2026-11-28-0330-rc2-resume.md host:api.github.com GitHub API reference
+docs/progress/2026-11-28-1200-rc2-pushed.md host:api.github.com GitHub API reference
+docs/quickstart.md host:github.com repo/project link
+e2e/thirdparty/crapi/compose.yaml host:api.mypremiumdealership.com crAPI upstream demo app default domain
+e2e/thirdparty/crapi/openapi.json host:github.com repo/project link
+e2e/thirdparty/crapi/recorder.go host:crapi-workshop docker-compose service name of crAPI test app
+e2e/thirdparty/crapi/recorder_test.go host:x synthetic placeholder host in test code
+eval/schema/result.v1.json host:json-schema.org JSON Schema meta-schema URI
+internal/cli/bench_test.go host:x synthetic placeholder host in test code
+internal/ingest/har/har_test.go host:h synthetic placeholder host in test code
+internal/ingest/har/zip_test.go host:h synthetic placeholder host in test code
+internal/redact/pseudo_test.go host:h synthetic placeholder host in test code
+internal/redact/pseudo_test.go host:live.real-company.com redaction test sample (synthetic)
+internal/redact/pseudo_test.go host:sock.real-company.com redaction test sample (synthetic)
+internal/redact/redact_test.go host:evil synthetic placeholder host in test code
+internal/report/markdown/markdown_test.go host:e synthetic placeholder host in test code
+internal/report/markdown/markdown_test.go host:x synthetic placeholder host in test code
+internal/report/sarif/sarif.go host:json.schemastore.org SARIF schema URI
+internal/testutil/hartest/hartest_test.go host:h synthetic placeholder host in test code
+schema/baseline.v1.json host:json-schema.org JSON Schema meta-schema URI
+schema/coverage.v1.json host:json-schema.org JSON Schema meta-schema URI
+schema/identities.v1.json host:json-schema.org JSON Schema meta-schema URI
+schema/plan.v1.json host:json-schema.org JSON Schema meta-schema URI
+schema/waivers.v1.json host:json-schema.org JSON Schema meta-schema URI
+testdata/golden/lists-fixture-strict.sarif host:json.schemastore.org SARIF schema URI
+testdata/golden/lists-fixture.sarif host:json.schemastore.org SARIF schema URI
+testdata/golden/tenants-fixture.sarif host:json.schemastore.org SARIF schema URI
+testdata/golden/vampi-fixture.sarif host:json.schemastore.org SARIF schema URI
+tools/fixturecheck/main_test.go host:api.realcorp.io fixturecheck test sample (synthetic)
+tools/fixturecheck/main_test.go host:real.io synthetic placeholder host in test code
+tools/fixturecheck/main_test.go host:www.w3.org fixturecheck test sample (synthetic)
+tools/fixturecheck/main_test.go host:evil.io synthetic bypass sample in test code

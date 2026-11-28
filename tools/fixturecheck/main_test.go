@@ -105,7 +105,7 @@ func TestHARSniffedByContent(t *testing.T) {
 	if got := scanContent("x.json", har("localhost"), allowlist{}); len(got) != 0 {
 		t.Fatalf("demo HAR must pass, got %v", got)
 	}
-	for _, other := range []string{`{"log":{"entries":"no"}}`, `{"entries":[{"request":{"url":"https://real.io"}}]}`, `["entries"]`, `plain "entries" text`} {
+	for _, other := range []string{`{"log":{"entries":"no"}}`, `{"entries":[{"request":{"url":"https://example.com"}}]}`, `["entries"]`, `plain "entries" text`} {
 		if got := scanContent("o.json", []byte(other), allowlist{}); len(got) != 0 {
 			t.Fatalf("non-HAR %q must pass, got %v", other, got)
 		}
@@ -181,5 +181,49 @@ func TestScanFilesAndRun(t *testing.T) {
 	files := []string{"ok.txt", "bad.har", "missing.txt"}
 	if got := scanFiles(dir, files, allowlist{}); len(got) != 1 || got[0].path != "bad.har" {
 		t.Fatalf("got %v", got)
+	}
+}
+
+func TestTextFixtureHosts(t *testing.T) {
+	for _, name := range []string{"a.json", "a.yml", "a.md", "a.txt", "a.sarif", "a.html"} {
+		data := []byte("ok\nsee https://api.realcorp.io/v1/users and https://api.realcorp.io/v2\nhttps://example.com/x\n")
+		got := scanContent(name, data, allowlist{})
+		if len(got) != 1 || got[0].line != 2 || !strings.Contains(got[0].reason, "api.realcorp.io") {
+			t.Fatalf("%s: want one failure naming host at line 2, got %v", name, got)
+		}
+	}
+	if got := scanContent("a.txt", []byte("wss://x.demo.test/ http://localhost:8080/a"), allowlist{}); len(got) != 0 {
+		t.Fatalf("demo hosts must pass, got %v", got)
+	}
+	if got := scanContent("a.bin", []byte("\x00\x01https://api.realcorp.io/v1"), allowlist{}); len(got) != 0 {
+		t.Fatalf("binary must not be host-scanned, got %v", got)
+	}
+	al := allowlist{"a.md": {hostKey("www.w3.org"): "doc"}}
+	if got := scanContent("a.md", []byte("https://www.w3.org/x"), al); len(got) != 0 {
+		t.Fatalf("per-path host allow must pass, got %v", got)
+	}
+}
+
+func TestTextHostBypasses(t *testing.T) {
+	cases := map[string]struct{ name, body string }{
+		"F1 query userinfo":  {"a.md", "https://evil.io?x=@example.com/"},
+		"F1 fragment":        {"a.md", "https://evil.io#@example.com/"},
+		"F2 non-ascii cont":  {"a.md", "https://example.com\u2024evil.io/"},
+		"F3 har-shaped json": {"a.json", `{"log":{"entries":[],"note":"https://api.realcorp.io/x"}}`},
+		"F4 escaped slashes": {"a.json", `{"u":"https:\/\/api.realcorp.io\/x"}`},
+		"F5 nul prefix":      {"a.md", "\x00https://api.realcorp.io/x"},
+	}
+	for n, c := range cases {
+		if got := scanContent(c.name, []byte(c.body), allowlist{}); len(got) == 0 {
+			t.Errorf("%s: bypass not detected", n)
+		}
+	}
+}
+
+func TestParseAllowlistRejectsBadHost(t *testing.T) {
+	for _, l := range []string{"a.md host: reason", "a.md host:*.x.io reason"} {
+		if _, err := parseAllowlist(strings.NewReader(l)); err == nil {
+			t.Errorf("%q must be rejected", l)
+		}
 	}
 }
