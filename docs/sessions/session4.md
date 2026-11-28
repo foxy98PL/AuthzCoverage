@@ -1,5 +1,5 @@
 # Session 4 — v0.1.0 final prep and launch material
-Status: active
+Status: done — shard 2026-11-29-0230-session4.md
 Budget: ~60k of ~100k
 Depends on: sessions 1–3; KAN-97 rc.2 verification by the owner before the v0.1.0 tag
 

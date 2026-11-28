@@ -128,9 +128,8 @@ exchanges or observations in memory afterwards.
   on both builds are flagged although the 2xx only changed the caller's own record (the handler
   ignores the path's username). authzcov sees a 2xx on another user's path and cannot tell that the
   path was ignored, so these count as `fp`.
-- crAPI: `CRAPI-C1-VEHICLE` (challenge 1) is a miss in the attack run although vehicle ownership is learned from the
-  vehicle list; the cause is not determined yet (needs a docker run). `CRAPI-C2-REPORT` is a query-parameter
-  BOLA and `CRAPI-U2-USERS-ALL` is function-level; both are expected misses. `CRAPI-Q1-POST-OTHER` (public
+- crAPI: `CRAPI-C2-REPORT` is a query-parameter BOLA and the only false negative since KAN-102 (C1-VEHICLE and
+  the function-level `CRAPI-U2-USERS-ALL` are flagged). `CRAPI-Q1-POST-OTHER` (public
   community posts) and `CRAPI-Q2-VIDEO-PUT` (path ignored) are `fp`: authzcov cannot tell public data or an
   ignored path parameter from a leak. Challenge 14 is mapped to the anonymous order lookup by us (the
   challenge text names no endpoint). Only one release was evaluated, on one machine.

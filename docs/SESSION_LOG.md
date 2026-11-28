@@ -29,3 +29,9 @@ Done: KAN-103/100/98 agent-doable parts (SARIF step in action-test.yml; fuzz ver
 ## Session 3 (2026-11-29) partial, blocked
 - Done: spec fetched only (not committed, fixturecheck). Blocked: no Docker, no trustworthy backend image. No code changes, no eval run, replan: not checked.
 - Tokens: implementer KAN-12 24.2k (Sonnet). Orchestrator ~35k context (estimate). Cost ~ $0.3 (estimate).
+
+## Session 3 resumed + session 4 (2026-11-29)
+- Done: KAN-12 RealWorld harness (tp0 fp7 fn0 tn11, report 13,279 B), KAN-27 prep, KAN-76 licences, KAN-31 draft; session 3 and 4 done. Replan: no (no planned session left).
+- Tokens (subagent_tokens): implementer KAN-12 r1 24.2k, r2 93.0k; implementer KAN-27 22.9k; KAN-76 13.7k; reviewer KAN-12 23.7k; implementer KAN-31 21.0k. Orchestrator ~70k context (estimate).
+- Cost (estimate, Sonnet $3/$15 per M in/out): subagents ~ $0.3+$1.0+$0.25+$0.15+$0.25+$0.25; orchestrator ~$1.0; total ~$3.2.
+- Surprise: first KAN-12 round blocked (no Docker); backend chosen by a live probe after Docker appeared; fixturecheck pre-commit blocked the upstream spec's hosts.
