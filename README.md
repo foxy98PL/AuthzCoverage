@@ -191,7 +191,8 @@ authzcov is pre-release. Measured numbers (mutants, ablation, VAmPI, crAPI, scal
 - **No `cross_parent` checks** (an object reached through a parent it does not belong to, for example
   `/users/{u}/orders/{o}`).
 - **Basic, cookie and API-key callers are `unknown`** unless `identities.yaml` has a matching
-  `credentials` rule. Unknown never counts as covered.
+  `credentials` rule. Unknown never counts as covered. `printf %s "$VALUE" | authzcov fingerprint` prints the
+  hash for `token_sha256`.
 
 Measured at 3ef6707 (`eval/results/`): tenantshop mutants 11 of 11 detected, no false alarm on the
 unmutated app; ablation 16 of 16 dropped requests turn exactly their cell into a gap; VAmPI precision

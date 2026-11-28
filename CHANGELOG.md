@@ -7,6 +7,11 @@ between candidates.
 
 ## [Unreleased]
 
+### Added
+
+- `authzcov fingerprint` prints the full SHA-256 of a cookie, API key or token read from stdin, for
+  `token_sha256` in `identities.yaml`; `discover` points to it (KAN-33).
+
 ## [0.1.0] - YYYY-MM-DD
 
 First stable release. Changes since v0.1.0-rc.2. Set the date when the tag is pushed

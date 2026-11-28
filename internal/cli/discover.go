@@ -299,7 +299,7 @@ func renderSkeleton(ps []*principal, nHAR int) string {
 		}
 		b.WriteString("\n")
 		b.WriteString("  # Only 12 hex characters of the SHA-256 are known here, so fill in the full hash\n")
-		b.WriteString("  # (sha256sum of the credential value) or use learn_tokens with a login request instead:\n")
+		b.WriteString("  # (printf %s VALUE | authzcov fingerprint) or use learn_tokens with a login request instead:\n")
 		fmt.Fprintf(&b, "  # - {name: change-me-%s, role: user, match: {token_sha256: \"<64 hex chars; starts with %s>\"}}\n", p.fp, p.fp)
 	}
 	return b.String()

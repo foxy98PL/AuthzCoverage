@@ -1,5 +1,5 @@
 # Session 5 — Launch week bugs, friction fixes and v0.2.0 prep
-Status: active (blocked: no launch reports, v0.1.0 untagged)
+Status: done — shard 2026-11-29-0300-session5.md (KAN-35 no reports; KAN-33 partial, one friction fix)
 Budget: ~75k of ~100k
 Depends on: session 4; owner launch (KAN-32) done and the owner's list of friction points / launch-week issues
 
