@@ -7,18 +7,14 @@ between candidates.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-29
+
+First stable release. Changes since v0.1.0-rc.2.
+
 ### Added
 
 - `authzcov fingerprint` prints the full SHA-256 of a cookie, API key or token read from stdin, for
   `token_sha256` in `identities.yaml`; `discover` points to it (KAN-33).
-
-## [0.1.0] - YYYY-MM-DD
-
-First stable release. Changes since v0.1.0-rc.2. Set the date when the tag is pushed
-(see `docs/releasing.md`).
-
-### Added
-
 - `object_param` on `in: query` parameters in `identities.yaml`, so objects addressed by a query
   parameter can be tracked (KAN-104).
 - Exclusive list rules in ownership learning: an object seen only in one caller's list response is
