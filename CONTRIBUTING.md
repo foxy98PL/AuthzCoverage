@@ -60,11 +60,13 @@ CI runs on every pull request: `go vet`, `golangci-lint`, `go test -race`, `govu
 - `matrix`: builds the endpoint by relationship coverage matrix.
 - `model`: structs shared by all stages.
 - `ownership`: learns who owns which object from recorded traffic.
+- `plan`: builds the `export --plan` probe plan from `coverage.json`.
 - `redact`: turns secrets into fingerprints and redacts traffic-derived text.
 - `relate`: classifies the relationship between a caller and an object.
 - `report/*`: renderers for `coverage.json`, HTML, Markdown, SARIF and a text table.
 - `spec`: loads an OpenAPI 3.x document.
 - `suspicious`: finds `suspicious_allow` findings.
+- `testkey`: the public test signing key and issuer (`authzcov-test`) for pseudonymised and generated JWTs; it protects nothing.
 - `testutil/hartest`: builds synthetic HAR fixtures for tests.
 - `waivers`: loads and validates `waivers.yaml`.
 
