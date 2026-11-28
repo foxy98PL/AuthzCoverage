@@ -16,6 +16,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
+	"authzcov/internal/probe/credentials"
 	"authzcov/internal/redact"
 )
 
@@ -63,7 +64,10 @@ type Identity struct {
 	// credential itself is never stored.
 	TokenFP, BasicUser, Login string
 	Markers                   []string
-	Line                      int
+	// LoginRecipe is the optional probe login (env placeholders by name only;
+	// resolved values never live in config).
+	LoginRecipe *credentials.Recipe
+	Line        int
 }
 
 // Override picks the object parameter of one endpoint by hand.
@@ -158,7 +162,7 @@ var (
 		"token": true, "bearer": true, "password": true, "secret": true,
 		"api_key": true, "apikey": true, "cookie": true, "authorization": true,
 	}
-	envRE     = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
+	envRE     = credentials.EnvNameRE
 	sha256RE  = regexp.MustCompile(`^[0-9a-f]{64}$`)
 	dotPathRE = regexp.MustCompile(`^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$`)
 	methods   = map[string]bool{"GET": true, "POST": true, "PUT": true, "PATCH": true, "DELETE": true}
@@ -223,6 +227,16 @@ func (p *parser) noAnchors(n *yaml.Node) *Error {
 	return nil
 }
 
+// isRecipeFields reports whether path is identities[i].login_recipe.fields or
+// .token_from, where key names such as "password" or "cookie" are legitimate: values are env
+// placeholders or non-secret literals, never raw credentials.
+func isRecipeFields(path string) bool { return recipeFieldsRE.MatchString(path) }
+
+var (
+	recipeFieldsRE = regexp.MustCompile(`^identities\[\d+\]\.login_recipe\.(fields|token_from)$`)
+	placeholderRE  = regexp.MustCompile(`^\$\{[^${}]*\}$`)
+)
+
 func (p *parser) noSecrets(n *yaml.Node, path string) *Error {
 	switch n.Kind {
 	case yaml.ScalarNode:
@@ -233,8 +247,14 @@ func (p *parser) noSecrets(n *yaml.Node, path string) *Error {
 		for i := 0; i+1 < len(n.Content); i += 2 {
 			k, v := n.Content[i], n.Content[i+1]
 			kp := join(path, k.Value)
-			if secretKeys[strings.ToLower(k.Value)] || redact.LooksLikeJWT(k.Value) {
+			if (secretKeys[strings.ToLower(k.Value)] && !isRecipeFields(path)) || redact.LooksLikeJWT(k.Value) {
 				return p.err(k, path, "%s", rawCredMsg) // parent path: the key itself may be a secret
+			}
+			// Inside login_recipe.fields a secret-named key takes only a
+			// whole-value ${NAME} placeholder, never a literal.
+			if secretKeys[strings.ToLower(k.Value)] && strings.HasSuffix(path, ".login_recipe.fields") &&
+				(v.Kind != yaml.ScalarNode || !placeholderRE.MatchString(v.Value)) {
+				return p.err(v, kp, "%s", rawCredMsg)
 			}
 			if e := p.noSecrets(v, kp); e != nil {
 				return e
@@ -434,7 +454,7 @@ func (p *parser) identities(n *yaml.Node, roles map[string]int) ([]Identity, *Er
 	var out []Identity
 	for i, item := range n.Content {
 		ip := fmt.Sprintf("identities[%d]", i)
-		m, e := p.fields(item, ip, "name", "role", "tenant", "match", "markers")
+		m, e := p.fields(item, ip, "name", "role", "tenant", "match", "markers", "login_recipe")
 		if e != nil {
 			return nil, e
 		}
@@ -482,6 +502,11 @@ func (p *parser) identities(n *yaml.Node, roles map[string]int) ([]Identity, *Er
 		}
 		if e := p.match(m["match"], ip+".match", &id); e != nil {
 			return nil, e
+		}
+		if lr := m["login_recipe"]; lr != nil {
+			if id.LoginRecipe, e = p.loginRecipe(lr, ip+".login_recipe"); e != nil {
+				return nil, e
+			}
 		}
 		out = append(out, id)
 	}

@@ -1,5 +1,5 @@
 # Session 7 — Probe credentials and executor
-Status: planned
+Status: active
 Budget: ~80k of ~100k
 Depends on: session 6 (safety module, plan generator)
 
