@@ -17,6 +17,9 @@ jobs:
   action:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # SARIF upload step below (push events only)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -104,3 +107,15 @@ jobs:
           test "$OUTCOME" = failure
           test "$FAIL_RESULT" = fail || { echo "failing gate-result=$FAIL_RESULT, want fail"; exit 1; }
           test "$PASS_RESULT" = pass || { echo "passing gate-result=$PASS_RESULT, want pass"; exit 1; }
+
+      - name: Coverage with SARIF upload (exercises the sarif input)
+        # Fork PRs get a read-only token, so upload only on pushes to main.
+        if: github.event_name == 'push'
+        uses: ./
+        with:
+          version: source
+          spec: e2e/apps/tenantshop/shop/openapi.yaml
+          identities: e2e/apps/tenantshop/identities.yaml
+          har: testdata/raw/tenantshop.har
+          out-dir: authzcov-out-sarif
+          sarif: "true"

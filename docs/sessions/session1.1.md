@@ -1,5 +1,5 @@
 # Session 1.1 — Audit bugs: owner-answer follow-ups (KAN-97, 98, 100, 103)
-Status: planned
+Status: done — shard 2026-11-28-2359-session1.1.md
 Budget: ~35k of ~100k
 Depends on: owner answers listed in shard 2026-11-28-2300 (defaults below if still open)
 
