@@ -6,14 +6,14 @@ Binding. Measurements behind each rule: `.claude/delegation-rationale.md` (grep 
 
 - **Sonnet orchestrates** (implement → review → fix → commit → Jira). Never an Opus orchestrator.
 - **Opus only for security or architecture decisions** (credentials, identity, tenancy, threat-model trade-offs,
-  package/API design), or a security finding the reviewer cannot settle: write the question with options to
+  package/API design), or a security finding the Sonnet reviewer cannot settle: write the question with options to
   `notes/<KEY>-opus.md`, launch the `advisor` agent (Opus, starts at ~6k vs ~32k for `general-purpose`)
   pointed at it, or ask the owner.
 - **Restart the orchestrator at ~150k tokens** (the hook warns at 120k; subagents warn at 80k, return at 100k):
   write a new progress shard (`docs/progress/README.md`), do the batched Jira updates (§7), tell the owner, stop.
   Local-only details (agent IDs, scratch paths) go to `notes/orchestrator-state.md`.
 - **Review:** when a ticket goes In Review, append a row to `docs/REVIEW_QUEUE.md` and start a background
-  `reviewer` (Opus, owner change 2026-11-28; ~30k subagent tokens per pass, so trivial tickets skip it); the next ticket continues meanwhile. One reviewer pass, then one
+  `reviewer` (Sonnet, owner change 2026-11-28); the next ticket continues meanwhile. One reviewer pass, then one
   `fixer` for all findings F1…Fn; no second round. Leftover lows go to the Jira comment.
 - **Skip the reviewer** for trivial tickets: config, docs, CI or message-text changes under ~30 changed lines
   outside 🔒 packages. Green `make check` + the orchestrator's own `git diff` look closes them; note "no agent
@@ -21,7 +21,7 @@ Binding. Measurements behind each rule: `.claude/delegation-rationale.md` (grep 
 
 ## 1. Agent choice
 
-- Lean agents in `.claude/agents/`: `implementer`, `fixer` (Sonnet), `validator` (Sonnet), `reviewer` (Opus), `jira` (Haiku),
+- Lean agents in `.claude/agents/`: `implementer`, `fixer` (Sonnet), `validator` (Sonnet), `reviewer` (Sonnet), `jira` (Haiku),
   `advisor` (Opus, §0 questions only). Never `general-purpose` for work a lean agent covers.
 - Run `make check` / `go test` **yourself** (the hook keeps output short). Use `validator` only for long or noisy
   runs: fuzz, eval, determinism diffs, multi-command scans.
