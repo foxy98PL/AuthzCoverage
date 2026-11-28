@@ -466,3 +466,14 @@ func TestCreateResponseNestedPath(t *testing.T) {
 	r.Learn(respCreate(alice, model.ConfLearned, 201, `{"data":{"id":"n1"}}`))
 	expect(t, r, read(bob, getEP, "id", "n1"), alice, model.ConfLearned)
 }
+
+func TestListsExclusiveLearned(t *testing.T) {
+	cfg := listCfg()
+	cfg.Lists[0].Exclusive = true
+	r := New(cfg)
+	r.Learn(listObs(alice, model.ConfLearned, 200, `{"items":[{"id":"a1"}]}`))
+	expect(t, r, read(bob, getEP, "id", "a1"), alice, model.ConfLearned)
+	// Two exclusive callers still conflict.
+	r.Learn(listObs(bob, model.ConfLearned, 200, `{"items":[{"id":"a1"}]}`))
+	expect(t, r, read(alice, getEP, "id", "a1"), nil, model.ConfUnknown)
+}

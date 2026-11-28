@@ -109,6 +109,12 @@ top-level array. Conflicts: higher confidence wins (a `learn_from_create` or
 self param beats a list); equal confidence with different callers leaves the
 object unknown.
 
+Add `exclusive: true` to a rule to assert that the list contains only the
+caller's own objects; its claims then get confidence `learned` (like
+`learn_from_create`), so reads of those objects by other callers can raise
+`suspicious_allow`. Default `false`; a non-boolean value is a `file:line`
+error. Set it only when the list really is caller-scoped.
+
 A cell covered only by inferred evidence prints `ok~` and the table ends with
 `~ covered only by inferred ownership evidence`. `coverage --strict` does not
 count such evidence: an observation counts only if the caller is known with

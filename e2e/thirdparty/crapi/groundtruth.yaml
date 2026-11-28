@@ -28,7 +28,7 @@
   relationship: same_role_other_user
   expect: allow
   probe: bola_vehicle
-  miss: observed in the attack run - bob and alice both get 200 on the vehicle location, and the cell is not flagged by suspicious_allow although identities.yaml learns vehicle ownership from the GET /identity/api/v2/vehicle/vehicles list (learn_from_lists, add_vehicle returns no id); the cause (id mapping, learned ownership or authzcov) is not determined offline, needs a docker run
+  # KAN-102: identities.yaml marks the vehicles list rule exclusive (operator assertion), so ownership is learned and the cell is an expected true positive
   source: docs/challenges.md "Challenge 1"; ID/controller/VehicleController.java:getLocationBOLA (looks the vehicle up by uuid only, no owner check)
 
 - id: CRAPI-C7-VIDEO
@@ -70,7 +70,7 @@
   relationship: lower_role
   expect: allow
   probe: users_all_user
-  source: WS/user/views.py:AdminUserView.get (only @jwt_auth_required, no role check). Function-level: no object parameter, so authzcov raises no suspicious_allow without a declared minimum role.
+  source: WS/user/views.py:AdminUserView.get (only @jwt_auth_required, no role check). Function-level: no object parameter; identities.yaml declares min_role admin for it (operator-declared policy, not learned), so alice's 2xx is a lower_role suspicious_allow (expected true positive).
 
 # ---- Query-parameter BOLA: expected misses -----------------------------------
 - id: CRAPI-C2-REPORT

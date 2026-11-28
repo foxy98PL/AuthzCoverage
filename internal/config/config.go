@@ -86,7 +86,10 @@ type Ownership struct {
 // IDsFromResponseJSON (dot path, "[]" = every element) belongs to the caller.
 type ListRule struct {
 	Method, Path, Resource, IDsFromResponseJSON string
-	Line                                        int
+	// Exclusive: the operator asserts the list holds only the caller's own
+	// objects, so the claim is learned instead of inferred.
+	Exclusive bool
+	Line      int
 }
 
 // CreateRule learns object ownership from a create request.
@@ -536,7 +539,7 @@ var listPathRE = regexp.MustCompile(`^(?:[A-Za-z0-9_-]+(?:\[\])?|\[\])(?:\.(?:[A
 
 func (p *parser) listRule(n *yaml.Node, path string) (ListRule, *Error) {
 	r := ListRule{Line: n.Line}
-	m, e := p.fields(n, path, "match", "resource", "ids_from")
+	m, e := p.fields(n, path, "match", "resource", "ids_from", "exclusive")
 	if e != nil {
 		return r, e
 	}
@@ -564,6 +567,19 @@ func (p *parser) listRule(n *yaml.Node, path string) (ListRule, *Error) {
 	}
 	if !listPathRE.MatchString(r.IDsFromResponseJSON) || strings.Count(r.IDsFromResponseJSON, ".") >= 8 {
 		return r, p.err(im["response_json"], jp, "must be a dot path where [] means every element, e.g. items[].id or [].id")
+	}
+	if m["exclusive"] != nil {
+		s, e := p.scalar(m["exclusive"], path+".exclusive")
+		if e != nil {
+			return r, e
+		}
+		switch s {
+		case "true":
+			r.Exclusive = true
+		case "false":
+		default:
+			return r, p.err(m["exclusive"], path+".exclusive", "must be true or false")
+		}
 	}
 	return r, nil
 }

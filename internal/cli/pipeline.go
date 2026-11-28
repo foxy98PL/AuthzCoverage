@@ -572,7 +572,7 @@ func classify(cfg *config.File, obs []*model.Observation) []ownership.Object {
 	}
 	lists := make([]ownership.ListRule, 0, len(cfg.Ownership.LearnFromLists))
 	for _, l := range cfg.Ownership.LearnFromLists {
-		lists = append(lists, ownership.ListRule{Method: l.Method, Path: l.Path, Resource: l.Resource, IDsPath: l.IDsFromResponseJSON})
+		lists = append(lists, ownership.ListRule{Method: l.Method, Path: l.Path, Resource: l.Resource, IDsPath: l.IDsFromResponseJSON, Exclusive: l.Exclusive})
 	}
 	reg := ownership.New(ownership.Config{SelfParams: cfg.Ownership.SelfParams, Create: create, Lists: lists, Resources: cfg.Resources})
 	for _, o := range obs {

@@ -358,3 +358,15 @@ func TestFindTenantScopedOtherTenantMessage(t *testing.T) {
 		t.Errorf("message %q, want %q and no \"owned by\"", got[0].Message, want)
 	}
 }
+
+// KAN-102: a list-learned owner (exclusive rule) is Learned and yields a
+// finding; a plain list owner stays Inferred and yields none.
+func TestFindListOwnerConfidence(t *testing.T) {
+	for conf, want := range map[model.Confidence]bool{model.ConfLearned: true, model.ConfInferred: false} {
+		o := obj(model.RelSameRoleOtherUser, 200, "GET", `{"a":1}`)
+		o.OwnerConf = conf
+		if got := len(Find([]*model.Observation{o})) > 0; got != want {
+			t.Errorf("owner conf %s: finding=%v, want %v", conf, got, want)
+		}
+	}
+}

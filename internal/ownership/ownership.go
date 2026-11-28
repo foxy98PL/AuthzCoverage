@@ -27,6 +27,9 @@ type CreateRule struct {
 // every element, e.g. "items[].id" or "[].id".
 type ListRule struct {
 	Method, Path, Resource, IDsPath string
+	// Exclusive: the list holds only the caller's own objects (operator
+	// assertion); claims are ConfLearned instead of ConfInferred.
+	Exclusive bool
 }
 
 // maxListIDs caps the ids taken from one response.
@@ -155,8 +158,12 @@ func (r *Registry) Learn(o *model.Observation) {
 		if o.X.Method != rule.Method || (o.Endpoint.Template != rule.Path && o.X.Path != rule.Path) {
 			continue
 		}
+		conf := model.ConfInferred
+		if rule.Exclusive {
+			conf = model.ConfLearned
+		}
 		for _, id := range jsonValues(o.X.RespJSON, rule.IDsPath) {
-			r.mergeOwner(key{rule.Resource, id}, claim{id: o.Identity, conf: model.ConfInferred, source: SourceList})
+			r.mergeOwner(key{rule.Resource, id}, claim{id: o.Identity, conf: conf, source: SourceList})
 		}
 	}
 }

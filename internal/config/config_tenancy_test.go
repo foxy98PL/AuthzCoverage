@@ -127,3 +127,32 @@ func TestListPathsAccepted(t *testing.T) {
 		}
 	}
 }
+
+func TestParseListExclusive(t *testing.T) {
+	rule := func(extra string) string {
+		return tenBase + "ownership:\n  learn_from_lists:\n    - match: {method: GET, path: /v}\n      resource: v\n      ids_from: {response_json: \"[].id\"}\n" + extra
+	}
+	f, err := Parse([]byte(rule("      exclusive: true\n")), "ids.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !f.Ownership.LearnFromLists[0].Exclusive {
+		t.Error("exclusive: true not parsed")
+	}
+	f, err = Parse([]byte(rule("      exclusive: false\n")), "ids.yaml")
+	if err != nil || f.Ownership.LearnFromLists[0].Exclusive {
+		t.Errorf("exclusive false: %v %+v", err, f)
+	}
+	f, err = Parse([]byte(rule("")), "ids.yaml")
+	if err != nil || f.Ownership.LearnFromLists[0].Exclusive {
+		t.Errorf("default: %v", err)
+	}
+	_, err = Parse([]byte(rule("      exclusive: yes please\n")), "ids.yaml")
+	if err == nil || !strings.Contains(err.Error(), "ids.yaml:") || !strings.Contains(err.Error(), "exclusive") {
+		t.Errorf("non-bool err = %v", err)
+	}
+	_, err = Parse([]byte(rule("      exclusiv: true\n")), "ids.yaml")
+	if err == nil || !strings.Contains(err.Error(), "unknown key") {
+		t.Errorf("unknown key err = %v", err)
+	}
+}

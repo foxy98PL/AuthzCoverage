@@ -26,3 +26,8 @@ ownership:
     - match: {method: GET, path: /identity/api/v2/vehicle/vehicles}
       resource: vehicles
       ids_from: {response_json: "[].uuid"}
+      exclusive: true  # operator assertion: this endpoint lists only the caller's own vehicles
+requirements:
+  overrides:
+    # operator-declared policy, not learned: the management user list is meant for admins.
+    - {endpoint: "GET /workshop/api/management/users/all", min_role: admin}
