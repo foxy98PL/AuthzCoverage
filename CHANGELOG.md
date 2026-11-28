@@ -5,7 +5,7 @@ All notable changes to authzcov are listed here. The format follows
 [Semantic Versioning](https://semver.org/). Pre-release versions (`-rc.N`) may change behaviour
 between candidates.
 
-## [0.1.0-rc.2] - unreleased
+## [0.1.0-rc.2] - 2026-11-28
 
 Changes since v0.1.0-rc.1. Coverage percentages for the same inputs can differ from rc.1; see
 "Changed".
@@ -86,5 +86,5 @@ First published pre-release.
   keyless bundle and GitHub build provenance.
 - Probe plan: `export --plan` writes gaps as a versioned JSON plan (`schema/plan.v1.json`).
 
-[0.1.0-rc.2]: https://github.com/foxy98PL/AuthzCoverage/compare/v0.1.0-rc.1...HEAD
+[0.1.0-rc.2]: https://github.com/foxy98PL/AuthzCoverage/compare/v0.1.0-rc.1...v0.1.0-rc.2
 [0.1.0-rc.1]: https://github.com/foxy98PL/AuthzCoverage/releases/tag/v0.1.0-rc.1
