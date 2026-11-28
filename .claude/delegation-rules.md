@@ -6,7 +6,7 @@ Binding. Measurements behind each rule: `.claude/delegation-rationale.md` (grep 
 
 - **Sonnet orchestrates** (implement → review → fix → commit → Jira). Never an Opus orchestrator.
 - **Opus only for security or architecture decisions** (credentials, identity, tenancy, threat-model trade-offs,
-  package/API design), or a security finding the Opus reviewer cannot settle: write the question with options to
+  package/API design), or a security finding the reviewer cannot settle: write the question with options to
   `notes/<KEY>-opus.md`, launch the `advisor` agent (Opus, starts at ~6k vs ~32k for `general-purpose`)
   pointed at it, or ask the owner.
 - **Restart the orchestrator at ~150k tokens** (the hook warns at 120k; subagents warn at 80k, return at 100k):
