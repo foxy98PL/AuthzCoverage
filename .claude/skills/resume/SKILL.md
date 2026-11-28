@@ -26,3 +26,10 @@ Args = optional focus (e.g. "KAN-102", "only step 4"). Empty = follow the shard.
 5. Before stopping do the end-of-session report in `.claude/delegation-rules.md` §9: docker eval of external apps,
    next-session impact check (replan if affected), append to `docs/SESSION_LOG.md` (write-only), and give the owner
    the token / cost / Pro-plan summary (cost as the per-agent table: agent, model, tokens, API cost).
+6. Tooling and tags (owner request 2026-11-29). Before relying on them, check `command -v gh cosign docker`. A missing
+   `gh` or `cosign` is installed user-local into `~/.local/bin` from the official release, with its checksum verified
+   (no sudo here). `gh` still needs the owner's `gh auth login`; until then CI and release state cannot be read, so
+   say so. When a session finishes a release-worthy set of work (the CHANGELOG section is complete, `make check`
+   green), cut the tag per `docs/releasing.md`: pre-release `-rc.N` first, final tag after the rc verifies. The
+   owner asked on 2026-11-29 for tags to be produced, so tag and push without asking, but never move or reuse a
+   published tag.
