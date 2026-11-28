@@ -63,3 +63,5 @@ tools/fixturecheck/main_test.go host:api.realcorp.io fixturecheck test sample (s
 tools/fixturecheck/main_test.go host:real.io synthetic placeholder host in test code
 tools/fixturecheck/main_test.go host:www.w3.org fixturecheck test sample (synthetic)
 tools/fixturecheck/main_test.go host:evil.io synthetic bypass sample in test code
+tools/fixturecheck/main_test.go host:user synthetic userinfo sample in test code
+tools/fixturecheck/main_test.go host:[2001:db8::1] synthetic IPv6 documentation address in test code

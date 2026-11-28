@@ -66,8 +66,8 @@ contains credentials in either mode.
 - **Hash-only (default):** `object.id_hash` only. Each probe with an object carries the note
   "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash", and the command
   prints it once on stderr.
-- **Raw (`--har`):** `object.id` is filled by matching `id_hash`. If the hash is not in the given HAR (the
-  HAR differs), `id` stays empty and the probe gets a note. authzcov never substitutes another object of
+- **Raw (`--har`):** `object.id` is filled by matching `id_hash`. If the hash is not in the given HAR (object not in the given HAR subset, a different HAR, or no raw IDs recorded),
+  `id` stays empty and the probe gets a note. authzcov never substitutes another object of
   the same resource: a wrong object would give a false "deny" result.
 - **Residual risk:** `id_hash` is a correlation key, not anonymisation; guessable IDs are recoverable. It is
   an unsalted 32-bit SHA-256 prefix, so small or sequential IDs (`orders/42`) can be reversed by brute force.

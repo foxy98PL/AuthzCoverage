@@ -35,7 +35,7 @@ const (
 	// HintResolveIDs is set on probes with an object in a hash-only plan.
 	HintResolveIDs = "raw ID omitted; re-run with --har --spec --identities --out <file> to resolve id_hash"
 	// NoteIDNotFound is set in raw mode when the HAR does not hold the object's hash.
-	NoteIDNotFound = "id_hash not found in the given --har; raw ID left empty (the HAR differs from the one coverage.json was built from)"
+	NoteIDNotFound = "id_hash not found in the given --har; raw ID left empty (object not in the given HAR subset, a different HAR, or no raw IDs recorded)"
 )
 
 // Plan is the whole plan document. Field order is output order.

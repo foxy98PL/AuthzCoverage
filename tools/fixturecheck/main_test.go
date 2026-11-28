@@ -227,3 +227,54 @@ func TestParseAllowlistRejectsBadHost(t *testing.T) {
 		}
 	}
 }
+
+func TestOversizeHostEntryDoesNotSilence(t *testing.T) {
+	dir := t.TempDir()
+	f, err := os.Create(filepath.Join(dir, "big.md")) //nolint:gosec // test path
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Truncate(maxFileSize + 1); err != nil {
+		t.Fatal(err)
+	}
+	_ = f.Close()
+	al := allowlist{"big.md": {hostKey("github.com"): "docs"}}
+	if got := scanFile(dir, "big.md", al); len(got) != 1 || !strings.Contains(got[0].reason, "50 MiB") {
+		t.Fatalf("host-only entry must not silence oversize failure, got %v", got)
+	}
+}
+
+func TestTextHostRegressions(t *testing.T) {
+	fail := map[string]string{
+		"ws non-demo":   "ws://api.realcorp.io/s",
+		"wss non-demo":  "wss://api.realcorp.io/s",
+		"userinfo":      "https://user:" + "pw@api.realcorp.io/x",
+		"uppercase":     "HTTPS://API.REALCORP.IO/x",
+		"ipv6":          "http://[2001:db8::1]/x",
+		"host:port":     "https://api.realcorp.io:8443/x",
+		"long line":     strings.Repeat("a ", 200000) + "https://api.realcorp.io/x",
+		"escaped slash": `{"u":"https:\/\/api.realcorp.io\/x"}`,
+		"nul prefix":    "\x00\x01https://api.realcorp.io/x",
+	}
+	for n, body := range fail {
+		if got := scanContent("a.md", []byte(body), allowlist{}); len(got) == 0 {
+			t.Errorf("%s: not detected", n)
+		}
+	}
+	if got := scanContent("a.json", []byte(`{"log":{"entries":[],"n":"https://api.realcorp.io/x"}}`), allowlist{}); len(got) == 0 {
+		t.Error("HAR-shaped json: not detected")
+	}
+}
+
+func TestParseAllowlistHostLines(t *testing.T) {
+	al, err := parseAllowlist(strings.NewReader("a.md host:WWW.W3.org docs\na.md 0123456789ab tok\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !al.allowsHost("a.md", "www.w3.org") || al.allowsHost("b.md", "www.w3.org") || !al.hasHashEntry("a.md") {
+		t.Fatalf("host/hash entries parsed wrongly: %v", al)
+	}
+	if _, err := parseAllowlist(strings.NewReader("a.md host:x.io\n")); err == nil {
+		t.Error("missing reason must be rejected")
+	}
+}

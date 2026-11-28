@@ -2,6 +2,9 @@
 // a JWT that was not minted for tests, or a HAR file that mentions a host
 // outside the demo-host allowlist. Standard library only.
 //
+// Scope: only URLs with an http, https, ws or wss scheme are host-checked; bare
+// hostnames without a scheme are deliberately not detected.
+//
 // Usage: go run ./tools/fixturecheck   (from the repository root)
 package main
 
@@ -98,6 +101,16 @@ func hostKey(host string) string { return "host:" + strings.ToLower(host) }
 func (al allowlist) allowsHost(path, host string) bool {
 	_, ok := al[path][hostKey(host)]
 	return ok
+}
+
+// hasHashEntry reports whether the path has a token-hash entry (host entries do not count).
+func (al allowlist) hasHashEntry(path string) bool {
+	for k := range al[path] {
+		if !strings.HasPrefix(k, "host:") {
+			return true
+		}
+	}
+	return false
 }
 
 func (al allowlist) allows(path, tok string) bool {
@@ -351,8 +364,8 @@ func scanFile(root, rel string, al allowlist) []failure {
 		return nil // deleted from the worktree, or a symlink/submodule
 	}
 	slash := filepath.ToSlash(rel)
-	if st.Size() > maxFileSize && len(al[slash]) == 0 {
-		return []failure{{slash, 1, "file larger than 50 MiB, not scanned (allowlist the path in " + allowFile + " to accept it)"}}
+	if st.Size() > maxFileSize && !al.hasHashEntry(slash) {
+		return []failure{{slash, 1, "file larger than 50 MiB, not scanned (allowlist the path with a hash entry in " + allowFile + " to accept it; host entries do not count)"}}
 	}
 	fh, err := os.Open(full) //nolint:gosec // paths come from git ls-files
 	if err != nil {

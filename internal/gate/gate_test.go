@@ -44,7 +44,7 @@ func TestNewGaps(t *testing.T) {
 	}
 }
 
-func TestNewGapsOnKnownEndpoint(t *testing.T) {
+func TestNewGapsKnownEndpointFails(t *testing.T) {
 	d := baseline.Diff{NewGaps: []baseline.Change{ch("GET /old", "lower_role", "", "missing")}}
 	r := eval(d, nil, AllRules(), 0)
 	if r.Pass || !slices.Equal(r.Violations[0].Items, []string{"GET /old  lower_role"}) {
