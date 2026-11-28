@@ -6,8 +6,9 @@
 spec, and shows which "who may touch whose data" combinations your tests never tried. It sends no
 requests and runs offline, so it fits in CI.
 
-**Status:** pre-alpha. The coverage engine and reports work. There are no releases yet: you build it
-from source.
+**Status:** pre-release. The coverage engine and reports work. Signed pre-release binaries are on the
+[Releases](https://github.com/foxy98PL/AuthzCoverage/releases) page (`v0.1.0-rc.*`); see
+[CHANGELOG.md](CHANGELOG.md). You can also build from source.
 
 <!-- GIF: owner to record -->
 _A short demo recording is coming. Until then, the [quickstart](docs/quickstart.md) shows the real output._
@@ -160,6 +161,43 @@ gh attestation verify authzcov_<version>_linux_amd64.tar.gz --repo foxy98PL/Auth
 Do not use a release whose signature or checksum check fails. Release builds use `-trimpath` and
 commit timestamps; they are designed so that a rebuild from the tag gives the same binaries (not yet
 checked independently).
+
+## Known limitations
+
+authzcov is pre-release. Measured numbers (mutants, ablation, VAmPI, crAPI, scaling) are in
+[eval/README.md](eval/README.md); they are regenerated for each release.
+
+- **Object IDs come from path parameters only.** Objects addressed by a query or body parameter are
+  not seen (for example crAPI's mechanic report via a query parameter is missed). Workaround: none yet;
+  `requirements.overrides` only picks among path parameters.
+- **`suspicious_allow` looks at status and body only.** It fires on a 2xx (and a non-empty JSON body
+  for GET/HEAD) on another user's object. Apps that ignore the path parameter and act on the caller's
+  own record cause false alarms: on VAmPI, `PWCHANGE` (v0) and `U2-EMAIL` (v0 and v1) are flagged
+  although nothing of another user was changed. Workaround: waive the finding with a reason.
+- **Function-level `suspicious_allow` needs declared facts.** It fires only on an anonymous 2xx where
+  the spec's `security` requires auth, or on a 2xx below a declared `min_role`. Without either, a
+  missing check on such an endpoint is not found (VAmPI `_debug` is a miss). Workaround: declare
+  `security` in the spec and `min_role` in `identities.yaml`.
+- **Learned minimum roles are circular.** Without `min_role`, the minimum is the lowest role that got a
+  2xx, so an endpoint that is too permissive looks correct. Workaround: declare `min_role`.
+- **External `$ref` is rejected** (exit 3). Workaround: bundle the spec first (`redocly bundle` or
+  `swagger-cli bundle`).
+- **Memory is linear in HAR size** (about 1.7 KB per entry: 1.6 GiB at 1M entries). Time is close to
+  linear. Workaround: split large recordings, or record only the authorization tests (KAN-91).
+- **No active probing yet.** authzcov only reads recordings; `export --plan` lists the gaps for another
+  tool to probe. Active probing is planned for Phase 4.
+- **A role with one identity cannot cover `same_role_other_user`**, which needs two users of that role.
+  Workaround: add a second identity for the role.
+- **No `cross_parent` checks** (an object reached through a parent it does not belong to, for example
+  `/users/{u}/orders/{o}`).
+- **Basic, cookie and API-key callers are `unknown`** unless `identities.yaml` has a matching
+  `credentials` rule. Unknown never counts as covered.
+
+Measured at 3ef6707 (`eval/results/`): tenantshop mutants 11 of 11 detected, no false alarm on the
+unmutated app; ablation 16 of 16 dropped requests turn exactly their cell into a gap; VAmPI precision
+0.842 and recall 0.889 (16 tp, 3 fp, 2 fn, 11 tn, 12 out of scope); crAPI v1.1.6 precision 0.8 and
+recall 0.667 (8 tp, 2 fp, 4 fn, 8 tn, 11 out of scope); scaling 1k / 10k / 100k / 1M entries in
+45 ms / 184 ms / 1.3 s / 16.2 s with 20 / 34 / 186 / 1654 MiB peak RSS.
 
 ## Roadmap
 

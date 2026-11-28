@@ -12,7 +12,7 @@ Semantic versioning with a leading `v`: `v0.1.0`, `v0.1.1`. Pre-releases carry a
 ## Steps
 
 1. Start from a clean, up-to-date `main` with CI green. Run `make check` locally.
-2. Make sure README and `docs/PROGRESS.md` describe what the release contains.
+2. Make sure README and `docs/PROGRESS.md` describe what the release contains, and update `CHANGELOG.md` (rename the unreleased heading, set the date, fix the compare links) before tagging.
 3. **Cut a pre-release tag first** (annotated) and push it:
    ```sh
    git tag -a v0.1.0-rc.1 -m "v0.1.0-rc.1"

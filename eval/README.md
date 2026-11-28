@@ -113,12 +113,8 @@ exchanges or observations in memory afterwards.
 
 - Mutants are single removed checks in one small app written by the same team; the numbers show that
   the matrix and `suspicious_allow` work on these patterns, not how common the patterns are.
-- `customers-role` (admin-only role check removed) is an honest false negative: authzcov classifies a
-  caller's role only against a learned minimum role, and for the tenant-scoped endpoint
-  `GET /orgs/{orgId}/customers` every call has relationship `unknown`, which never counts.
-- Tenant-scoped endpoints (resource `orgs`: list/create orders, customers) have no learned object
-  owner, so `owner` and `same_role_other_user` cells cannot be covered, and `anonymous` cells are
-  recorded but stay uncovered; those anonymous cells are therefore not ablated.
+- `customers-role` (admin-only role check removed) is detected since KAN-92 (lower-role 2xx below a
+  declared `min_role` on a tenant-scoped endpoint).
 - The ablation drops one request at a time, so it says nothing about interactions of several missing
   requests.
 - VAmPI ground truth is hand-labelled; see `e2e/thirdparty/vampi/groundtruth.yaml`.
