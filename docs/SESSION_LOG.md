@@ -14,3 +14,6 @@ orchestrator context), estimated cost, Pro plan estimate, surprises.
 - Cost estimate (API-equivalent, assumed Sonnet-class list prices $3/$15 per M in/out, cache read $0.30/M): orchestrator ~1.75M cache-read ($0.5) + ~100k cache-write ($0.4) + ~25k output ($0.4) ≈ $1.3; subagents ≈ $0.6-1.5. Total ≈ $2-3.5. Prices are assumptions, verify.
 - Pro plan estimate: very rough, ~30-50% of one 5-hour window (one long orchestrated session with 7 subagents); weekly impact a few percent.
 - Surprises: reviewer named a nonexistent test (TestNewGapsKnownEndpointOnly); agents refuse to write notes/*-impl.md in this environment.
+
+## Session 1.1 (2026-11-28)
+Done: KAN-103/100/98 agent-doable parts (SARIF step in action-test.yml; fuzz verified; README checked). Commit 911f3a2. No external-app eval (no detection code touched). Next session 2 not affected. Agents: jira (Haiku) x1, tokens pending notification. Orchestrator context small (~40k, estimate).
