@@ -316,7 +316,7 @@ func missReason(cov covOut, g gtItem) string {
 	if _, ok := cov.has("gap", c.Endpoint, c.Relationship); ok {
 		return "cell reported as a GAP (no observation matched)"
 	}
-	return "cell is shown as covered (ok) or not required; suspicious_allow is only raised for object-level endpoints (path has an object parameter)"
+	return "cell is shown as covered (ok) or not required; no suspicious_allow was raised: it needs an object owner or tenant with learned evidence, or (function-level) an anonymous 2xx on an operation whose spec requires auth, or a caller below a declared min_role"
 }
 
 func probeStatus(steps []step, tag string) string {

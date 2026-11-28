@@ -118,9 +118,11 @@ exchanges or observations in memory afterwards.
 - The ablation drops one request at a time, so it says nothing about interactions of several missing
   requests.
 - VAmPI ground truth is hand-labelled; see `e2e/thirdparty/vampi/groundtruth.yaml`.
-- VAmPI `VAMPI-DEBUG` is a miss (fn) in both runs: it is a function-level endpoint with no object
-  parameter, and `suspicious_allow` is only raised for object-level endpoints, so an unauthenticated
-  200 there is not flagged.
+- VAmPI `VAMPI-DEBUG` is a miss (fn) in both runs, and that is expected: `testdata/specs/vampi.yml`
+  declares no `security` on `GET /users/v1/_debug`, so the spec marks it public. Function-level
+  `suspicious_allow` for anonymous callers needs the spec to require auth, and an unknown or public
+  endpoint never counts. The app has no token check there, so the label is right and the spec is wrong;
+  authzcov cannot see that from the spec. Left as an honest FN.
 - VAmPI path-ignored false positives: `VAMPI-PWCHANGE` on v0 (the secure build) and `VAMPI-U2-EMAIL`
   on both builds are flagged although the 2xx only changed the caller's own record (the handler
   ignores the path's username). authzcov sees a 2xx on another user's path and cannot tell that the
@@ -133,3 +135,10 @@ exchanges or observations in memory afterwards.
   challenge text names no endpoint). Only one release was evaluated, on one machine.
 - VAmPI runs mix honest and attack suites in the top-level summary; use `extra.runs[].summary` for
   the per-run numbers (honest = "gap reported" tp/fn, attack = detections against ground truth).
+
+## Not yet covered: Juice Shop target, validation article
+
+KAN-90 asked for two things that are not done yet:
+
+- a Juice Shop target (no recorder, spec or ground truth exists for it);
+- the validation article that presents these results.
