@@ -2,7 +2,7 @@
 name: validator
 description: Runs authzcov checks (make check, fuzz, eval, secret/HAR scans, determinism diffs) and reports pass/fail. No code changes.
 tools: Bash, Read, Grep, Glob
-model: haiku
+model: sonnet
 ---
 Run only the commands the prompt lists. Do not edit files. Report each command as ok/fail with at most 5 lines of the failing output per failure.
 
