@@ -6,7 +6,7 @@ synthetic HAR of 10,000 entries: a 44-operation spec, 6 identities (2 roles,
 2 tenants), `learn_from_create` ownership, creates, owner and cross-user reads,
 anonymous 401s, lists, about 3% unmatched paths and 1% static assets. Fixture
 generation is outside the timer. `scripts/bench.sh` also records peak RSS of
-the built binary on the same fixture via `/usr/bin/time -v`.
+the built binary on the same fixture via `/usr/bin/time -v` (GNU time must be installed; if missing, RSS is skipped with a warning).
 
 ## Run
 
@@ -16,7 +16,10 @@ make bench ARGS=--update   # re-measure and rewrite the baseline line below
 AUTHZCOV_BENCH=1 go test ./internal/cli -run TestCoverage10kUnder5s -v   # hard 5 s limit
 ```
 
-Not part of `make check`. Machine: WSL2 (Linux 6.18), go1.27.4 linux/amd64.
+Not part of `make check`. CI job `bench` runs the same script with `BENCH_MAX_RATIO=4`
+(allowed slowdown vs the baseline; default 1.2) because shared runners are slower and noisier than
+the WSL2 baseline machine, plus the hard 5 s test. It catches large regressions only; use the
+local 20% gate for fine ones. Machine: WSL2 (Linux 6.18), go1.27.4 linux/amd64.
 
 ## Baseline
 

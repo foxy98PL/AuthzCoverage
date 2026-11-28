@@ -100,3 +100,19 @@ jobs:
           go-version-file: go.mod
           cache: true
       - run: go run ./tools/fixturecheck
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: scripts/bench.sh
+        env:
+          # Shared runners are slower and noisier than the WSL2 baseline machine.
+          BENCH_MAX_RATIO: "4"
+      - run: AUTHZCOV_BENCH=1 go test ./internal/cli -run TestCoverage10kUnder5s -count=1

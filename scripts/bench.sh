@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # End-to-end coverage benchmark (KAN-73). Usage: scripts/bench.sh [--update]
+# BENCH_MAX_RATIO (default 1.2) = allowed slowdown vs baseline; CI sets a generous value.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DOC=docs/benchmarks.md
 UPDATE=0
+RATIO=${BENCH_MAX_RATIO:-1.2}
+[[ "$RATIO" =~ ^[0-9]+([.][0-9]+)?$ ]] && awk -v r="$RATIO" 'BEGIN{exit !(r>0)}' || { echo "BENCH_MAX_RATIO must be a positive number: $RATIO" >&2; exit 2; }
 for arg in "$@"; do
 	case "$arg" in
 	--update) UPDATE=1 ;;
@@ -57,8 +60,8 @@ fi
 
 base=$(sed -n 's/^baseline_ns_per_op: *\([0-9]*\).*/\1/p' "$DOC")
 [[ -n "$base" && "$base" -gt 0 ]] || { echo "no baseline in $DOC (run with --update)" >&2; exit 2; }
-if awk -v n="$ns" -v b="$base" 'BEGIN { exit !(n > b * 1.2) }'; then
-	echo "REGRESSION: $ns ns/op is more than 20% slower than baseline $base ns/op" >&2
+if awk -v n="$ns" -v b="$base" -v r="$RATIO" 'BEGIN { exit !(n > b * r) }'; then
+	echo "REGRESSION: $ns ns/op is slower than baseline $base ns/op by more than ratio $RATIO" >&2
 	exit 1
 fi
-echo "ok: $ns ns/op vs baseline $base ns/op (limit +20%)"
+echo "ok: $ns ns/op vs baseline $base ns/op (limit x$RATIO)"
