@@ -133,7 +133,7 @@ request.
 
 ### Releases and signatures
 
-This applies from the first tagged release onward; no release has been published yet. Each release on
+This applies to every tagged release (so far `v0.1.0-rc.*` pre-releases). Each release on
 [GitHub Releases](https://github.com/foxy98PL/AuthzCoverage/releases) contains archives for linux,
 darwin and windows (amd64 and arm64), a per-archive SBOM (SPDX, from syft), `checksums.txt`, and a
 keyless [Sigstore](https://www.sigstore.dev/) signature bundle `checksums.txt.sigstore.json`. Build
@@ -205,7 +205,7 @@ recall 0.667 (8 tp, 2 fp, 4 fn, 8 tn, 11 out of scope); scaling 1k / 10k / 100k 
 | --- | --- | --- |
 | 0 Setup | Local repo, quality gate, VAmPI recording | in progress |
 | 1 Coverage engine | Spec loader, matcher, HAR ingest, identities, ownership, classifier, terminal matrix | done |
-| 2 Reports and gate (v0.1) | JSON, Markdown, HTML, SARIF, baseline, CI gate | done locally; GitHub Action and signed releases planned |
+| 2 Reports and gate (v0.1) | JSON, Markdown, HTML, SARIF, baseline, CI gate | done; GitHub Action and signed pre-releases (`v0.1.0-rc.*`) published; stable v0.1.0 pending |
 | 3 Launch | Quickstart, examples (VAmPI, crAPI, RealWorld), redact command | in progress (quickstart written) |
 | 4 Probe (gated) | Run only missing combinations against test environments, dry-run by default | planned |
 | 5 Extensions | Spec-less mode, Spring/NestJS/Next.js route extraction, OpenTelemetry, GraphQL | ideas |
