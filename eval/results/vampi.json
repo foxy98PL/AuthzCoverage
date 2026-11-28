@@ -5,8 +5,8 @@
     "version": "master@f16052d"
   },
   "authzcov": {
-    "commit": "bb5b4fb",
-    "version": "v0.1.0-rc.1-5-gbb5b4fb"
+    "commit": "3ef6707",
+    "version": "v0.1.0-rc.1-11-g3ef6707"
   },
   "cases": [
     {
@@ -555,8 +555,8 @@
         "vulnerable": 1,
         "suite": "honest",
         "har_entries": 30,
-        "coverage_percent": 31,
-        "required": 42,
+        "coverage_percent": 33.3,
+        "required": 39,
         "covered": 13,
         "suspicious_allow": null,
         "warnings": [
@@ -577,8 +577,8 @@
         "vulnerable": 1,
         "suite": "attack",
         "har_entries": 49,
-        "coverage_percent": 59.5,
-        "required": 42,
+        "coverage_percent": 65.8,
+        "required": 38,
         "covered": 25,
         "suspicious_allow": [
           {
@@ -755,8 +755,8 @@
         "vulnerable": 0,
         "suite": "honest",
         "har_entries": 30,
-        "coverage_percent": 31,
-        "required": 42,
+        "coverage_percent": 33.3,
+        "required": 39,
         "covered": 13,
         "suspicious_allow": null,
         "warnings": [
@@ -777,8 +777,8 @@
         "vulnerable": 0,
         "suite": "attack",
         "har_entries": 49,
-        "coverage_percent": 59.5,
-        "required": 42,
+        "coverage_percent": 65.8,
+        "required": 38,
         "covered": 25,
         "suspicious_allow": [
           {
@@ -948,7 +948,7 @@
       }
     ]
   },
-  "generated_at": "2026-11-27T21:07:02Z",
+  "generated_at": "2026-11-28T02:46:04Z",
   "machine": {
     "arch": "amd64",
     "cpus": 20,

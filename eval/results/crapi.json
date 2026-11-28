@@ -5,8 +5,8 @@
     "version": "v1.1.6@700f03d"
   },
   "authzcov": {
-    "commit": "5b6018b",
-    "version": "v0.1.0-rc.1-8-g5b6018b-dirty"
+    "commit": "3ef6707",
+    "version": "v0.1.0-rc.1-11-g3ef6707"
   },
   "cases": [
     {
@@ -675,7 +675,7 @@
       }
     ]
   },
-  "generated_at": "2026-11-28T02:43:48Z",
+  "generated_at": "2026-11-28T02:48:40Z",
   "machine": {
     "arch": "amd64",
     "cpus": 20,
