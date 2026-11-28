@@ -114,6 +114,12 @@ func run() int {
 		check(os.MkdirAll(dir, 0o700))
 		har := filepath.Join(dir, "rec.har")
 		check(writeHAR(har, r.entries))
+		if keep := os.Getenv("CRAPIEVAL_KEEP"); keep != "" { // debugging: preserve the recorded HAR (demo-app data only)
+			check(os.MkdirAll(keep, 0o700))
+			b, err := os.ReadFile(har)
+			check(err)
+			check(os.WriteFile(filepath.Join(keep, suite+".har"), b, 0o600))
+		}
 		cov := runCoverage(bin, root, spec, ids, har, dir)
 		if *verbose {
 			fmt.Printf("\n=== %s (%d entries) ===\n%s\n", suite, len(r.entries), cov.table)
