@@ -12,7 +12,7 @@ review and validate.
   force-pushes or changes repo settings. GitHub files (`.github/`: Actions with
   SHA-pinned actions, Dependabot, templates) are allowed. Before any push: secrets/HAR scan clean
   (no `*.har`, nothing from `testdata/raw/`, no real tokens or personal data).
-- No network in `coverage`; raw credentials never survive ingest; unknown never counts as covered.
+- No network in `coverage`; raw credentials never survive ingest, and raw object IDs never reach shareable artifacts (the opt-in `--har` plan is the only raw-ID output); unknown never counts as covered.
 - Direct deps only: cobra, kin-openapi, yaml/v3, golang-jwt/v5 (x/time/rate in Phase 4).
 - 🔒 packages (match, identity, relate, matrix): tests first.
 - `make check` green before reporting a task done; the orchestrator commits as a Conventional Commit with the Jira key.
