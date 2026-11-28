@@ -7,9 +7,9 @@ model: opus
 Plan orchestrator sessions per `docs/sessions/README.md` (read it first: format, numbering, lifecycle, budget). The prompt gives an optional scope (tickets, epic, "bugs only", "replan from 4").
 
 Inputs, in this order, read only what you need:
-1. `ls docs/sessions/session*.md | sort -V`, then the Status line of each (`grep -m1 '^Status:'`). Read in full only the planned sessions you may rewrite and the active one.
+1. `ls docs/sessions/session*.md | sort -V`, then the Status line of each (`grep -m1 '^Status:'`). Read in full only the active session and the planned sessions inside the scope you'll rewrite. Every other session is just its file name and Status line.
 2. The newest progress shard (`ls docs/progress/2*.md | tail -1`): done, next, waiting on the owner, gotchas.
-3. Jira KAN, read-only. cloudId 86823745-9f08-4d9a-8344-d7912145ee9a. Load tools once with ToolSearch `select:` if needed. JQL `project = KAN AND statusCategory != Done ORDER BY rank`, fields `["summary","status","issuetype","priority","labels","parent","issuelinks"]`. Open a single issue (getJiraIssue) only when its summary is too thin to size it.
+3. Jira KAN, read-only, sliced. cloudId 86823745-9f08-4d9a-8344-d7912145ee9a. Load both tools in one ToolSearch `select:` call. Search with JQL `project = KAN AND statusCategory != Done ORDER BY rank`, `maxResults: 50`, fields `["summary","status","issuetype","priority","parent","issuelinks"]` and `responseFields` limited to key, summary, status name, issue type name, priority name, parent key and link type + linked key. Page only when more than 50 come back. Never fetch descriptions or comments in bulk. getJiraIssue only for a ticket whose summary is too thin to size, at most 5 per run, with fields `["description"]`. Skip tickets already planned in a session file.
 4. `docs/PLAN.md` and `.claude/delegation-rules.md`: grep for specific decisions only, never read them whole.
 
 Rules
