@@ -1,0 +1,21 @@
+# Identities for the RealWorld evaluation. No secrets: callers are matched by the decoded JWT claims.
+# The kivio/golang-echo-realworld JWT carries only {exp, id} (id = sequential row id of the user table, no "sub"),
+# and the recorder registers alice, bob, carol in this order on a fresh stack, so their ids are 1, 2, 3.
+# The Authorization header scheme is "Token <jwt>" (spec: securitySchemes.Token), declared under credentials.
+version: 1
+credentials:
+  - {type: bearer, header: Authorization, schemes: [Token]}
+roles: {user: 10}
+identities:
+  - {name: alice, role: user, match: {jwt: {id: 1}}}
+  - {name: bob, role: user, match: {jwt: {id: 2}}}
+  - {name: carol, role: user, match: {jwt: {id: 3}}}
+resources: {slug: articles, id: comments}
+ownership:
+  learn_from_create:
+    - match: {method: POST, path: /articles}
+      resource: articles
+      id_from: {response_json: article.slug}
+    - match: {method: POST, path: "/articles/{slug}/comments"}
+      resource: comments
+      id_from: {response_json: comment.id}

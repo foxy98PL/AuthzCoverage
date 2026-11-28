@@ -1,0 +1,205 @@
+# Ground truth for the RealWorld backend kivio/golang-echo-realworld (image digest in compose.yaml), judged against the
+# official RealWorld API spec (openapi.yaml). The app's source is not vendored here; the labels come from OBSERVED
+# behaviour: the recorder's tagged probes were run on the real stack and every label below matches the probe status
+# printed in the results ("extra.runs[].probes"), plus the spec (which operations require the Token security scheme
+# and which are public). Labels were written after looking at the observed statuses and were not tuned toward any score.
+#
+# Result of the observation: this backend enforces object ownership on every mutating article/comment endpoint
+# (other user -> 404 resource not found on PUT/DELETE article; 401 unauthorized action on DELETE comment) and requires
+# a token on all write endpoints. There is NO real authorization failure to find, so the suite has no authz:true
+# "allow" item: it measures false positives (cells where a read or a social action by another user returns 2xx by
+# design) and true negatives (denied cells that are not flagged). Recall is undefined (no expected true positive).
+#
+# Flat subset of YAML (one "- id:" block per item), parsed by the runner.
+#   authz: true  = the cell is a real authorization boundary here (a 2xx would be a failure)
+#   authz: false = a 2xx that is not an authorization failure (a flag here is a false positive)
+#   category: control | quirk
+#     control  forbidden for the caller in this app (a flag here is a false positive)
+#     quirk    2xx that is by design (public read, social action), not an authorization failure
+#   expect: deny (401/403/404) | noop (2xx that is not an authz failure)
+#   probe: step tag in the recorder that exercises the item
+
+# ---- Controls: object ownership is enforced (a flag here is a false positive) ----
+- id: RW-C1-ARTICLE-PUT
+  name: Update of another user's article is refused (404 resource not found)
+  category: control
+  authz: true
+  endpoint: PUT /articles/{slug}
+  relationship: same_role_other_user
+  expect: deny
+  probe: article_put_other
+  source: observed probe status 404 for bob->alice and alice->bob; the app looks the article up by slug AND author id
+
+- id: RW-C2-ARTICLE-DEL
+  name: Delete of another user's article is refused (404 resource not found)
+  category: control
+  authz: true
+  endpoint: DELETE /articles/{slug}
+  relationship: same_role_other_user
+  expect: deny
+  probe: article_del_other
+  source: observed probe status 404 both ways; same lookup by slug and author id
+
+- id: RW-C3-COMMENT-DEL
+  name: Delete of another user's comment is refused (401 unauthorized action)
+  category: control
+  authz: true
+  endpoint: DELETE /articles/{slug}/comments/{id}
+  relationship: same_role_other_user
+  expect: deny
+  probe: comment_del_other
+  source: observed probe status 401 both ways; the handler compares the comment author with the caller
+
+
+# ---- Anonymous callers on endpoints with the Token security scheme (spec) ----
+- id: RW-C4-ARTICLE-PUT-ANON
+  name: Anonymous update of an article is refused
+  category: control
+  authz: true
+  endpoint: PUT /articles/{slug}
+  relationship: anonymous
+  expect: deny
+  probe: article_put_anon
+  source: spec security: Token; observed 401
+
+- id: RW-C5-ARTICLE-DEL-ANON
+  name: Anonymous delete of an article is refused
+  category: control
+  authz: true
+  endpoint: DELETE /articles/{slug}
+  relationship: anonymous
+  expect: deny
+  probe: article_del_anon
+  source: spec security: Token; observed 401
+
+- id: RW-C6-COMMENT-DEL-ANON
+  name: Anonymous delete of a comment is refused
+  category: control
+  authz: true
+  endpoint: DELETE /articles/{slug}/comments/{id}
+  relationship: anonymous
+  expect: deny
+  probe: comment_del_anon
+  source: spec security: Token; observed 401
+
+- id: RW-C7-COMMENT-POST-ANON
+  name: Anonymous comment is refused
+  category: control
+  authz: true
+  endpoint: POST /articles/{slug}/comments
+  relationship: anonymous
+  expect: deny
+  probe: comment_post_anon
+  source: spec security: Token; observed 401
+
+- id: RW-C8-FAVORITE-ANON
+  name: Anonymous favorite is refused
+  category: control
+  authz: true
+  endpoint: POST /articles/{slug}/favorite
+  relationship: anonymous
+  expect: deny
+  probe: favorite_anon
+  source: spec security: Token; observed 401
+
+- id: RW-C9-USER-GET-ANON
+  name: Anonymous read of the current user is refused
+  category: control
+  authz: true
+  endpoint: GET /user
+  relationship: anonymous
+  expect: deny
+  probe: user_get_anon
+  source: spec security: Token; observed 401
+
+- id: RW-C10-USER-PUT-ANON
+  name: Anonymous update of the current user is refused
+  category: control
+  authz: true
+  endpoint: PUT /user
+  relationship: anonymous
+  expect: deny
+  probe: user_put_anon
+  source: spec security: Token; observed 401
+
+- id: RW-C11-FOLLOW-ANON
+  name: Anonymous follow is refused
+  category: control
+  authz: true
+  endpoint: POST /profiles/{username}/follow
+  relationship: anonymous
+  expect: deny
+  probe: follow_anon
+  source: spec security: Token; observed 401
+
+
+# ---- Quirks: 2xx by design, not an authorization failure (a flag here is a false positive) ----
+- id: RW-Q1-ARTICLE-GET
+  name: Articles are public: any user reads any article
+  category: quirk
+  authz: false
+  endpoint: GET /articles/{slug}
+  relationship: same_role_other_user
+  expect: noop
+  probe: article_get_other
+  source: spec: GET /articles/{slug} has no security requirement; observed 200 both ways
+
+- id: RW-Q2-ARTICLE-GET-ANON
+  name: Articles are public: anonymous reads any article
+  category: quirk
+  authz: false
+  endpoint: GET /articles/{slug}
+  relationship: anonymous
+  expect: noop
+  probe: article_get_anon
+  source: spec: no security requirement; observed 200
+
+- id: RW-Q3-COMMENTS-GET
+  name: Comments are public: any user reads them
+  category: quirk
+  authz: false
+  endpoint: GET /articles/{slug}/comments
+  relationship: same_role_other_user
+  expect: noop
+  probe: comments_get_other
+  source: spec: no security requirement; observed 200 both ways
+
+- id: RW-Q4-COMMENTS-GET-ANON
+  name: Comments are public: anonymous reads them
+  category: quirk
+  authz: false
+  endpoint: GET /articles/{slug}/comments
+  relationship: anonymous
+  expect: noop
+  probe: comments_get_anon
+  source: spec: no security requirement; observed 200
+
+- id: RW-Q5-FAVORITE-OTHER
+  name: Favoriting another user's article is the feature (a favorite belongs to the caller, the author's object is unchanged)
+  category: quirk
+  authz: false
+  endpoint: POST /articles/{slug}/favorite
+  relationship: same_role_other_user
+  expect: noop
+  probe: favorite_other
+  source: observed 200 both ways
+
+- id: RW-Q6-UNFAVORITE-OTHER
+  name: Un-favoriting another user's article only changes the caller's own favorite
+  category: quirk
+  authz: false
+  endpoint: DELETE /articles/{slug}/favorite
+  relationship: same_role_other_user
+  expect: noop
+  probe: unfavorite_other
+  source: observed 200 both ways; a no-op for the author
+
+- id: RW-Q7-COMMENT-POST-OTHER
+  name: Commenting on another user's article is the feature (the comment belongs to the commenter)
+  category: quirk
+  authz: false
+  endpoint: POST /articles/{slug}/comments
+  relationship: same_role_other_user
+  expect: noop
+  probe: comment_post_other
+  source: observed 201 both ways

@@ -4,7 +4,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 LDFLAGS := -s -w -X authzcov/internal/cli.version=$(VERSION) -X authzcov/internal/cli.commit=$(COMMIT)
 
-.PHONY: build test lint vet vuln fuzz golden check check-offline hooks clean bench e2e fixturecheck gif eval eval-tenantshop eval-vampi eval-crapi eval-scaling
+.PHONY: build test lint vet vuln fuzz golden check check-offline hooks clean bench e2e fixturecheck gif eval eval-tenantshop eval-vampi eval-crapi eval-realworld eval-scaling
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN) ./cmd/authzcov
@@ -69,7 +69,7 @@ gif:
 	vhs docs/demo.tape
 
 # Validation benchmark (KAN-90): writes eval/results/*.json. Needs docker for the VAmPI and crAPI suites.
-eval: eval-tenantshop eval-vampi eval-crapi eval-scaling
+eval: eval-tenantshop eval-vampi eval-crapi eval-realworld eval-scaling
 
 # Seeded mutants and recorder ablation on tenantshop (in-process, no docker).
 eval-tenantshop:
@@ -91,3 +91,10 @@ eval-crapi:
 	@docker compose version >/dev/null 2>&1 || { echo "the docker compose plugin is missing: eval-crapi needs it" >&2; exit 1; }
 	cd e2e/thirdparty/crapi && go vet ./... && go test ./...
 	e2e/thirdparty/crapi/run.sh
+
+# RealWorld/Conduit (third-party echo backend + socat relay, digest-pinned compose stack, about 1 minute; needs the compose plugin).
+eval-realworld:
+	@docker info >/dev/null 2>&1 || { echo "docker is missing or not running: eval-realworld needs docker (run 'make eval-tenantshop' for the docker-free suites)" >&2; exit 1; }
+	@docker compose version >/dev/null 2>&1 || { echo "the docker compose plugin is missing: eval-realworld needs it" >&2; exit 1; }
+	cd e2e/thirdparty/realworld && go vet ./... && go test ./...
+	e2e/thirdparty/realworld/run.sh

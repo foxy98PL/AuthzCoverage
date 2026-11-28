@@ -1,0 +1,472 @@
+{
+  "app": {
+    "image_digest": "sha256:5e2b511c6f77a592aeb260562c8f1b86babe3aba8399ca96fd07c905235b682a",
+    "name": "RealWorld",
+    "version": "kivio/golang-echo-realworld (RealWorld API spec, openapi.yaml)"
+  },
+  "authzcov": {
+    "commit": "2abae66",
+    "version": "v0.1.0-rc.2-44-g2abae66-dirty"
+  },
+  "cases": [
+    {
+      "id": "attack/RW-C1-ARTICLE-PUT",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status bob:404,alice:404) and not flagged"
+    },
+    {
+      "id": "attack/RW-C10-USER-PUT-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/RW-C11-FOLLOW-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/RW-C2-ARTICLE-DEL",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status bob:404,alice:404) and not flagged"
+    },
+    {
+      "id": "attack/RW-C3-COMMENT-DEL",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status bob:401,alice:401) and not flagged"
+    },
+    {
+      "id": "attack/RW-C4-ARTICLE-PUT-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/RW-C5-ARTICLE-DEL-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/RW-C6-COMMENT-DEL-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/RW-C7-COMMENT-POST-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/RW-C8-FAVORITE-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/RW-C9-USER-GET-ANON",
+      "kind": "control",
+      "expected": [],
+      "flagged": [],
+      "result": "tn",
+      "reason": "denied by RealWorld (probe status anonymous:401) and not flagged"
+    },
+    {
+      "id": "attack/RW-Q1-ARTICLE-GET",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "GET /articles/{slug}",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but this is not an authorization failure: Articles are public: any user reads any article (probe status bob:200,alice:200; bob received 200 for an object owned by alice (and 1 more))"
+    },
+    {
+      "id": "attack/RW-Q2-ARTICLE-GET-ANON",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "GET /articles/{slug}",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but this is not an authorization failure: Articles are public: anonymous reads any article (probe status anonymous:200; anonymous received 200 for an object owned by alice)"
+    },
+    {
+      "id": "attack/RW-Q3-COMMENTS-GET",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "GET /articles/{slug}/comments",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but this is not an authorization failure: Comments are public: any user reads them (probe status bob:200,alice:200; bob received 200 for an object owned by alice (and 1 more))"
+    },
+    {
+      "id": "attack/RW-Q4-COMMENTS-GET-ANON",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "GET /articles/{slug}/comments",
+          "relationship": "anonymous"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but this is not an authorization failure: Comments are public: anonymous reads them (probe status anonymous:200; anonymous received 200 for an object owned by alice)"
+    },
+    {
+      "id": "attack/RW-Q5-FAVORITE-OTHER",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "POST /articles/{slug}/favorite",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but this is not an authorization failure: Favoriting another user's article is the feature (a favorite belongs to the caller, the author's object is unchanged) (probe status bob:200,alice:200; bob received 200 for an object owned by alice (and 1 more))"
+    },
+    {
+      "id": "attack/RW-Q6-UNFAVORITE-OTHER",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "DELETE /articles/{slug}/favorite",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but this is not an authorization failure: Un-favoriting another user's article only changes the caller's own favorite (probe status bob:200,alice:200; bob received 200 for an object owned by alice (and 1 more))"
+    },
+    {
+      "id": "attack/RW-Q7-COMMENT-POST-OTHER",
+      "kind": "quirk",
+      "expected": [],
+      "flagged": [
+        {
+          "endpoint": "POST /articles/{slug}/comments",
+          "relationship": "same_role_other_user"
+        }
+      ],
+      "result": "fp",
+      "reason": "flagged, but this is not an authorization failure: Commenting on another user's article is the feature (the comment belongs to the commenter) (probe status bob:201,alice:201; bob received 201 for an object owned by alice (and 1 more))"
+    }
+  ],
+  "extra": {
+    "image_order": [
+      "alpine/socat",
+      "kivio/golang-echo-realworld"
+    ],
+    "images": {
+      "alpine/socat": "sha256:c95c67c1b4860a195bb2ea1351cb8388e1ec1bf4636633ccac7e0d19661ed5fe",
+      "kivio/golang-echo-realworld": "sha256:5e2b511c6f77a592aeb260562c8f1b86babe3aba8399ca96fd07c905235b682a"
+    },
+    "note": "tp/fn in honest runs = gap reported yes/no; attack runs = suspicious_allow vs ground truth; tn/fp only meaningful for expected-deny/not-authz cells; one fresh RealWorld stack per suite",
+    "runs": [
+      {
+        "name": "honest",
+        "suite": "honest",
+        "har_entries": 63,
+        "coverage_percent": 31.4,
+        "required": 51,
+        "covered": 16,
+        "suspicious_allow": [],
+        "summary": {
+          "fn": 0,
+          "fp": 0,
+          "out_of_scope": 0,
+          "precision": null,
+          "recall": null,
+          "tn": 0,
+          "tp": 0
+        }
+      },
+      {
+        "name": "attack",
+        "suite": "attack",
+        "har_entries": 89,
+        "coverage_percent": 66.7,
+        "required": 51,
+        "covered": 34,
+        "suspicious_allow": [
+          {
+            "endpoint": "DELETE /articles/{slug}/favorite",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "GET /articles/{slug}",
+            "relationship": "anonymous"
+          },
+          {
+            "endpoint": "GET /articles/{slug}",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "GET /articles/{slug}/comments",
+            "relationship": "anonymous"
+          },
+          {
+            "endpoint": "GET /articles/{slug}/comments",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "POST /articles/{slug}/comments",
+            "relationship": "same_role_other_user"
+          },
+          {
+            "endpoint": "POST /articles/{slug}/favorite",
+            "relationship": "same_role_other_user"
+          }
+        ],
+        "probes": [
+          {
+            "tag": "article_get_other",
+            "who": "bob",
+            "method": "GET",
+            "path": "/api/articles/article-of-alice",
+            "status": 200
+          },
+          {
+            "tag": "article_get_other",
+            "who": "alice",
+            "method": "GET",
+            "path": "/api/articles/article-of-bob",
+            "status": 200
+          },
+          {
+            "tag": "article_get_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/api/articles/article-of-alice",
+            "status": 200
+          },
+          {
+            "tag": "comments_get_other",
+            "who": "bob",
+            "method": "GET",
+            "path": "/api/articles/article-of-alice/comments",
+            "status": 200
+          },
+          {
+            "tag": "comments_get_other",
+            "who": "alice",
+            "method": "GET",
+            "path": "/api/articles/article-of-bob/comments",
+            "status": 200
+          },
+          {
+            "tag": "comments_get_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/api/articles/article-of-alice/comments",
+            "status": 200
+          },
+          {
+            "tag": "article_put_other",
+            "who": "bob",
+            "method": "PUT",
+            "path": "/api/articles/article-of-alice",
+            "status": 404
+          },
+          {
+            "tag": "article_put_other",
+            "who": "alice",
+            "method": "PUT",
+            "path": "/api/articles/article-of-bob",
+            "status": 404
+          },
+          {
+            "tag": "article_put_anon",
+            "who": "anonymous",
+            "method": "PUT",
+            "path": "/api/articles/article-of-alice",
+            "status": 401
+          },
+          {
+            "tag": "favorite_other",
+            "who": "bob",
+            "method": "POST",
+            "path": "/api/articles/article-of-alice/favorite",
+            "status": 200
+          },
+          {
+            "tag": "favorite_other",
+            "who": "alice",
+            "method": "POST",
+            "path": "/api/articles/article-of-bob/favorite",
+            "status": 200
+          },
+          {
+            "tag": "unfavorite_other",
+            "who": "bob",
+            "method": "DELETE",
+            "path": "/api/articles/article-of-alice/favorite",
+            "status": 200
+          },
+          {
+            "tag": "unfavorite_other",
+            "who": "alice",
+            "method": "DELETE",
+            "path": "/api/articles/article-of-bob/favorite",
+            "status": 200
+          },
+          {
+            "tag": "favorite_anon",
+            "who": "anonymous",
+            "method": "POST",
+            "path": "/api/articles/article-of-alice/favorite",
+            "status": 401
+          },
+          {
+            "tag": "comment_post_other",
+            "who": "bob",
+            "method": "POST",
+            "path": "/api/articles/article-of-alice/comments",
+            "status": 201
+          },
+          {
+            "tag": "comment_post_other",
+            "who": "alice",
+            "method": "POST",
+            "path": "/api/articles/article-of-bob/comments",
+            "status": 201
+          },
+          {
+            "tag": "comment_post_anon",
+            "who": "anonymous",
+            "method": "POST",
+            "path": "/api/articles/article-of-alice/comments",
+            "status": 401
+          },
+          {
+            "tag": "user_get_anon",
+            "who": "anonymous",
+            "method": "GET",
+            "path": "/api/user",
+            "status": 401
+          },
+          {
+            "tag": "user_put_anon",
+            "who": "anonymous",
+            "method": "PUT",
+            "path": "/api/user",
+            "status": 401
+          },
+          {
+            "tag": "follow_anon",
+            "who": "anonymous",
+            "method": "POST",
+            "path": "/api/profiles/alice/follow",
+            "status": 401
+          },
+          {
+            "tag": "comment_del_other",
+            "who": "bob",
+            "method": "DELETE",
+            "path": "/api/articles/article-of-alice/comments/2",
+            "status": 401
+          },
+          {
+            "tag": "comment_del_other",
+            "who": "alice",
+            "method": "DELETE",
+            "path": "/api/articles/article-of-bob/comments/4",
+            "status": 401
+          },
+          {
+            "tag": "comment_del_anon",
+            "who": "anonymous",
+            "method": "DELETE",
+            "path": "/api/articles/article-of-alice/comments/2",
+            "status": 401
+          },
+          {
+            "tag": "article_del_other",
+            "who": "bob",
+            "method": "DELETE",
+            "path": "/api/articles/article-of-alice",
+            "status": 404
+          },
+          {
+            "tag": "article_del_other",
+            "who": "alice",
+            "method": "DELETE",
+            "path": "/api/articles/article-of-bob",
+            "status": 404
+          },
+          {
+            "tag": "article_del_anon",
+            "who": "anonymous",
+            "method": "DELETE",
+            "path": "/api/articles/article-of-alice",
+            "status": 401
+          }
+        ],
+        "summary": {
+          "fn": 0,
+          "fp": 7,
+          "out_of_scope": 0,
+          "precision": 0,
+          "recall": null,
+          "tn": 11,
+          "tp": 0
+        }
+      }
+    ]
+  },
+  "generated_at": "2026-11-28T10:17:45Z",
+  "machine": {
+    "arch": "amd64",
+    "cpus": 20,
+    "go_version": "go1.27.4",
+    "os": "linux"
+  },
+  "schema_version": 1,
+  "suite": "realworld",
+  "summary": {
+    "fn": 0,
+    "fp": 7,
+    "out_of_scope": 0,
+    "precision": 0,
+    "recall": null,
+    "tn": 11,
+    "tp": 0
+  }
+}

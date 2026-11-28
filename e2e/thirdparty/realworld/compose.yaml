@@ -1,0 +1,18 @@
+# RealWorld ("Conduit") backend for the authzcov evaluation: kivio/golang-echo-realworld (Go, echo, sqlite, 2019),
+# a community implementation of the official RealWorld API spec (openapi.yaml, next to this file).
+#   - the app listens on 127.0.0.1:8585 INSIDE its container only, so a published port cannot reach it. The socat
+#     sidecar shares the app's network namespace and relays 0.0.0.0:8080 -> 127.0.0.1:8585; port 8080 of the
+#     app service is published (the namespace belongs to it) on a random 127.0.0.1 port.
+#   - both images pinned by digest; no volumes (sqlite lives in the container, `down -v` removes it).
+services:
+  app:
+    image: kivio/golang-echo-realworld@sha256:5e2b511c6f77a592aeb260562c8f1b86babe3aba8399ca96fd07c905235b682a
+    ports:
+      - "127.0.0.1::8080"
+
+  relay:
+    image: alpine/socat@sha256:c95c67c1b4860a195bb2ea1351cb8388e1ec1bf4636633ccac7e0d19661ed5fe
+    network_mode: "service:app"
+    command: ["TCP-LISTEN:8080,fork,reuseaddr,bind=0.0.0.0", "TCP:127.0.0.1:8585"]
+    depends_on:
+      - app

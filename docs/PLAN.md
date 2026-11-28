@@ -152,3 +152,4 @@ Not delegable (owner only): G1/E3 employment IP check, Gate A practitioner outre
 14. Tenancy: a caller with no tenant vs a known object tenant → other_tenant (only `*` is exempt). Note DOC-03 said `""` = global; conflict to decide.
 15. coverage.json: same HAR → byte-identical; reordered HAR changes only har sha256 + evidence refs. Percent is rounded like the table's %.1f.
 12. JSON Schema is shipped for editors only; validation stays in the Go validator (a JSON Schema library would be a new dependency).
+- KAN-12 RealWorld backend: kivio/golang-echo-realworld (Go echo, sqlite; the only maintained-enough image that enforces article/comment ownership and speaks the official RealWorld spec), digest-pinned, behind a socat sidecar (the app binds 127.0.0.1 inside its container); suite in e2e/thirdparty/realworld, ground truth from observed probes (no real authz bug exists: measures fp/tn only).

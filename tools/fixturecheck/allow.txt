@@ -18,6 +18,7 @@ CLAUDE.md host:github.com repo/project link
 CONTRIBUTING.md host:github.com repo/project link
 CONTRIBUTING.md host:www.conventionalcommits.org doc link
 LICENSE host:www.apache.org Apache-2.0 license text
+THIRD_PARTY_LICENSES host:www.apache.org Apache-2.0 license text (bundled dep licences)
 Makefile host:github.com repo/project link
 NOTICE host:github.com repo/project link
 README.md host:github.com repo/project link
@@ -38,6 +39,9 @@ e2e/thirdparty/crapi/compose.yaml host:api.mypremiumdealership.com crAPI upstrea
 e2e/thirdparty/crapi/openapi.json host:github.com repo/project link
 e2e/thirdparty/crapi/recorder.go host:crapi-workshop docker-compose service name of crAPI test app
 e2e/thirdparty/crapi/recorder_test.go host:x synthetic placeholder host in test code
+e2e/thirdparty/realworld/openapi.yaml host:realworld-docs.netlify.app official RealWorld API spec (unmodified) link
+e2e/thirdparty/realworld/openapi.yaml host:opensource.org official RealWorld API spec (unmodified) licence link
+e2e/thirdparty/realworld/openapi.yaml host:api.realworld.show official RealWorld API spec (unmodified) server url
 eval/schema/result.v1.json host:json-schema.org JSON Schema meta-schema URI
 internal/cli/bench_test.go host:x synthetic placeholder host in test code
 internal/ingest/har/har_test.go host:h synthetic placeholder host in test code

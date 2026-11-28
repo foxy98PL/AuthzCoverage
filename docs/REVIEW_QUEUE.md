@@ -14,3 +14,4 @@ Status: `queued` → `in review` → `passed` | `findings` → (fixed) `passed`.
 | KAN-94 | internal/{plan,cli/export*.go}, docs/plan.md, README | Jira KAN-94 (option A, hint, hash-miss note) | reviewed (Haiku), F1/F2/F4 fixed; F3/F5 left |
 | KAN-104 | internal/{model,spec,ingest/har,cli/pipeline.go}, docs/identities.md, e2e/thirdparty/crapi | Jira KAN-104 (object_param on in:query) | reviewed (Sonnet), F1-F3 fixed |
 | KAN-91 | bounded memory (uncommitted, base 09d70c0) | reviewer running | notes/KAN-91-review.md |
+| KAN-12 | e2e/thirdparty/realworld, Makefile, docs/PLAN.md | Jira KAN-12 (RealWorld harness, notes/KAN-12-impl.md) | reviewer running, base 13dae128dc0ab3b4dfc8f7990c09c9782ac68233 |
