@@ -94,3 +94,7 @@ Every byte the orchestrator sees is re-read on every later turn.
 - `trim-output.py` (PreToolUse Bash): see §4.
 - `context-warn.py` (PostToolUse): orchestrator warned at 120k, then every 15k from 150k; subagents at 80k, then
   every 20k from 100k. At the restart warning follow §0.
+- `permissions.deny` removes unused built-in tools (Artifact, ScheduleWakeup, ReportFindings, ListAgents) and
+  built-in agent types (general-purpose, claude, Explore, Plan, claude-code-guide, statusline-setup, web-fetch)
+  from every prompt; `skillOverrides` hides unused skills (still typable as /name). Need one for a session?
+  Remove its deny line locally, don't work around it.

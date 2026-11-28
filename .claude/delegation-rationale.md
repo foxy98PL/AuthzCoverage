@@ -19,5 +19,8 @@ Not loaded at startup. Grep here when a rule in `.claude/delegation-rules.md` ne
 - **Jira echoes:** a transition, create or `getJiraIssue` echoes the full issue (~4–5k chars), and writes take no
   `responseFields`. One Sonnet session's 19 transitions + 22 creates returned 121k chars (~30k tokens) that stayed
   in context for every later turn (2026-11-28). → one batch at the end, run by the Haiku `jira` agent.
+- **Startup floor:** the orchestrator's first turn was 32–41k (2026-11-28), mostly built-in tool, agent-type and
+  skill descriptions it never uses; each turn re-reads it. Estimated 7–9k saved by the deny list and skill
+  overrides → §8. Verify: first-turn usage of the next session (baseline 32k).
 - **Restart threshold:** a reload costs ~45k. Restart at 150k → average context per turn ≈ 97k; at 100k ≈ 72k.
   Owner chose 150k (2026-11-28) for fewer interruptions.

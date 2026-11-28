@@ -2,6 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(git push origin main)"
+    ],
+    "deny": [
+      "Artifact",
+      "ScheduleWakeup",
+      "ReportFindings",
+      "ListAgents",
+      "Agent(general-purpose)",
+      "Agent(claude)",
+      "Agent(Explore)",
+      "Agent(Plan)",
+      "Agent(claude-code-guide)",
+      "Agent(statusline-setup)",
+      "Agent(web-fetch)"
     ]
   },
   "hooks": {
@@ -57,6 +70,19 @@
     "claude-approvals": "user-invocable-only",
     "plugin-authoring": "user-invocable-only",
     "keybindings-help": "user-invocable-only",
-    "schedule": "user-invocable-only"
+    "schedule": "user-invocable-only",
+    "artifact-design": "user-invocable-only",
+    "artifact-diagramming": "user-invocable-only",
+    "artifact-capabilities": "user-invocable-only",
+    "loop": "user-invocable-only",
+    "run": "user-invocable-only",
+    "init": "user-invocable-only",
+    "simplify": "user-invocable-only",
+    "ship-local": "user-invocable-only",
+    "steward": "user-invocable-only",
+    "fewer-permission-prompts": "user-invocable-only",
+    "anthropic-skills:deep-research": "user-invocable-only",
+    "update-config": "user-invocable-only",
+    "security-review": "user-invocable-only"
   }
 }
