@@ -1,5 +1,5 @@
 # Session 1 — Query-param object IDs and review leftovers
-Status: planned
+Status: done
 Budget: ~75k of ~100k
 Depends on: none (crAPI groundtruth check needs a Docker run, see Owner / blocked)
 
